@@ -8,9 +8,13 @@ import (
 	"github.com/ChiaYuChang/agentplaybook/internal/cli"
 )
 
-var version = detectVersion()
+var version string
 
 func main() {
+	if version == "" {
+		version = detectVersion()
+	}
+
 	if err := cli.Execute(os.Args[1:], os.Stdout, os.Stderr, version); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
