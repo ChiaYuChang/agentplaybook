@@ -66,11 +66,11 @@ Commit message format:
   - [x] Add error handling for unknown rule IDs
   - [x] Add unit tests in `internal/cli/rule_test.go`
 
-- [ ] feat(scripts): implement developer wrapper script with caching and dev overrides
-  - [ ] Add `scripts/VERSION` specifying CLI version
-  - [ ] Add `scripts/run-workflow.sh` supporting cache directory management (`~/.cache/workflow/<version>`) and `WORKFLOW_DEV=1` local dev override
-  - [ ] Ensure executable permissions (`chmod +x scripts/run-workflow.sh`)
-  - [ ] Verify local compilation via `go build -o bin/workflow main.go`
+- [x] feat(scripts): implement developer wrapper script with caching and dev overrides
+  - [x] Add `scripts/VERSION` specifying CLI version
+  - [x] Add `scripts/run-workflow.sh` supporting cache directory management (`~/.cache/workflow/<version>`) and `WORKFLOW_DEV=1` local dev override
+  - [x] Ensure executable permissions (`chmod +x scripts/run-workflow.sh`)
+  - [x] Verify local compilation via `go build -o bin/workflow main.go`
 
 - [ ] test(cli): add golden integration tests across the complete CLI command tree
   - [ ] Implement golden tests in `internal/cli/golden_test.go` verifying output stability
