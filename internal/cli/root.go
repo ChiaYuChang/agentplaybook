@@ -82,6 +82,7 @@ func NewRootCmd(k *knowledge.Knowledge, version string) *cobra.Command {
 	cmd.Flags().BoolVarP(&flagVersion, "version", "v", false, "Show CLI version")
 
 	cmd.AddCommand(NewRoleCmd(k))
+	cmd.AddCommand(NewFlowCmd(k))
 
 	return cmd
 }

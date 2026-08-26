@@ -46,12 +46,12 @@ Commit message format:
   - [x] Add error handling and exit status 1 for unknown role names
   - [x] Add unit tests in `internal/cli/role_test.go`
 
-- [ ] feat(cli): implement flow query command with step isolation and tests
-  - [ ] Implement bare `workflow flow` discovery catalog listing the 4 available flows and summaries
-  - [ ] Implement `workflow flow <name>` full JSON flow retrieval
-  - [ ] Implement `--step <index>` flag to retrieve a single isolated `FlowStep`
-  - [ ] Add error handling for unknown flows and invalid/out-of-range step indices
-  - [ ] Add unit tests in `internal/cli/flow_test.go`
+- [x] feat(cli): implement flow query command with step isolation and tests
+  - [x] Implement bare `workflow flow` discovery catalog listing the 4 available flows and summaries
+  - [x] Implement `workflow flow <name>` full JSON flow retrieval
+  - [x] Implement `--step <index>` flag to retrieve a single isolated `FlowStep`
+  - [x] Add error handling for unknown flows and invalid/out-of-range step indices
+  - [x] Add unit tests in `internal/cli/flow_test.go`
 
 - [ ] feat(cli): implement artifact contract query command and tests
   - [ ] Implement bare `workflow artifact` discovery catalog listing all 4 artifacts, owners, and types
