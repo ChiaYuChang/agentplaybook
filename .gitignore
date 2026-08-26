@@ -33,4 +33,5 @@ go.work.sum
 
 # Ephemeral communication buffers and scratch files
 tmp/
+plan/
 
