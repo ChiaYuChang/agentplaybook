@@ -31,13 +31,13 @@ Commit message format:
   - [x] Implement query lookup helpers in `internal/knowledge/query.go`
   - [x] Add unit tests in `internal/knowledge/knowledge_test.go` verifying loading and validation
 
-- [ ] feat(cli): implement root command, entrypoint, and global flag handlers
-  - [ ] Initialize Cobra root command in `internal/cli/root.go` with `SilenceUsage: true` and `SilenceErrors: true`
-  - [ ] Create `main.go` entrypoint connecting to `cli.Execute()`
-  - [ ] Implement mutually-exclusive `--language`, `--transport`, and `--version` flags
-  - [ ] Implement output formatting helpers in `internal/cli/output.go` (structured JSON for data queries, clean text for discovery)
-  - [ ] Ensure bare `workflow` invocation outputs a concise discovery catalog with exit status 0
-  - [ ] Add unit tests in `internal/cli/root_test.go`
+- [x] feat(cli): implement root command, entrypoint, and global flag handlers
+  - [x] Initialize Cobra root command in `internal/cli/root.go` with `SilenceUsage: true` and `SilenceErrors: true`
+  - [x] Create `main.go` entrypoint connecting to `cli.Execute()`
+  - [x] Implement mutually-exclusive `--language`, `--transport`, and `--version` flags
+  - [x] Implement output formatting helpers in `internal/cli/output.go` (structured JSON for data queries, clean text for discovery)
+  - [x] Ensure bare `workflow` invocation outputs a concise discovery catalog with exit status 0
+  - [x] Add unit tests in `internal/cli/root_test.go`
 
 - [ ] feat(cli): implement role query command with selector flags and tests
   - [ ] Implement bare `workflow role` discovery catalog listing available roles and summaries
