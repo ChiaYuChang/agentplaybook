@@ -5,7 +5,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/ChiaYuChang/workflow/internal/cli"
+	"github.com/ChiaYuChang/agentplaybook/internal/cli"
 )
 
 var version = detectVersion()

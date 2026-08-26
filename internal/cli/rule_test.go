@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ChiaYuChang/workflow/internal/cli"
-	"github.com/ChiaYuChang/workflow/internal/knowledge"
+	"github.com/ChiaYuChang/agentplaybook/internal/cli"
+	"github.com/ChiaYuChang/agentplaybook/internal/knowledge"
 )
 
 func TestRule_BareDiscovery(t *testing.T) {

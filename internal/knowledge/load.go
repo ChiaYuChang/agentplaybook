@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ChiaYuChang/workflow/internal/data"
+	"github.com/ChiaYuChang/agentplaybook/internal/data"
 )
 
 // Load unmarshals the embedded JSON datasets, indexes them into maps, validates all cross-references,

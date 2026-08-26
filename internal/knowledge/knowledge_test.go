@@ -3,7 +3,7 @@ package knowledge_test
 import (
 	"testing"
 
-	"github.com/ChiaYuChang/workflow/internal/knowledge"
+	"github.com/ChiaYuChang/agentplaybook/internal/knowledge"
 )
 
 func TestLoad_Success(t *testing.T) {

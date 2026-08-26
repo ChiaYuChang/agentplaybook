@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ChiaYuChang/workflow/internal/knowledge"
+	"github.com/ChiaYuChang/agentplaybook/internal/knowledge"
 	"github.com/spf13/cobra"
 )
 

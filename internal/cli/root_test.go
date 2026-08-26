@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ChiaYuChang/workflow/internal/cli"
+	"github.com/ChiaYuChang/agentplaybook/internal/cli"
 )
 
 func TestRoot_BareDiscovery(t *testing.T) {

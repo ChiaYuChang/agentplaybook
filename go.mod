@@ -1,4 +1,4 @@
-module github.com/ChiaYuChang/workflow
+module github.com/ChiaYuChang/agentplaybook
 
 go 1.26.6
 
