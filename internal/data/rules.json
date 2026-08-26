@@ -93,26 +93,25 @@
     "id": "ephemeral-communication-buffers",
     "title": "Ephemeral Communication Buffer Storage",
     "category": "operational",
-    "summary": "Intermediate communication exchanges exceeding terminal buffers must use tmp/ scratch storage.",
-    "details": "In-flight communications such as orientation questions, alignment rounds, and detailed review findings are ephemeral messages. When terminal display limitations or transport limits require file buffering, agents must write them to tmp/ to prevent repository clutter.",
+    "summary": "Intermediate communication exchanges exceeding terminal buffers should prefer transport-native messages or already-ignored scratch storage.",
+    "details": "In-flight communications such as orientation questions, alignment rounds, and detailed review findings are ephemeral messages. Prefer transport-native messages whenever possible. When buffering is necessary due to terminal display limitations or transport limits, prefer an existing already-ignored scratch directory; otherwise use a unique temporary directory in the OS /tmp directory.",
     "guidelines": [
-      "Ensure tmp/ directory exists before buffering intermediate messages.",
-      "Store transient communication exchanges in tmp/ (e.g. tmp/inquiry-<role>.md or tmp/review-findings.md).",
-      "Never commit or track files in tmp/ under version control.",
-      "Ensure tmp/ is ignored in .gitignore."
+      "Prefer transport-native messages for in-flight communication.",
+      "If buffering is necessary, prefer an existing already-ignored scratch directory (for example, tmp/<task-id>/).",
+      "If no suitable ignored scratch directory exists, create a unique temporary directory with mktemp -d /tmp/agentplaybook-XXXXXX.",
+      "Strictly prohibit modifying .git/, .git/info/exclude, or .gitignore solely for communication buffering.",
+      "Never commit or track files in scratch directories."
     ]
   },
   {
     "id": "event-driven-transport-coordination",
     "title": "Event-Driven Transport Coordination",
     "category": "operational",
-    "summary": "Agents coordinating over Herdr must use native event-driven waiting (herdr agent wait or prompt --wait) instead of sleep polling loops.",
+    "summary": "Agents coordinating over Herdr must use native event-driven lifecycle waits instead of sleep polling loops.",
     "details": "Polling loops with sleep waste thousands of context tokens on repetitive screen and TUI captures. When coordinating across agents in Herdr, agents must leverage Herdr socket-driven lifecycle events.",
     "guidelines": [
       "Strictly prohibit sleep loops and periodic screen polling when waiting on other agents.",
-      "Use 'herdr agent wait <target> [--timeout <ms>]' for socket-driven synchronous lifecycle waits that eliminate polling.",
-      "Use 'herdr agent prompt <target> <text> --wait' to dispatch work synchronously.",
-      "Use 'herdr pane wait-output <pane_id> (--match <text> | --regex <pattern>)' when waiting on specific output strings."
+      "Use transport-native lifecycle waits to coordinate agent work, and consult the applicable transport skill for exact CLI syntax."
     ]
   }
 ]
