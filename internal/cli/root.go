@@ -83,6 +83,7 @@ func NewRootCmd(k *knowledge.Knowledge, version string) *cobra.Command {
 
 	cmd.AddCommand(NewRoleCmd(k))
 	cmd.AddCommand(NewFlowCmd(k))
+	cmd.AddCommand(NewArtifactCmd(k))
 
 	return cmd
 }

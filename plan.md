@@ -53,11 +53,11 @@ Commit message format:
   - [x] Add error handling for unknown flows and invalid/out-of-range step indices
   - [x] Add unit tests in `internal/cli/flow_test.go`
 
-- [ ] feat(cli): implement artifact contract query command and tests
-  - [ ] Implement bare `workflow artifact` discovery catalog listing all 4 artifacts, owners, and types
-  - [ ] Implement `workflow artifact <name>` retrieval displaying path, visibility, and required sections/fields
-  - [ ] Add error handling for unknown artifact names
-  - [ ] Add unit tests in `internal/cli/artifact_test.go`
+- [x] feat(cli): implement artifact contract query command and tests
+  - [x] Implement bare `workflow artifact` discovery catalog listing all 4 artifacts, owners, and types
+  - [x] Implement `workflow artifact <name>` retrieval displaying path, visibility, and required sections/fields
+  - [x] Add error handling for unknown artifact names
+  - [x] Add unit tests in `internal/cli/artifact_test.go`
 
 - [ ] feat(cli): implement rule query command with explain support and tests
   - [ ] Implement bare `workflow rule` discovery catalog
