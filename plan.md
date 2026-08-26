@@ -72,11 +72,11 @@ Commit message format:
   - [x] Ensure executable permissions (`chmod +x scripts/run-workflow.sh`)
   - [x] Verify local compilation via `go build -o bin/workflow main.go`
 
-- [ ] test(cli): add golden integration tests across the complete CLI command tree
-  - [ ] Implement golden tests in `internal/cli/golden_test.go` verifying output stability
-  - [ ] Verify discovery commands consistently return exit status 0
-  - [ ] Verify invalid queries return exit status 1 without usage dumps
-  - [ ] Verify full test suite passes via `go test ./...`
+- [x] test(cli): add golden integration tests across the complete CLI command tree
+  - [x] Implement golden tests in `internal/cli/golden_test.go` verifying output stability
+  - [x] Verify discovery commands consistently return exit status 0
+  - [x] Verify invalid queries return exit status 1 without usage dumps
+  - [x] Verify full test suite passes via `go test ./...`
 
 - [ ] docs(skill): rewrite SKILL.md into thin progressive disclosure protocol guide
   - [ ] Rewrite root `SKILL.md` into a role-neutral ~70-line protocol guide
