@@ -81,10 +81,10 @@
     "id": "repo-context-storage",
     "title": "Persistent Repository Context Storage",
     "category": "operational",
-    "summary": "Repository-level orientation artifacts are stored in .workflow/context/.",
+    "summary": "Repository-level orientation artifacts are stored in .agentplaybook/context/.",
     "details": "Repository orientation established in the init flow is durable across tasks in the same workspace and stored separately from task-specific plans.",
     "guidelines": [
-      "Store finalized repository overview at .workflow/context/repository.md.",
+      "Store finalized repository overview at .agentplaybook/context/repository.md.",
       "The repository overview remains valid for subsequent tasks until architectural, build-system, or structural changes make it materially stale.",
       "Rerun the init flow to refresh repository context when material divergence is detected."
     ]

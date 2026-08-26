@@ -18,7 +18,7 @@ func TestRoot_BareDiscovery(t *testing.T) {
 	}
 
 	out := stdout.String()
-	if !strings.Contains(out, "workflow - Multi-Agent Collaboration Manual CLI") {
+	if !strings.Contains(out, "agentplaybook - Multi-Agent Collaboration Manual CLI") {
 		t.Errorf("unexpected bare output: %s", out)
 	}
 	if !strings.Contains(out, "Knowledge Domains:") {

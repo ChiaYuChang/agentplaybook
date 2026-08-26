@@ -9,7 +9,7 @@
       "builder",
       "reviewer"
     ],
-    "path": ".workflow/context/repository.md",
+    "path": ".agentplaybook/context/repository.md",
     "type": "document",
     "sections": [
       {
@@ -46,7 +46,8 @@
     "owner": "planner",
     "visibility": [
       "planner",
-      "builder"
+      "builder",
+      "reviewer"
     ],
     "path": "plan/{timestamp}/{slug}.plan.md",
     "path_variables": {
@@ -131,7 +132,8 @@
     "description": "Structured findings reported by Reviewer to Planner upon identifying review issues.",
     "owner": "reviewer",
     "visibility": [
-      "planner"
+      "planner",
+      "builder"
     ],
     "type": "message",
     "fields": [

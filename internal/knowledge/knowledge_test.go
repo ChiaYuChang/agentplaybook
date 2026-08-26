@@ -67,6 +67,25 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("expected non-existent flow to return false")
 	}
 
+	// Regression check: review flow has 8 steps and step 7 redirects to step 8
+	reviewFlow, _ := k.Flow("review")
+	if len(reviewFlow.Steps) != 8 {
+		t.Errorf("expected 8 steps in review flow, got %d", len(reviewFlow.Steps))
+	}
+	step7, _ := k.FlowStep("review", 7)
+	foundPlanUpdate := false
+	for _, c := range step7.Conditions {
+		if c.When == "PLAN_UPDATE_REQUIRED" {
+			foundPlanUpdate = true
+			if c.Then != 8 {
+				t.Errorf("expected PLAN_UPDATE_REQUIRED to point to step 8, got %d", c.Then)
+			}
+		}
+	}
+	if !foundPlanUpdate {
+		t.Errorf("expected PLAN_UPDATE_REQUIRED condition on review step 7")
+	}
+
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
 	if len(artifacts) != 4 {
@@ -80,6 +99,16 @@ func TestLoad_Success(t *testing.T) {
 		if a.Name != expected {
 			t.Errorf("expected artifact name %q, got %q", expected, a.Name)
 		}
+	}
+
+	// Regression check: build-plan and review-findings visibility
+	buildPlan, _ := k.Artifact("build-plan")
+	if len(buildPlan.Visibility) != 3 {
+		t.Errorf("expected build-plan visibility to have 3 roles, got %v", buildPlan.Visibility)
+	}
+	reviewFindings, _ := k.Artifact("review-findings")
+	if len(reviewFindings.Visibility) != 2 {
+		t.Errorf("expected review-findings visibility to have 2 roles, got %v", reviewFindings.Visibility)
 	}
 
 	// 5. Verify Rules

@@ -47,7 +47,7 @@ func printArtifactsCatalog(w io.Writer, artifacts []knowledge.Artifact) error {
 	for _, a := range artifacts {
 		fmt.Fprintf(&b, "  %-16s %s\n", a.Name, a.Description)
 	}
-	b.WriteString("\nUsage:\n  workflow artifact <name>")
+	b.WriteString("\nUsage:\n  agentplaybook artifact <name>")
 
 	return writeText(w, b.String())
 }

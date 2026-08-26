@@ -218,9 +218,14 @@
           },
           {
             "when": "PLAN_UPDATE_REQUIRED",
-            "then": 6
+            "then": 8
           }
         ]
+      },
+      {
+        "index": 8,
+        "actor": "planner",
+        "action": "End the current review cycle and return to the plan flow to revise the task plans."
       }
     ]
   }

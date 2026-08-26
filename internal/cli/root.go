@@ -2,7 +2,6 @@ package cli
 
 import (
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/ChiaYuChang/agentplaybook/internal/knowledge"
@@ -15,7 +14,6 @@ var defaultVersion = "dev"
 func Execute(args []string, stdout, stderr io.Writer, version string) error {
 	k, err := knowledge.Load()
 	if err != nil {
-		fmt.Fprintf(stderr, "error: %v\n", err)
 		return err
 	}
 
@@ -40,8 +38,8 @@ func NewRootCmd(k *knowledge.Knowledge, version string) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:           "workflow",
-		Short:         "workflow - Multi-Agent Collaboration Manual CLI",
+		Use:           "agentplaybook",
+		Short:         "agentplaybook - Multi-Agent Collaboration Manual CLI",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -90,14 +88,14 @@ func NewRootCmd(k *knowledge.Knowledge, version string) *cobra.Command {
 }
 
 func printRootDiscovery(w io.Writer) error {
-	catalog := `workflow - Multi-Agent Collaboration Manual CLI
+	catalog := `agentplaybook - Multi-Agent Collaboration Manual CLI
 
 A read-only informational manual for multi-agent workflows.
 Query roles, flows, artifact contracts, and behavioral rules on demand.
 
 Usage:
-  workflow [command]
-  workflow [flags]
+  agentplaybook [command]
+  agentplaybook [flags]
 
 Knowledge Domains:
   role        Inspect participant identities, boundaries, and responsibilities

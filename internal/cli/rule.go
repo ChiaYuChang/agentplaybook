@@ -62,7 +62,7 @@ func newRuleExplainCmd(k *knowledge.Knowledge) *cobra.Command {
 			for _, id := range args {
 				r, ok := k.Rule(id)
 				if !ok {
-					return fmt.Errorf("unknown rule %q (run 'workflow rule list' to see available rules)", id)
+					return fmt.Errorf("unknown rule %q (run 'agentplaybook rule list' to see available rules)", id)
 				}
 				results = append(results, r)
 			}
@@ -72,13 +72,13 @@ func newRuleExplainCmd(k *knowledge.Knowledge) *cobra.Command {
 }
 
 func printRuleDiscovery(w io.Writer) error {
-	catalog := `workflow rule - Operational Policies and Behavioral Invariants
+	catalog := `agentplaybook rule - Operational Policies and Behavioral Invariants
 
 Commands:
   list              List all available workflow rules and summaries
   explain <id>...   Show full details and guidelines for specific rule IDs
 
 Usage:
-  workflow rule [command]`
+  agentplaybook rule [command]`
 	return writeText(w, catalog)
 }

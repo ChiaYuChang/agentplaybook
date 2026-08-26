@@ -67,7 +67,7 @@ func printFlowsCatalog(w io.Writer, flows []knowledge.Flow) error {
 	for _, f := range flows {
 		fmt.Fprintf(&b, "  %-8s %s\n", f.Name, f.Description)
 	}
-	b.WriteString("\nUsage:\n  workflow flow <name> [flags]\n\nFlags:\n")
+	b.WriteString("\nUsage:\n  agentplaybook flow <name> [flags]\n\nFlags:\n")
 	b.WriteString("  --step int   Show only the specified step index within the flow")
 
 	return writeText(w, b.String())

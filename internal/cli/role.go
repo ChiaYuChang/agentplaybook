@@ -95,7 +95,7 @@ func printRolesCatalog(w io.Writer, roles []knowledge.RoleDefinition) error {
 	for _, r := range roles {
 		fmt.Fprintf(&b, "  %-10s %s\n", r.Name, r.Description)
 	}
-	b.WriteString("\nUsage:\n  workflow role <name> [flags]\n\nFlags:\n")
+	b.WriteString("\nUsage:\n  agentplaybook role <name> [flags]\n\nFlags:\n")
 	b.WriteString("  --description       Show only role description\n")
 	b.WriteString("  --responsibility    Show only role responsibilities\n")
 	b.WriteString("  --boundary          Show only role boundaries\n")

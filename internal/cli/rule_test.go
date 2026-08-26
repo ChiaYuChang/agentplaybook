@@ -20,7 +20,7 @@ func TestRule_BareDiscovery(t *testing.T) {
 	}
 
 	out := stdout.String()
-	if !strings.Contains(out, "workflow rule - Operational Policies") {
+	if !strings.Contains(out, "agentplaybook rule - Operational Policies") {
 		t.Errorf("unexpected bare output: %s", out)
 	}
 	if !strings.Contains(out, "list") || !strings.Contains(out, "explain") {
