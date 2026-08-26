@@ -51,6 +51,10 @@ cd agentplaybook
 go build -o bin/agentplaybook .
 ```
 
+### Installation and Transport
+
+`skills.sh` provides universal skill installation and loading across 17+ agent harnesses, including Antigravity, Claude Code, Cursor, OpenCode, Codex, and others. Multi-agent transport is separate: it governs real-time communication between agent sessions and is currently expected to be provided by Herdr. Installing a skill via skills.sh does not provide the transport layer.
+
 ---
 
 ## CLI Usage
