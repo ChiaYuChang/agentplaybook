@@ -24,12 +24,12 @@ Commit message format:
   - [x] Add `rules.json` defining `anti-cheating`, `mandatory-alignment`, `tdd-reproduction`, and `atomic-change-units`
   - [x] Create `internal/data/embed.go` using `//go:embed` to package all 5 JSON files into the Go binary
 
-- [ ] feat(knowledge): implement data models, loader, and 5-layer cross-file validator
-  - [ ] Implement Go model structs in `internal/knowledge/model.go` (`Config`, `RoleDefinition`, `Flow`, `FlowStep`, `Artifact`, `Rule`, `Knowledge`)
-  - [ ] Implement JSON decoding and map indexing in `internal/knowledge/load.go`
-  - [ ] Implement cross-file semantic validation in `internal/knowledge/validate.go` using `errors.Join` (validating roles, flows, rules, and artifacts)
-  - [ ] Implement query lookup helpers in `internal/knowledge/query.go`
-  - [ ] Add unit tests in `internal/knowledge/knowledge_test.go` verifying loading and validation
+- [x] feat(knowledge): implement data models, loader, and 5-layer cross-file validator
+  - [x] Implement Go model structs in `internal/knowledge/model.go` (`Config`, `RoleDefinition`, `Flow`, `FlowStep`, `Artifact`, `Rule`, `Knowledge`)
+  - [x] Implement JSON decoding and map indexing in `internal/knowledge/load.go`
+  - [x] Implement cross-file semantic validation in `internal/knowledge/validate.go` using `errors.Join` (validating roles, flows, rules, and artifacts)
+  - [x] Implement query lookup helpers in `internal/knowledge/query.go`
+  - [x] Add unit tests in `internal/knowledge/knowledge_test.go` verifying loading and validation
 
 - [ ] feat(cli): implement root command, entrypoint, and global flag handlers
   - [ ] Initialize Cobra root command in `internal/cli/root.go` with `SilenceUsage: true` and `SilenceErrors: true`
