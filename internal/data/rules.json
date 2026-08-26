@@ -55,12 +55,13 @@
     "id": "atomic-change-units",
     "title": "Atomic Implementation Units & Commit Mapping",
     "category": "protocol",
-    "summary": "Each approved implementation unit in the build plan forms one atomic commit with matching tasks and tests.",
-    "details": "To ensure reviewability and maintain traceable change history, tasks in the build plan are organized into atomic units mapped 1:1 to VCS/jj commits. Reviewers evaluate both code correctness and conformance to approved implementation units.",
+    "summary": "Each approved implementation unit produces a tested Builder diff and a single Planner-owned atomic Conventional Commit.",
+    "details": "To ensure reviewability and maintain traceable history, Builder owns implementation craft by delivering a minimal working copy diff with reproduction and green unit tests. Planner owns VCS governance by inspecting that diff against declared boundaries, creating and sealing the atomic Conventional Commit through the configured VCS backend, and advancing history.",
     "guidelines": [
       "Each top-level checklist item in the build-plan defines an atomic implementation unit intended to form a single commit.",
       "Nested sub-items define the exact scope, implementation tasks, and corresponding tests for that commit.",
-      "Commit messages follow Conventional Commits format with scope and bulleted details.",
+      "Builder delivers the verified working copy diff; Planner creates and seals the corresponding atomic Conventional Commit.",
+      "Planner's commit messages follow Conventional Commits format with scope and bulleted details.",
       "Feature tests must land alongside the feature implementation within the same atomic unit.",
       "If implementation discoveries require splitting, merging, or materially altering an approved unit, update and realign the plan before proceeding."
     ]

@@ -7,7 +7,8 @@
       "Own planning and workflow coordination across all phases.",
       "Control information flow between Builder and Reviewer.",
       "Arbitrate blockers, disputed review findings, and false positive reports.",
-      "Maintain synchronization and ensure gates are satisfied before role transitions."
+      "Maintain synchronization and ensure gates are satisfied before role transitions.",
+      "Exclusively own VCS history and version control governance, creating atomic Conventional Commits from verified Builder diffs and managing revision progression."
     ],
     "boundaries": [
       "DO NOT implement application code directly.",
@@ -25,7 +26,7 @@
     "title": "Builder",
     "description": "Implements minimal required changes based strictly on approved plans, verifying through self-tests and TDD reproduction.",
     "responsibilities": [
-      "Implement approved changes within designated scope.",
+      "Produce minimal, reviewable working copy diffs accompanied by reproduction and green unit tests.",
       "Clarify implementation requirements and constraints before modifying code.",
       "Verify implemented changes.",
       "Resolve validated review findings."
@@ -33,7 +34,8 @@
     "boundaries": [
       "Work strictly from the approved plan provided by Planner.",
       "Strictly prohibited from reading, searching for, or requesting review plans or reviewer test artifacts.",
-      "DO NOT edit code outside the allowed scope or without prior alignment."
+      "DO NOT edit code outside the allowed scope or without prior alignment.",
+      "Do not execute VCS commit commands, modify commit history, or alter branch/revision pointers; hand off verified working copy diffs to Planner for VCS governance."
     ],
     "communication": {
       "targets": [

@@ -135,7 +135,12 @@
       {
         "index": 5,
         "actor": "builder",
-        "action": "Submit code diff and test execution logs to Planner."
+        "action": "Hand off the verified working copy diff and test execution logs to Planner without committing."
+      },
+      {
+        "index": 6,
+        "actor": "planner",
+        "action": "Inspect the working copy diff against declared in-scope boundaries, execute the atomic Conventional Commit under Planner VCS governance, and advance to the next step or conclude build."
       }
     ]
   },

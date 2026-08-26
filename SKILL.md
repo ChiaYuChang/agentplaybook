@@ -64,6 +64,16 @@ When terminal viewports or transport scrollbacks necessitate buffering long mess
 
 When coordinating across agents in Herdr, follow a zero-poll policy: never use `sleep` loops or periodic screen polling. Use transport-native lifecycle events instead to preserve context tokens and avoid repetitive TUI captures. Consult the relevant transport skill for exact CLI syntax and options.
 
+## Builder Diff Handoff and VCS Governance
+
+Version Control Governance is exclusively owned by Planner; Builder delivers verified working copy diffs.
+
+- Builder owns implementation craft: produce a minimal, reviewable working copy diff with reproduction and green unit tests, then hand off the verified diff and test logs to Planner.
+- Builder must not execute VCS commit commands, modify commit history, or alter branch/revision pointers; hand off verified working copy diffs to Planner for VCS governance.
+- Planner owns VCS history and revision progression: inspect the working copy diff against declared in-scope boundaries, create and seal the atomic Conventional Commit, and advance to the next revision.
+- Git: Planner stages in-scope files and runs `git commit -m '...'` (which advances the active branch).
+- Jujutsu: Planner describes the finalized revision with `jj describe -m '...'` and opens the next revision with `jj new`. Moving bookmarks (for example, `jj bookmark set <name> -r @-`) is optional on intermediate steps and can be deferred until the milestone or task is validated.
+
 ## Discovery
 
 Bare invocations are discovery-friendly and print concise catalogs with exit status 0:
