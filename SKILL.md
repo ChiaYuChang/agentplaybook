@@ -54,9 +54,11 @@ Do not query every knowledge domain on every turn. Query only the specific domai
 
 In-flight exchanges between agents (such as orientation inquiries, alignment dialogues, or detailed review findings) are transient transport messages.
 When terminal viewports or transport scrollbacks necessitate buffering long messages into files:
-- Participating agents should create and write to the local `tmp/` scratch directory (e.g. `tmp/inquiry-<role>.md` or `tmp/review-findings.md`).
-- Files in `tmp/` are strictly ephemeral and must never be committed to version control.
-- Ensure `tmp/` is ignored in `.gitignore`.
+- Prefer transport-native communication for in-flight exchanges.
+- If buffering is necessary, use an existing already-ignored scratch directory if available (for example, `tmp/<task-id>/`).
+- Otherwise, use a unique temporary directory via `mktemp -d /tmp/agentplaybook-XXXXXX`.
+- Strictly forbid modifying `.git/`, `.git/info/exclude`, or `.gitignore` solely for communication buffering.
+- Never commit or track files in scratch directories.
 
 ## Event-Driven Transport Coordination
 
