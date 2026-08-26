@@ -50,6 +50,14 @@ Do not query every knowledge domain on every turn. Query only the specific domai
    sh "<skill-dir>/scripts/run-agentplaybook.sh" rule explain <rule-id>...
    ```
 
+## Ephemeral Communication Buffers
+
+In-flight exchanges between agents (such as orientation inquiries, alignment dialogues, or detailed review findings) are transient transport messages.
+When terminal viewports or transport scrollbacks necessitate buffering long messages into files:
+- Participating agents should create and write to the local `tmp/` scratch directory (e.g. `tmp/inquiry-<role>.md` or `tmp/review-findings.md`).
+- Files in `tmp/` are strictly ephemeral and must never be committed to version control.
+- Ensure `tmp/` is ignored in `.gitignore`.
+
 ## Discovery
 
 Bare invocations are discovery-friendly and print concise catalogs with exit status 0:

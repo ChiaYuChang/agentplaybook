@@ -88,5 +88,18 @@
       "The repository overview remains valid for subsequent tasks until architectural, build-system, or structural changes make it materially stale.",
       "Rerun the init flow to refresh repository context when material divergence is detected."
     ]
+  },
+  {
+    "id": "ephemeral-communication-buffers",
+    "title": "Ephemeral Communication Buffer Storage",
+    "category": "operational",
+    "summary": "Intermediate communication exchanges exceeding terminal buffers must use tmp/ scratch storage.",
+    "details": "In-flight communications such as orientation questions, alignment rounds, and detailed review findings are ephemeral messages. When terminal display limitations or transport limits require file buffering, agents must write them to tmp/ to prevent repository clutter.",
+    "guidelines": [
+      "Ensure tmp/ directory exists before buffering intermediate messages.",
+      "Store transient communication exchanges in tmp/ (e.g. tmp/inquiry-<role>.md or tmp/review-findings.md).",
+      "Never commit or track files in tmp/ under version control.",
+      "Ensure tmp/ is ignored in .gitignore."
+    ]
   }
 ]
