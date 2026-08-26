@@ -1,0 +1,92 @@
+[
+  {
+    "id": "anti-cheating",
+    "title": "Strict Blind Barrier & Anti-Cheating Invariant",
+    "category": "security",
+    "summary": "Builder must work strictly from <slug>.plan.md and is strictly prohibited from accessing <slug>.review.md.",
+    "details": "To prevent implementation overfitting and preserve independent verification integrity, the review plan (<slug>.review.md) and its criteria must remain completely confidential from Builder. Planner must never mention or leak review plan paths or reviewer-specific tests to Builder.",
+    "guidelines": [
+      "Builder must never read, search for, or request <slug>.review.md or reviewer test artifacts.",
+      "Planner must dispatch only <slug>.plan.md to Builder during blind handover.",
+      "When forwarding review findings to Builder, Planner must extract only the actionable descriptions and withhold the raw review plan.",
+      "Any attempt by Builder to access reviewer test artifacts prior to code submission is considered a protocol violation."
+    ]
+  },
+  {
+    "id": "mandatory-alignment",
+    "title": "Mandatory Implementation Alignment (>= 3 Rounds)",
+    "category": "protocol",
+    "summary": "Builder must conduct at least 3 structured rounds of verification with Planner before editing any application code.",
+    "details": "When receiving an approved build plan, Builder must not immediately edit code. Builder and Planner must complete at least 3 distinct inquiry rounds to ensure shared understanding of goals, boundaries, and failure modes.",
+    "guidelines": [
+      "Round 1 (Goal & Intent): Clarify root intent, affected system behaviors, and core logic.",
+      "Round 2 (Scope & Boundaries): Confirm exact in-scope files allowed for edits and out-of-scope files strictly forbidden from modification.",
+      "Round 3 (Edge Cases & Checks): Confirm boundary conditions, failure scenarios, and self-testing verification commands.",
+      "Builder may only proceed to code implementation once Planner confirms ALIGNMENT_COMPLETE."
+    ]
+  },
+  {
+    "id": "tdd-reproduction",
+    "title": "TDD Review Issue Reproduction & Branching SOP",
+    "category": "protocol",
+    "summary": "Builder must write a reproduction test before modifying application code when addressing review findings.",
+    "details": "When review issues are forwarded by Planner, Builder must not jump straight to editing production code. A dedicated reproduction test must first be authored, followed by strict branching based on test behavior.",
+    "guidelines": [
+      "Case A (Expected Failure / Red): The test reproduces the reported issue. Modify implementation code until the reproduction test and all existing tests pass (Green). Report fix and test logs to Planner.",
+      "Case B (Test Passes / No Error): The test passes despite attempts to reproduce. Refine the test. If repeated tests still pass, classify as a potential False Positive. STOP immediately and escalate to Planner.",
+      "Case C (Unexpected Error): The change triggers unrelated crashes or widespread regressions. STOP immediately and escalate to Planner with detailed error logs.",
+      "Never modify application code speculatively without reproducing the reported issue."
+    ]
+  },
+  {
+    "id": "repo-orientation-inquiry",
+    "title": "Repository Orientation Inquiry Protocol",
+    "category": "protocol",
+    "summary": "Enforces active interrogation of the repository overview during the init flow while ensuring deterministic convergence.",
+    "details": "During the init flow, reviewing agents must actively challenge and validate the draft repository overview rather than passively acknowledging it.",
+    "guidelines": [
+      "Initial Inquiry Pass: Each reviewing role (Reviewer and Builder) must submit at least 3 substantive questions or identified gaps covering architecture, conventions, toolchains, boundaries, or assumptions.",
+      "Subsequent Passes: Reviewing roles report any remaining substantive questions, or explicitly declare that no questions remain.",
+      "Do NOT force >= 3 questions in subsequent passes once all gaps are resolved, ensuring convergence.",
+      "A pass reaches consensus only when both Reviewer and Builder declare NO_QUESTIONS_RAISED."
+    ]
+  },
+  {
+    "id": "atomic-change-units",
+    "title": "Atomic Implementation Units & Commit Mapping",
+    "category": "protocol",
+    "summary": "Each approved implementation unit in the build plan forms one atomic commit with matching tasks and tests.",
+    "details": "To ensure reviewability and maintain traceable change history, tasks in the build plan are organized into atomic units mapped 1:1 to VCS/jj commits. Reviewers evaluate both code correctness and conformance to approved implementation units.",
+    "guidelines": [
+      "Each top-level checklist item in the build-plan defines an atomic implementation unit intended to form a single commit.",
+      "Nested sub-items define the exact scope, implementation tasks, and corresponding tests for that commit.",
+      "Commit messages follow Conventional Commits format with scope and bulleted details.",
+      "Feature tests must land alongside the feature implementation within the same atomic unit.",
+      "If implementation discoveries require splitting, merging, or materially altering an approved unit, update and realign the plan before proceeding."
+    ]
+  },
+  {
+    "id": "plan-directory-naming",
+    "title": "Task Plan Directory Naming Convention",
+    "category": "operational",
+    "summary": "Plan artifacts must be stored in UTC timestamped directories under plan/.",
+    "details": "To prevent collisions between tasks and preserve execution history, all task-specific plans must be housed in dedicated timestamped directories.",
+    "guidelines": [
+      "Generate directory name using UTC ISO timestamp: plan/$(date -u +%Y%m%dT%H%M%SZ).",
+      "Store task build plan as <slug>.plan.md and review plan as <slug>.review.md within that directory.",
+      "Do not store repository-wide persistent context in plan/ directories."
+    ]
+  },
+  {
+    "id": "repo-context-storage",
+    "title": "Persistent Repository Context Storage",
+    "category": "operational",
+    "summary": "Repository-level orientation artifacts are stored in .workflow/context/.",
+    "details": "Repository orientation established in the init flow is durable across tasks in the same workspace and stored separately from task-specific plans.",
+    "guidelines": [
+      "Store finalized repository overview at .workflow/context/repository.md.",
+      "The repository overview remains valid for subsequent tasks until architectural, build-system, or structural changes make it materially stale.",
+      "Rerun the init flow to refresh repository context when material divergence is detected."
+    ]
+  }
+]

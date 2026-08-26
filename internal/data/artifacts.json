@@ -1,0 +1,170 @@
+[
+  {
+    "name": "repo-summary",
+    "title": "Repository Summary",
+    "description": "Shared repository orientation and context produced during the init flow.",
+    "owner": "planner",
+    "visibility": [
+      "planner",
+      "builder",
+      "reviewer"
+    ],
+    "path": ".workflow/context/repository.md",
+    "type": "document",
+    "sections": [
+      {
+        "name": "Purpose & Scope",
+        "required": true,
+        "description": "High-level purpose of the repository, key problem domains, and major capabilities."
+      },
+      {
+        "name": "Architecture & Tech Stack",
+        "required": true,
+        "description": "Programming languages, frameworks, major dependencies, and architectural patterns."
+      },
+      {
+        "name": "Directory Layout & Responsibilities",
+        "required": true,
+        "description": "Top-level and key internal directories with their responsibilities."
+      },
+      {
+        "name": "Toolchain & Testing Conventions",
+        "required": true,
+        "description": "Standard commands for building, running, linting, and automated unit/integration testing."
+      },
+      {
+        "name": "Known Constraints & Assumptions",
+        "required": true,
+        "description": "Environment requirements, platform boundaries, and invariant constraints."
+      }
+    ]
+  },
+  {
+    "name": "build-plan",
+    "title": "Build Plan",
+    "description": "Task-specific implementation plan provided to Builder upon passing the planning gate.",
+    "owner": "planner",
+    "visibility": [
+      "planner",
+      "builder"
+    ],
+    "path": "plan/{timestamp}/{slug}.plan.md",
+    "path_variables": {
+      "timestamp": "UTC ISO timestamp formatted as YYYYMMDDTHHMMSSZ",
+      "slug": "Descriptive kebab-case task identifier"
+    },
+    "type": "document",
+    "sections": [
+      {
+        "name": "Goal & Root Intent",
+        "required": true,
+        "description": "Core purpose of the task, user problem being solved, and intended behavioral changes."
+      },
+      {
+        "name": "In-Scope Files",
+        "required": true,
+        "description": "Exact files and modules Builder is authorized to modify or create."
+      },
+      {
+        "name": "Out-of-Scope Files",
+        "required": true,
+        "description": "Areas, files, or subsystems that must not be altered."
+      },
+      {
+        "name": "Implementation Steps",
+        "required": true,
+        "description": "Ordered minimal code modifications required to complete the goal."
+      },
+      {
+        "name": "Acceptance Criteria",
+        "required": true,
+        "description": "Concrete conditions that determine successful implementation."
+      },
+      {
+        "name": "Local Verification Commands",
+        "required": true,
+        "description": "Exact test commands Builder must execute and pass locally before submission."
+      }
+    ]
+  },
+  {
+    "name": "review-plan",
+    "title": "Review Plan",
+    "description": "Reviewer-only verification plan used for independent validation during code review.",
+    "owner": "planner",
+    "visibility": [
+      "planner",
+      "reviewer"
+    ],
+    "path": "plan/{timestamp}/{slug}.review.md",
+    "path_variables": {
+      "timestamp": "UTC ISO timestamp formatted as YYYYMMDDTHHMMSSZ",
+      "slug": "Descriptive kebab-case task identifier"
+    },
+    "type": "document",
+    "sections": [
+      {
+        "name": "Verification Scope",
+        "required": true,
+        "description": "Files, boundaries, and acceptance criteria to be validated against."
+      },
+      {
+        "name": "Invariants & Boundaries",
+        "required": true,
+        "description": "Architectural rules, non-functional requirements, and anti-cheating invariants to uphold."
+      },
+      {
+        "name": "Edge Cases & Failure Scenarios",
+        "required": true,
+        "description": "Boundary conditions, invalid inputs, concurrency issues, or potential error states to test."
+      },
+      {
+        "name": "Review Verification Commands",
+        "required": true,
+        "description": "Commands Reviewer executes to independently inspect diffs and test suites."
+      }
+    ]
+  },
+  {
+    "name": "review-findings",
+    "title": "Review Findings",
+    "description": "Structured findings reported by Reviewer to Planner upon identifying review issues.",
+    "owner": "reviewer",
+    "visibility": [
+      "planner"
+    ],
+    "type": "message",
+    "fields": [
+      {
+        "name": "id",
+        "required": true,
+        "description": "Unique identifier for the finding (e.g. ISSUE-1)."
+      },
+      {
+        "name": "location",
+        "required": true,
+        "description": "File path and line number or code symbol."
+      },
+      {
+        "name": "severity",
+        "required": true,
+        "description": "Severity level (e.g. Blocker, Critical, Major, Minor)."
+      },
+      {
+        "name": "description",
+        "required": true,
+        "description": "Clear explanation of the detected problem or deviation from the review plan."
+      },
+      {
+        "name": "expected_behavior",
+        "required": true,
+        "description": "Expected correct behavior or contract requirement."
+      },
+      {
+        "name": "reproduction_scenario",
+        "required": true,
+        "description": "Steps or input conditions needed for Builder to write a reproduction test."
+      }
+    ]
+  }
+]

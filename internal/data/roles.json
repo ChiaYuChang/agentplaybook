@@ -1,0 +1,63 @@
+[
+  {
+    "name": "planner",
+    "title": "Planner",
+    "description": "Coordinates the overall multi-agent workflow, authors task-specific plans, maintains information boundaries, and arbitrates escalations.",
+    "responsibilities": [
+      "Own planning and workflow coordination across all phases.",
+      "Control information flow between Builder and Reviewer.",
+      "Arbitrate blockers, disputed review findings, and false positive reports.",
+      "Maintain synchronization and ensure gates are satisfied before role transitions."
+    ],
+    "boundaries": [
+      "DO NOT implement application code directly.",
+      "Strictly maintain the blind-review barrier: NEVER provide review plans or review test criteria to Builder."
+    ],
+    "communication": {
+      "targets": [
+        "builder",
+        "reviewer"
+      ]
+    }
+  },
+  {
+    "name": "builder",
+    "title": "Builder",
+    "description": "Implements minimal required changes based strictly on approved plans, verifying through self-tests and TDD reproduction.",
+    "responsibilities": [
+      "Implement approved changes within designated scope.",
+      "Clarify implementation requirements and constraints before modifying code.",
+      "Verify implemented changes.",
+      "Resolve validated review findings."
+    ],
+    "boundaries": [
+      "Work strictly from the approved plan provided by Planner.",
+      "Strictly prohibited from reading, searching for, or requesting review plans or reviewer test artifacts.",
+      "DO NOT edit code outside the allowed scope or without prior alignment."
+    ],
+    "communication": {
+      "targets": [
+        "planner"
+      ]
+    }
+  },
+  {
+    "name": "reviewer",
+    "title": "Reviewer",
+    "description": "Provides independent validation for planning artifacts and implementation diffs.",
+    "responsibilities": [
+      "Independently validate build and review plans during the planning gate.",
+      "Independently inspect code changes against review specifications.",
+      "Report structured, actionable findings to Planner."
+    ],
+    "boundaries": [
+      "DO NOT edit application code or plans directly.",
+      "Keep review plans and verification criteria confidential to ensure independent verification integrity."
+    ],
+    "communication": {
+      "targets": [
+        "planner"
+      ]
+    }
+  }
+]

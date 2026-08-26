@@ -1,0 +1,227 @@
+[
+  {
+    "name": "init",
+    "description": "Establish and converge on a shared repository overview before task-specific planning.",
+    "steps": [
+      {
+        "index": 1,
+        "actor": "planner",
+        "action": "Survey the repository and draft the repo-summary artifact."
+      },
+      {
+        "index": 2,
+        "actor": "reviewer",
+        "action": "Review the current repo-summary artifact and report missing, ambiguous, or incorrect context."
+      },
+      {
+        "index": 3,
+        "actor": "planner",
+        "action": "Incorporate Reviewer feedback into the repo-summary artifact."
+      },
+      {
+        "index": 4,
+        "actor": "builder",
+        "action": "Review the updated repo-summary artifact and report missing, ambiguous, or incorrect context."
+      },
+      {
+        "index": 5,
+        "actor": "planner",
+        "action": "Incorporate Builder feedback into the repo-summary artifact."
+      },
+      {
+        "index": 6,
+        "actor": "planner",
+        "action": "Evaluate whether the current inquiry pass reached consensus.",
+        "conditions": [
+          {
+            "when": "QUESTIONS_RAISED",
+            "then": 2
+          },
+          {
+            "when": "NO_QUESTIONS_RAISED",
+            "then": 7
+          }
+        ]
+      },
+      {
+        "index": 7,
+        "actor": "planner",
+        "action": "Finalize and persist the repo-summary artifact."
+      }
+    ]
+  },
+  {
+    "name": "plan",
+    "description": "Author, review, and lock task-specific build and review plans through the Plan-Review Gate.",
+    "steps": [
+      {
+        "index": 1,
+        "actor": "planner",
+        "action": "Author the build-plan and review-plan artifacts for the task."
+      },
+      {
+        "index": 2,
+        "actor": "planner",
+        "action": "Submit build-plan and review-plan artifacts to Reviewer for gate review."
+      },
+      {
+        "index": 3,
+        "actor": "reviewer",
+        "action": "Inspect build-plan and review-plan artifacts for clarity, feasibility, scope boundaries, and verification criteria.",
+        "conditions": [
+          {
+            "when": "PLAN_REVIEW_REJECT",
+            "then": 4
+          },
+          {
+            "when": "PLAN_REVIEW_PASS",
+            "then": 5
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "actor": "planner",
+        "action": "Revise build-plan and review-plan artifacts based on Reviewer feedback.",
+        "conditions": [
+          {
+            "when": "PLANS_REVISED",
+            "then": 2
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "actor": "planner",
+        "action": "Finalize approved plans and prepare for blind handover."
+      }
+    ]
+  },
+  {
+    "name": "build",
+    "description": "Execute blind handover, perform mandatory alignment, implement minimal changes, and verify locally.",
+    "steps": [
+      {
+        "index": 1,
+        "actor": "planner",
+        "action": "Dispatch the approved build-plan artifact to Builder via blind handover, strictly withholding the review-plan artifact."
+      },
+      {
+        "index": 2,
+        "actor": "builder",
+        "action": "Initiate implementation alignment with Planner regarding intent, scope, and edge cases before editing code."
+      },
+      {
+        "index": 3,
+        "actor": "planner",
+        "action": "Answer alignment inquiries and confirm scope boundaries and self-testing expectations."
+        ,
+        "conditions": [
+          {
+            "when": "CLARIFICATION_REQUIRED",
+            "then": 2
+          },
+          {
+            "when": "ALIGNMENT_COMPLETE",
+            "then": 4
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "actor": "builder",
+        "action": "Implement minimal required changes strictly within allowed files and verify with local automated tests."
+      },
+      {
+        "index": 5,
+        "actor": "builder",
+        "action": "Submit code diff and test execution logs to Planner."
+      }
+    ]
+  },
+  {
+    "name": "review",
+    "description": "Independently inspect code diff, execute TDD issue reproduction and fix loop, and resolve escalations.",
+    "steps": [
+      {
+        "index": 1,
+        "actor": "planner",
+        "action": "Forward Builder's code diff to Reviewer for verification against the review-plan artifact."
+      },
+      {
+        "index": 2,
+        "actor": "reviewer",
+        "action": "Inspect code diff against the review-plan artifact for scope compliance, correctness, and test adequacy.",
+        "conditions": [
+          {
+            "when": "REVIEW_PASS",
+            "then": 6
+          },
+          {
+            "when": "REVIEW_ISSUES",
+            "then": 3
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "actor": "planner",
+        "action": "Forward actionable review-findings to Builder, strictly withholding the review-plan artifact."
+      },
+      {
+        "index": 4,
+        "actor": "builder",
+        "action": "Reproduce reported review-findings using TDD reproduction tests and evaluate outcome.",
+        "conditions": [
+          {
+            "when": "ISSUE_REPRODUCED",
+            "then": 5
+          },
+          {
+            "when": "FALSE_POSITIVE",
+            "then": 7
+          },
+          {
+            "when": "UNEXPECTED_ERROR",
+            "then": 7
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "actor": "builder",
+        "action": "Fix implementation until all tests pass (Green), and report resolved diff and test logs to Planner.",
+        "conditions": [
+          {
+            "when": "FIX_VERIFIED",
+            "then": 1
+          }
+        ]
+      },
+      {
+        "index": 6,
+        "actor": "planner",
+        "action": "Summarize review results, confirm acceptance criteria satisfaction, and conclude the task."
+      },
+      {
+        "index": 7,
+        "actor": "planner",
+        "action": "Arbitrate escalation with Reviewer (clarify/waive false positive, or evaluate scope change/plan update for unexpected error).",
+        "conditions": [
+          {
+            "when": "ISSUE_WAIVED",
+            "then": 1
+          },
+          {
+            "when": "ISSUE_CLARIFIED",
+            "then": 3
+          },
+          {
+            "when": "PLAN_UPDATE_REQUIRED",
+            "then": 6
+          }
+        ]
+      }
+    ]
+  }
+]

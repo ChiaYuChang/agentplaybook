@@ -1,0 +1,11 @@
+{
+  "languages": [
+    "zh-TW",
+    "en-US"
+  ],
+  "transport": "herdr",
+  "communication": {
+    "role_prefix_template": "[{role}]",
+    "flow_prefix_template": "[{role}][Flow:{flow}]"
+  }
+}
