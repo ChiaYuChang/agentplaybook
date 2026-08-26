@@ -101,5 +101,18 @@
       "Never commit or track files in tmp/ under version control.",
       "Ensure tmp/ is ignored in .gitignore."
     ]
+  },
+  {
+    "id": "event-driven-transport-coordination",
+    "title": "Event-Driven Transport Coordination",
+    "category": "operational",
+    "summary": "Agents coordinating over Herdr must use native event-driven waiting (herdr agent wait or prompt --wait) instead of sleep polling loops.",
+    "details": "Polling loops with sleep waste thousands of context tokens on repetitive screen and TUI captures. When coordinating across agents in Herdr, agents must leverage Herdr socket-driven lifecycle events.",
+    "guidelines": [
+      "Strictly prohibit sleep loops and periodic screen polling when waiting on other agents.",
+      "Use 'herdr agent wait <target> [--timeout <ms>]' for socket-driven synchronous lifecycle waits that eliminate polling.",
+      "Use 'herdr agent prompt <target> <text> --wait' to dispatch work synchronously.",
+      "Use 'herdr pane wait-output <pane_id> (--match <text> | --regex <pattern>)' when waiting on specific output strings."
+    ]
   }
 ]

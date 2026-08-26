@@ -67,6 +67,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "mandatory-alignment"},
 		{"rule", "explain", "tdd-reproduction"},
 		{"rule", "explain", "ephemeral-communication-buffers"},
+		{"rule", "explain", "event-driven-transport-coordination"},
 	}
 
 	for _, cmd := range jsonCommands {

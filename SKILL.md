@@ -58,6 +58,14 @@ When terminal viewports or transport scrollbacks necessitate buffering long mess
 - Files in `tmp/` are strictly ephemeral and must never be committed to version control.
 - Ensure `tmp/` is ignored in `.gitignore`.
 
+## Event-Driven Transport Coordination
+
+When coordinating across agents in Herdr, use socket-driven lifecycle events rather than `sleep` loops or periodic screen polling. This preserves context tokens and avoids repetitive TUI captures:
+
+- `herdr agent wait <target> [--timeout <ms>]` performs a socket-driven synchronous wait without busy-loop polling.
+- `herdr agent prompt <target> <text> --wait` dispatches work and waits for it synchronously.
+- `herdr pane wait-output <pane_id> (--match <text> | --regex <pattern>)` waits for specific output strings.
+
 ## Discovery
 
 Bare invocations are discovery-friendly and print concise catalogs with exit status 0:
