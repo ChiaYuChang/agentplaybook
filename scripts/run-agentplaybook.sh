@@ -22,7 +22,7 @@ if [ -n "${AGENTPLAYBOOK_DEV:-}" ] || [ -n "${WORKFLOW_DEV:-}" ]; then
 	mkdir -p "${cache_root}/dev"
 	(
 		cd "${skill_dir}"
-		CGO_ENABLED=0 go build -ldflags "-X main.version=${cli_version}-dev" -o "${dev_binary}" .
+		GOFLAGS= GOWORK=off CGO_ENABLED=0 go build -ldflags "-X main.version=${cli_version}-dev" -o "${dev_binary}" .
 	)
 	exec "${dev_binary}" "$@"
 fi
@@ -43,7 +43,7 @@ if [ ! -x "${binary_path}" ]; then
 
 	(
 		cd "${skill_dir}"
-		CGO_ENABLED=0 go build -ldflags "-X main.version=${cli_version}" -o "${tmp_dir}/${binary_name}" .
+		GOFLAGS= GOWORK=off CGO_ENABLED=0 go build -ldflags "-X main.version=${cli_version}" -o "${tmp_dir}/${binary_name}" .
 	)
 
 	mkdir -p "${install_dir}"
