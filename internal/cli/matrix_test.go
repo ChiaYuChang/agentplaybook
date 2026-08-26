@@ -96,6 +96,7 @@ func TestCLI_GoldenErrorMatrix(t *testing.T) {
 		{"flow", "init", "--step", "999"},
 		{"flow", "--step", "1"},
 		{"artifact", "nonexistent"},
+		{"rule", "unexpected"},
 		{"rule", "explain"},
 		{"rule", "explain", "nonexistent"},
 	}

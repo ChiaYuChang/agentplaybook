@@ -45,7 +45,7 @@ func printArtifactsCatalog(w io.Writer, artifacts []knowledge.Artifact) error {
 	var b strings.Builder
 	b.WriteString("Available artifacts:\n\n")
 	for _, a := range artifacts {
-		fmt.Fprintf(&b, "  %-16s %s\n", a.Name, a.Description)
+		fmt.Fprintf(&b, "  %-16s %-10s %-10s %s\n", a.Name, a.Owner, a.Type, a.Description)
 	}
 	b.WriteString("\nUsage:\n  agentplaybook artifact <name>")
 

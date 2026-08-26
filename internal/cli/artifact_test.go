@@ -25,6 +25,33 @@ func TestArtifact_BareDiscovery(t *testing.T) {
 			t.Errorf("expected artifact %q in discovery output, got: %s", expected, out)
 		}
 	}
+
+	expectedRows := []struct {
+		name         string
+		owner        string
+		artifactType string
+		description  string
+	}{
+		{"repo-summary", "planner", "document", "Shared repository orientation"},
+		{"build-plan", "planner", "document", "Task-specific implementation plan"},
+		{"review-plan", "planner", "document", "Reviewer-only verification plan"},
+		{"review-findings", "reviewer", "message", "Structured findings reported by Reviewer"},
+	}
+	for _, expected := range expectedRows {
+		found := false
+		for _, line := range strings.Split(out, "\n") {
+			if strings.Contains(line, expected.name) &&
+				strings.Contains(line, expected.owner) &&
+				strings.Contains(line, expected.artifactType) &&
+				strings.Contains(line, expected.description) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected catalog row for %q to include owner, type, and description, got: %s", expected.name, out)
+		}
+	}
 }
 
 func TestArtifact_Query(t *testing.T) {

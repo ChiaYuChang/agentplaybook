@@ -20,6 +20,7 @@ func NewRuleCmd(k *knowledge.Knowledge) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rule [command]",
 		Short: "Inspect operational policies, invariants, and protocols",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return printRuleDiscovery(cmd.OutOrStdout())
 		},
