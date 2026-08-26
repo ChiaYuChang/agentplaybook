@@ -1,40 +1,60 @@
-# Builder Role
+---
+name: workflow
+description: Use the Workflow Collaboration Manual CLI to coordinate multi-agent workflows, retrieve role boundaries, procedural flows, artifact contracts, and behavioral rules.
+---
 
-You are the **Builder** in the multi-agent workflow. Read and follow `../SKILL.md`.
+# Workflow Collaboration Manual CLI
 
-## Responsibilities
-- Implement minimal required changes based strictly on the approved `<slug>.plan.md`.
-- Follow mandatory question alignment before editing code.
-- Follow TDD reproduction before fixing any review findings.
+The Workflow CLI is a read-only informational manual and reference playbook for multi-agent collaboration.
+Use it as the definitive source of truth for participant roles, end-to-end orchestration flows, document contracts, and operational rules.
 
-## Strict Boundaries & Anti-Cheating Rule
-- You work strictly from `<slug>.plan.md` provided by Planner.
-- You MUST NOT read, search for, or request `<slug>.review.md`.
-- Any attempt to access reviewer test artifacts or review plans before code submission is prohibited.
+Commands:
 
-## Workflow
+- Linux or macOS: `sh "<skill-dir>/scripts/run-workflow.sh"`
+- Local development: `WORKFLOW_DEV=1 sh "<skill-dir>/scripts/run-workflow.sh"`
 
-### Phase 1: Initial Implementation
-1. **Mandatory Alignment (>= 3 Rounds)**:
-   - When receiving `<slug>.plan.md` from Planner, **DO NOT edit code immediately**.
-   - Prompt Planner for at least 3 rounds of verification:
-     - **Round 1 (Goal & Intent)**: Clarify root intent, affected behaviors, and core logic.
-     - **Round 2 (Scope & Boundaries)**: Confirm exact allowed files (in-scope) and forbidden files (out-of-scope).
-     - **Round 3 (Edge Cases & Checks)**: Confirm boundary conditions, failure scenarios, and self-testing commands.
-2. **Build & Verify**:
-   - Implement minimal changes strictly within allowed files and pass local tests.
-3. **Submit**:
-   - Notify Planner via Herdr with changed files and test execution logs.
+## Core Philosophy
 
-### Phase 2: Review Issue Handling (TDD Reproduction)
-When receiving review issues forwarded by Planner, **DO NOT edit application code directly**:
-1. **Write Reproduction Test**: Create a test case reproducing the reported issue.
-2. **Branch Actions**:
-   - **Case A: Expected Failure (Red)**: Issue reproduced. Edit code until all tests pass (Green), then notify Planner for re-review.
-   - **Case B: Test Passes (No Error)**: Refine test. If repeated tests still pass, classify as a potential **false positive**. STOP immediately and notify Planner.
-   - **Case C: Unexpected Error**: Crashes or irrelevant logic breakage. STOP immediately and notify Planner with error logs.
+The Workflow CLI is an informational collaboration manual. It provides on-demand reference for roles, flows, artifact contracts, and rules.
+The manual queries perform no workflow mutations, track no live state, spawn no agents, and execute no transport calls. It has zero side-effects on the target repository.
+Interpret the retrieved guidance and perform the work using your own reasoning and tools.
 
-## Communication Rules
-- Target: `herdr agent prompt planner "<message>"`
-- Prefix messages with `[Builder]`.
-- Language constraint: Output MUST be exclusively `zh-TW` or `en-US`.
+## Progressive Disclosure Protocol
+
+Do not query every knowledge domain on every turn. Query only the specific domain required for your immediate context:
+
+1. **Role & Identity**:
+   When establishing your participant identity or checking your allowed boundaries and responsibilities:
+   ```sh
+   sh "<skill-dir>/scripts/run-workflow.sh" role <role-name>
+   # Selectors: --description, --responsibility, --boundary, --communication
+   ```
+
+2. **Flow & Procedures**:
+   When entering a collaboration phase or determining the next step in a sequence:
+   ```sh
+   sh "<skill-dir>/scripts/run-workflow.sh" flow <flow-name>
+   # Query single step: flow <flow-name> --step <index>
+   ```
+
+3. **Artifact Contracts**:
+   Before authoring, reviewing, or exchanging persistent plans, summaries, or structured findings:
+   ```sh
+   sh "<skill-dir>/scripts/run-workflow.sh" artifact <artifact-name>
+   ```
+
+4. **Rules & Protocols**:
+   When encountering specific boundary situations, test reproduction protocols, or invariant checks:
+   ```sh
+   sh "<skill-dir>/scripts/run-workflow.sh" rule list
+   sh "<skill-dir>/scripts/run-workflow.sh" rule explain <rule-id>...
+   ```
+
+## Discovery
+
+Bare invocations are discovery-friendly and print concise catalogs with exit status 0:
+- `workflow`: overview manual
+- `workflow role`: list participant roles
+- `workflow flow`: list workflow procedures
+- `workflow artifact`: list document and message contracts
+- `workflow rule`: list rule commands

@@ -78,8 +78,8 @@ Commit message format:
   - [x] Verify invalid queries return exit status 1 without usage dumps
   - [x] Verify full test suite passes via `go test ./...`
 
-- [ ] docs(skill): rewrite SKILL.md into thin progressive disclosure protocol guide
-  - [ ] Rewrite root `SKILL.md` into a role-neutral ~70-line protocol guide
-  - [ ] Document core philosophy: read-only collaboration manual, zero repository side-effects
-  - [ ] Document on-demand query triggers (query role on identity setup, flow on procedure entry, artifact before authoring, rules on edge cases)
-  - [ ] Document wrapper script invocation examples for Linux, macOS, and Windows
+- [x] docs(skill): rewrite SKILL.md into thin progressive disclosure protocol guide
+  - [x] Rewrite root `SKILL.md` into a role-neutral ~70-line protocol guide
+  - [x] Document core philosophy: read-only collaboration manual, zero repository side-effects
+  - [x] Document on-demand query triggers (query role on identity setup, flow on procedure entry, artifact before authoring, rules on edge cases)
+  - [x] Document wrapper script invocation examples for Linux, macOS, and Windows
