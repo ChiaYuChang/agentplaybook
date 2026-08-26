@@ -59,12 +59,12 @@ Commit message format:
   - [x] Add error handling for unknown artifact names
   - [x] Add unit tests in `internal/cli/artifact_test.go`
 
-- [ ] feat(cli): implement rule query command with explain support and tests
-  - [ ] Implement bare `workflow rule` discovery catalog
-  - [ ] Implement `workflow rule list` command displaying rule IDs, titles, categories, and summaries
-  - [ ] Implement `workflow rule explain <id>...` command displaying full details for one or more rule IDs
-  - [ ] Add error handling for unknown rule IDs
-  - [ ] Add unit tests in `internal/cli/rule_test.go`
+- [x] feat(cli): implement rule query command with explain support and tests
+  - [x] Implement bare `workflow rule` discovery catalog
+  - [x] Implement `workflow rule list` command displaying rule IDs, titles, categories, and summaries
+  - [x] Implement `workflow rule explain <id>...` command displaying full details for one or more rule IDs
+  - [x] Add error handling for unknown rule IDs
+  - [x] Add unit tests in `internal/cli/rule_test.go`
 
 - [ ] feat(scripts): implement developer wrapper script with caching and dev overrides
   - [ ] Add `scripts/VERSION` specifying CLI version
