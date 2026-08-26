@@ -81,6 +81,8 @@ func NewRootCmd(k *knowledge.Knowledge, version string) *cobra.Command {
 	cmd.Flags().BoolVar(&flagTransport, "transport", false, "Show underlying communication transport")
 	cmd.Flags().BoolVarP(&flagVersion, "version", "v", false, "Show CLI version")
 
+	cmd.AddCommand(NewRoleCmd(k))
+
 	return cmd
 }
 

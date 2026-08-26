@@ -39,12 +39,12 @@ Commit message format:
   - [x] Ensure bare `workflow` invocation outputs a concise discovery catalog with exit status 0
   - [x] Add unit tests in `internal/cli/root_test.go`
 
-- [ ] feat(cli): implement role query command with selector flags and tests
-  - [ ] Implement bare `workflow role` discovery catalog listing available roles and summaries
-  - [ ] Implement `workflow role <name>` full JSON role definition retrieval
-  - [ ] Implement mutually-exclusive selector flags (`--description`, `--responsibility`, `--boundary`, `--communication`)
-  - [ ] Add error handling and exit status 1 for unknown role names
-  - [ ] Add unit tests in `internal/cli/role_test.go`
+- [x] feat(cli): implement role query command with selector flags and tests
+  - [x] Implement bare `workflow role` discovery catalog listing available roles and summaries
+  - [x] Implement `workflow role <name>` full JSON role definition retrieval
+  - [x] Implement mutually-exclusive selector flags (`--description`, `--responsibility`, `--boundary`, `--communication`)
+  - [x] Add error handling and exit status 1 for unknown role names
+  - [x] Add unit tests in `internal/cli/role_test.go`
 
 - [ ] feat(cli): implement flow query command with step isolation and tests
   - [ ] Implement bare `workflow flow` discovery catalog listing the 4 available flows and summaries
