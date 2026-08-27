@@ -60,7 +60,8 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"flow", "plan"},
 		{"flow", "build"},
 		{"flow", "review"},
-		{"artifact", "repo-summary"},
+		{"flow", "commit"},
+		{"artifact", "agents-md"},
 		{"artifact", "build-plan"},
 		{"artifact", "review-plan"},
 		{"artifact", "review-findings"},
@@ -69,6 +70,9 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "atomic-change-units"},
 		{"rule", "explain", "mandatory-alignment"},
 		{"rule", "explain", "tdd-reproduction"},
+		{"rule", "explain", "repo-context-storage"},
+		{"rule", "explain", "agents-md-single-writer"},
+		{"rule", "explain", "commit-authority-separation"},
 		{"rule", "explain", "ephemeral-communication-buffers"},
 		{"rule", "explain", "event-driven-transport-coordination"},
 	}
@@ -133,8 +137,8 @@ func TestCLI_VCSCommitGovernance(t *testing.T) {
 	if step6.Actor != knowledge.RolePlanner {
 		t.Errorf("expected build flow Step 6 actor planner, got %q", step6.Actor)
 	}
-	if step6.Action != "Inspect the working copy diff against declared in-scope boundaries, execute the atomic Conventional Commit under Planner VCS governance, and advance to the next step or conclude build." {
-		t.Errorf("expected build flow Step 6 to use Planner VCS governance, got %q", step6.Action)
+	if step6.Action != "Inspect working copy diff against in-scope boundaries, verify local test execution, and hand off to Reviewer without committing." {
+		t.Errorf("expected build flow Step 6 to hand off to Reviewer without committing, got %q", step6.Action)
 	}
 
 	skill, err := os.ReadFile("../../SKILL.md")
@@ -142,9 +146,10 @@ func TestCLI_VCSCommitGovernance(t *testing.T) {
 		t.Fatalf("failed to read SKILL.md: %v", err)
 	}
 	for _, expected := range []string{
-		"Git: Planner stages in-scope files and runs `git commit -m '...'` (which advances the active branch).",
-		"Jujutsu: Planner describes the finalized revision with `jj describe -m '...'` and opens the next revision with `jj new`.",
-		"`jj bookmark set <name> -r @-`",
+		"Version Control Governance is exclusively owned by Planner",
+		"Builder delivers verified working copy diffs",
+		"Governed Commit Flow",
+		"delegating to the active VCS/policy mechanism capabilities",
 	} {
 		if !strings.Contains(string(skill), expected) {
 			t.Errorf("expected SKILL.md to document %q", expected)
@@ -206,6 +211,162 @@ func TestCLI_PlanGateAndTDDBaseline(t *testing.T) {
 	} {
 		if !slices.Contains(rules[0].Guidelines, expected) {
 			t.Errorf("expected tdd-reproduction guideline %q", expected)
+		}
+	}
+}
+
+func TestCLI_LivingAgentsAndCommitFlow(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.1.0"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	// 1. Verify agents-md artifact
+	var agentsMd knowledge.Artifact
+	if err := json.Unmarshal(queryJSON("artifact", "agents-md"), &agentsMd); err != nil {
+		t.Fatalf("failed to decode agents-md artifact: %v", err)
+	}
+	if agentsMd.Name != "agents-md" || agentsMd.Path != "AGENTS.md" || agentsMd.Owner != knowledge.RolePlanner {
+		t.Errorf("unexpected agents-md metadata: %+v", agentsMd)
+	}
+	if len(agentsMd.Sections) != 5 {
+		t.Fatalf("expected 5 sections in agents-md, got %d", len(agentsMd.Sections))
+	}
+	expectedSections := []string{
+		"Architectural Topology & Jurisdictions",
+		"Global Operational Invariants",
+		"Builder Precautions & Gotchas",
+		"Reviewer Precautions & Checklist",
+		"Active State & In-Flight Context",
+	}
+	for i, expectedSec := range expectedSections {
+		if agentsMd.Sections[i].Name != expectedSec {
+			t.Errorf("expected section %d to be %q, got %q", i, expectedSec, agentsMd.Sections[i].Name)
+		}
+	}
+
+	// 2. Verify commit flow
+	var commit knowledge.Flow
+	if err := json.Unmarshal(queryJSON("flow", "commit"), &commit); err != nil {
+		t.Fatalf("failed to decode commit flow: %v", err)
+	}
+	if len(commit.Steps) != 9 {
+		t.Fatalf("expected 9 steps in commit flow, got %d", len(commit.Steps))
+	}
+
+	// Verify all actors and sequential / conditional wiring
+	for _, step := range commit.Steps {
+		expectedActor := knowledge.RolePlanner
+		if step.Index == 5 {
+			expectedActor = knowledge.RoleReviewer
+		}
+		if step.Actor != expectedActor {
+			t.Errorf("step %d expected actor %q, got %q", step.Index, expectedActor, step.Actor)
+		}
+		// VCS-neutral invariant: Flow step actions must NOT contain raw jj or git command syntax
+		for _, forbidden := range []string{"jj ", "git ", "git commit", "jj describe", "jj new"} {
+			if strings.Contains(step.Action, forbidden) {
+				t.Errorf("step %d action violates VCS-neutral invariant by containing raw command %q: %s", step.Index, forbidden, step.Action)
+			}
+		}
+	}
+
+	// Check Step 5 visibility rejection loop
+	step5 := commit.Steps[4]
+	if step5.Actor != knowledge.RoleReviewer {
+		t.Errorf("expected Step 5 actor to be reviewer, got %s", step5.Actor)
+	}
+	step5Conditions := make(map[string]int)
+	for _, c := range step5.Conditions {
+		step5Conditions[c.When] = c.Then
+	}
+	if step5Conditions["AGENTS_REVIEW_PASS"] != 6 {
+		t.Errorf("expected Step 5 AGENTS_REVIEW_PASS -> 6, got %d", step5Conditions["AGENTS_REVIEW_PASS"])
+	}
+	if step5Conditions["BARRIER_LEAK"] != 4 {
+		t.Errorf("expected Step 5 BARRIER_LEAK -> 4, got %d", step5Conditions["BARRIER_LEAK"])
+	}
+
+	// Check Step 6 secret scan failure loop
+	step6 := commit.Steps[5]
+	step6Conditions := make(map[string]int)
+	for _, c := range step6.Conditions {
+		step6Conditions[c.When] = c.Then
+	}
+	if step6Conditions["SCAN_CLEAN"] != 7 {
+		t.Errorf("expected Step 6 SCAN_CLEAN -> 7, got %d", step6Conditions["SCAN_CLEAN"])
+	}
+	if step6Conditions["SCAN_FAILED"] != 4 {
+		t.Errorf("expected Step 6 SCAN_FAILED -> 4, got %d", step6Conditions["SCAN_FAILED"])
+	}
+
+	// Check Step 7 authorization denial loop
+	step7 := commit.Steps[6]
+	step7Conditions := make(map[string]int)
+	for _, c := range step7.Conditions {
+		step7Conditions[c.When] = c.Then
+	}
+	if step7Conditions["AUTHORIZATION_GRANTED"] != 8 {
+		t.Errorf("expected Step 7 AUTHORIZATION_GRANTED -> 8, got %d", step7Conditions["AUTHORIZATION_GRANTED"])
+	}
+	if step7Conditions["AUTHORIZATION_DENIED"] != 2 {
+		t.Errorf("expected Step 7 AUTHORIZATION_DENIED -> 2, got %d", step7Conditions["AUTHORIZATION_DENIED"])
+	}
+
+	// Check Step 8 publication condition
+	step8 := commit.Steps[7]
+	if len(step8.Conditions) != 1 || step8.Conditions[0].When != "PUBLICATION_AUTHORIZED" || step8.Conditions[0].Then != 9 {
+		t.Errorf("expected Step 8 to have condition PUBLICATION_AUTHORIZED -> 9, got %+v", step8.Conditions)
+	}
+
+	// Check Step 9 is terminal
+	step9 := commit.Steps[8]
+	if len(step9.Conditions) != 0 {
+		t.Errorf("expected Step 9 to be terminal with 0 conditions, got %d", len(step9.Conditions))
+	}
+
+	// 3. Verify agents-md-single-writer rule
+	var singleWriterRules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "agents-md-single-writer"), &singleWriterRules); err != nil {
+		t.Fatalf("failed to decode agents-md-single-writer rule: %v", err)
+	}
+	if len(singleWriterRules) != 1 {
+		t.Fatalf("expected 1 agents-md-single-writer rule, got %d", len(singleWriterRules))
+	}
+	singleWriterGuidelines := singleWriterRules[0].Guidelines
+	for _, expected := range []string{
+		"Planner is the sole author and curator of AGENTS.md; Builder and Reviewer must never edit AGENTS.md directly.",
+		"The Active State section must record baseline provenance with 'Observed-At: <UTC timestamp> @ <base-revision-id>', dirty status, recent milestones, and next pickup item.",
+		"Receiving Planners cold-starting a session must execute fresh VCS status and log commands to revalidate mutable ground truth before planning or executing tasks.",
+		"Reviewer must conduct narrow visibility and blind-barrier checks on AGENTS.md during the commit flow (BARRIER_LEAK returns to Planner for redaction).",
+	} {
+		if !slices.Contains(singleWriterGuidelines, expected) {
+			t.Errorf("expected agents-md-single-writer guideline %q", expected)
+		}
+	}
+
+	// 4. Verify commit-authority-separation rule
+	var authorityRules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "commit-authority-separation"), &authorityRules); err != nil {
+		t.Fatalf("failed to decode commit-authority-separation rule: %v", err)
+	}
+	if len(authorityRules) != 1 {
+		t.Fatalf("expected 1 commit-authority-separation rule, got %d", len(authorityRules))
+	}
+	authorityGuidelines := authorityRules[0].Guidelines
+	for _, expected := range []string{
+		"Commit authorization permits local revision sealing only; it does not grant authority to publish to remote repositories.",
+		"Publishing to remote repositories requires separate and explicit human publication authorization.",
+		"If commit authorization is denied (AUTHORIZATION_DENIED), Planner must return to Step 2 awaiting renewed user intent; autonomous re-drafting is strictly forbidden.",
+	} {
+		if !slices.Contains(authorityGuidelines, expected) {
+			t.Errorf("expected commit-authority-separation guideline %q", expected)
 		}
 	}
 }

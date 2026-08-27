@@ -64,17 +64,44 @@ When terminal viewports or transport scrollbacks necessitate buffering long mess
 
 When coordinating across agents in Herdr, follow a zero-poll policy: never use `sleep` loops or periodic screen polling. Use transport-native lifecycle events instead to preserve context tokens and avoid repetitive TUI captures. Consult the relevant transport skill for exact CLI syntax and options.
 
+## Living AGENTS.md and Single-Writer Principle
+
+`AgentPlaybook` adopts a single, living `AGENTS.md` at the repository root as an "Agent-Facing README" for instant $O(1)$ session bootstrapping across 5 canonical sections:
+1. **Architectural Topology & Jurisdictions**: Repository tier, external interfaces, and jurisdictional boundaries ("不宜跨區辦案").
+2. **Global Operational Invariants**: Project-level invariants (e.g., non-interactive execution guards, Conventional Commits, branch conventions).
+3. **Builder Precautions & Gotchas**: Toolchain quirks, compiler limitations, and test runner constraints.
+4. **Reviewer Precautions & Checklist**: Public verification guidelines and regression checkpoints (strictly excluding confidential test secrets).
+5. **Active State & In-Flight Context**: Pre-commit baseline observation with mandatory provenance (`Observed-At: <UTC timestamp> @ <base-revision-id>`), dirty status, recent milestones, and next pickup item.
+
+- **Single-Writer Principle**: Planner is the sole author and curator of `AGENTS.md`. Builder and Reviewer are strictly prohibited from editing it directly.
+- **Ground Truth Revalidation**: Active State provides orienting context, never a substitute for live repository ground truth. Cold-starting Planners must execute fresh VCS status and log inspection commands to revalidate mutable facts before planning or executing tasks.
+- **Blind-Barrier Check**: Reviewer conducts a narrow visibility check on `AGENTS.md` during the commit flow to ensure no confidential review criteria or hidden fixtures leak (`BARRIER_LEAK` returns to Planner for redaction).
+
+## Governed 9-Step Commit Flow (`flow commit`)
+
+Version Control Governance is executed through a conceptual, evidence-based commit pipeline:
+1. **Approval Baseline**: Confirm independent review approval (`REVIEW_PASS`) and establish candidate baseline.
+2. **User Intent Gate**: Await explicit user commit request to initiate persistence.
+3. **Caveats Query**: Query operational caveats from Builder and Reviewer (Reviewer reports only public, independently observable operational facts).
+4. **Living Memory Update**: Planner updates `AGENTS.md` with synthesized caveats and fresh `Observed-At` provenance metadata.
+5. **Visibility & Barrier Check**: Reviewer verifies `AGENTS.md` does not leak confidential review secrets (`AGENTS_REVIEW_PASS` -> 6; `BARRIER_LEAK` -> 4).
+6. **Candidate Stabilization & Secret Scan**: Stabilize candidate snapshot identity, verify candidate equivalence, and execute fail-closed secret scan (`SCAN_CLEAN` -> 7; `SCAN_FAILED` -> 4).
+7. **Commit Authorization Gate**: Present finalized candidate diff and Conventional Commit message, awaiting explicit human commit authorization (`AUTHORIZATION_GRANTED` -> 8; `AUTHORIZATION_DENIED` -> 2 awaiting renewed user intent).
+8. **Local Revision Sealing**: Verify unchanged candidate identity and seal revision locally under Planner VCS governance (`PUBLICATION_AUTHORIZED` -> 9; else conclude locally).
+9. **Remote Publication**: Publish sealed revision to remote repository under explicit publication authorization.
+
+- **Commit & Publication Authority Separation**: Commit authorization permits local revision sealing only; remote publication requires separate, explicit human authorization.
+- **Fail-Closed Intent Recovery**: Upon `AUTHORIZATION_DENIED`, Planner must return to Step 2 to await renewed user intent; autonomous re-drafting is strictly forbidden.
+
 ## Builder Diff Handoff and VCS Governance
 
 Version Control Governance is exclusively owned by Planner; Builder delivers verified working copy diffs.
 
 - Builder owns implementation craft: produce a minimal, reviewable working copy diff with reproduction and green unit tests, then hand off the verified diff and test logs to Planner.
 - Builder must not execute VCS commit commands, modify commit history, or alter branch/revision pointers; hand off verified working copy diffs to Planner for VCS governance.
-- Planner owns VCS history and revision progression: inspect the working copy diff against declared in-scope boundaries, create and seal the atomic Conventional Commit, and advance to the next revision.
-- Git: Planner stages in-scope files and runs `git commit -m '...'` (which advances the active branch).
-- Jujutsu: Planner describes the finalized revision with `jj describe -m '...'` and opens the next revision with `jj new`. Moving bookmarks (for example, `jj bookmark set <name> -r @-`) is optional on intermediate steps and can be deferred until the milestone or task is validated.
-- These governance invariants are VCS-neutral: Builder delivers verified working copy diffs, and Planner owns commits and revision progression regardless of the backend.
-- Jujutsu is recommended for multi-agent collaboration because native change stacking supports isolated working-copy revisions. Git is fully supported when the same Builder handoff and Planner governance are maintained.
+- Planner owns VCS history and revision progression: inspect the working copy diff against declared in-scope boundaries, execute the 9-Step Governed Commit Flow, and seal revisions under Planner VCS governance delegating to the active VCS/policy mechanism capabilities.
+- These governance invariants are VCS-neutral: Builder delivers verified working copy diffs, and Planner owns commits and revision progression regardless of backend.
+- Jujutsu is recommended for multi-agent collaboration because native change stacking supports isolated working-copy revisions, delegating command mechanics to the dedicated Jujutsu skill. Git is fully supported when the same Builder handoff and Planner governance are maintained.
 
 ## Discovery
 

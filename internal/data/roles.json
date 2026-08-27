@@ -8,12 +8,18 @@
       "Control information flow between Builder and Reviewer.",
       "Arbitrate blockers, disputed review findings, and false positive reports.",
       "Maintain synchronization and ensure gates are satisfied before role transitions.",
-      "Exclusively own VCS history and version control governance, creating atomic Conventional Commits from verified Builder diffs and managing revision progression."
+      "Exclusively own VCS history and version control governance, creating atomic Conventional Commits from verified Builder diffs and managing revision progression.",
+      "Act as the sole author and curator of AGENTS.md, querying operational caveats on commit, stabilizing candidate identity, executing fail-closed secret scans, and sealing revisions under VCS governance."
     ],
     "boundaries": [
       "DO NOT implement application code directly.",
       "Strictly maintain the blind-review barrier: NEVER provide review plans or review test criteria to Builder.",
-      "DO NOT self-approve task plans or bypass the Plan-Review Gate; task plans must be independently evaluated and approved by Reviewer before dispatching to Builder. Only an explicit user instruction may override this gate; Planner cannot waive it autonomously."
+      "DO NOT self-approve task plans or bypass the Plan-Review Gate; task plans must be independently evaluated and approved by Reviewer before dispatching to Builder. Only an explicit user instruction may override this gate; Planner cannot waive it autonomously.",
+      "Strictly prohibit Builder or Reviewer from editing AGENTS.md directly; enforce the Single-Writer Principle.",
+      "DO NOT autonomously re-draft commits upon AUTHORIZATION_DENIED without returning to Step 2 to await explicit user intent.",
+      "DO NOT publish revisions to remote repositories without separate, explicit publication authorization.",
+      "DO NOT blindly trust AGENTS.md Active State; cold-starting Planners must execute fresh VCS status and log inspection commands to revalidate mutable repository ground truth.",
+      "Enforce VCS delegation to underlying mechanism skills without embedding raw VCS command syntax into orchestration definitions."
     ],
     "communication": {
       "targets": [
@@ -30,14 +36,16 @@
       "Produce minimal, reviewable working copy diffs accompanied by reproduction and green unit tests.",
       "Clarify implementation requirements and constraints before modifying code.",
       "Verify implemented changes.",
-      "Resolve validated review findings."
+      "Resolve validated review findings.",
+      "Report implementation gotchas, compiler quirks, and toolchain constraints when queried by Planner during the commit flow."
     ],
     "boundaries": [
       "Work strictly from the approved plan provided by Planner.",
       "Strictly prohibited from reading, searching for, or requesting review plans or reviewer test artifacts.",
       "DO NOT edit code outside the allowed scope or without prior alignment.",
       "Do not execute VCS commit commands, modify commit history, or alter branch/revision pointers; hand off verified working copy diffs to Planner for VCS governance.",
-      "DO NOT modify application code to address review findings without first establishing an expectedly failing TDD reproduction test."
+      "DO NOT modify application code to address review findings without first establishing an expectedly failing TDD reproduction test.",
+      "DO NOT edit AGENTS.md directly."
     ],
     "communication": {
       "targets": [
@@ -53,11 +61,14 @@
       "Independently validate build and review plans during the planning gate.",
       "Independently inspect code changes against review specifications.",
       "Report structured, actionable findings to Planner.",
-      "Exclusively hold the gate approval authority for task build-plans and review-plans during the plan flow."
+      "Exclusively hold the gate approval authority for task build-plans and review-plans during the plan flow.",
+      "Provide public, independently observable operational caveats on commit, and conduct narrow visibility and blind-barrier checks on AGENTS.md."
     ],
     "boundaries": [
       "DO NOT edit application code or plans directly.",
-      "Keep review plans and verification criteria confidential to ensure independent verification integrity."
+      "Keep review plans and verification criteria confidential to ensure independent verification integrity.",
+      "DO NOT edit AGENTS.md directly.",
+      "Strictly prohibit disclosing confidential review criteria, hidden test fixtures, or private inspection techniques."
     ],
     "communication": {
       "targets": [

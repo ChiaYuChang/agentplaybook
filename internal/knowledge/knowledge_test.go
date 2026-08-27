@@ -39,10 +39,10 @@ func TestLoad_Success(t *testing.T) {
 
 	// 3. Verify Flows
 	flows := k.Flows()
-	if len(flows) != 4 {
-		t.Fatalf("expected 4 flows, got %d", len(flows))
+	if len(flows) != 5 {
+		t.Fatalf("expected 5 flows, got %d", len(flows))
 	}
-	for _, expected := range []string{"init", "plan", "build", "review"} {
+	for _, expected := range []string{"init", "plan", "build", "review", "commit"} {
 		f, ok := k.Flow(expected)
 		if !ok {
 			t.Errorf("expected flow %q to exist", expected)
@@ -86,12 +86,21 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("expected PLAN_UPDATE_REQUIRED condition on review step 7")
 	}
 
+	// Regression check: commit flow has 9 steps
+	commitFlow, ok := k.Flow("commit")
+	if !ok {
+		t.Fatalf("expected commit flow to exist")
+	}
+	if len(commitFlow.Steps) != 9 {
+		t.Errorf("expected 9 steps in commit flow, got %d", len(commitFlow.Steps))
+	}
+
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
 	if len(artifacts) != 4 {
 		t.Fatalf("expected 4 artifacts, got %d", len(artifacts))
 	}
-	for _, expected := range []string{"repo-summary", "build-plan", "review-plan", "review-findings"} {
+	for _, expected := range []string{"agents-md", "build-plan", "review-plan", "review-findings"} {
 		a, ok := k.Artifact(expected)
 		if !ok {
 			t.Errorf("expected artifact %q to exist", expected)
@@ -113,10 +122,10 @@ func TestLoad_Success(t *testing.T) {
 
 	// 5. Verify Rules
 	rules := k.Rules()
-	if len(rules) < 7 {
-		t.Fatalf("expected at least 7 rules, got %d", len(rules))
+	if len(rules) < 9 {
+		t.Fatalf("expected at least 9 rules, got %d", len(rules))
 	}
-	for _, expected := range []string{"anti-cheating", "mandatory-alignment", "tdd-reproduction", "atomic-change-units"} {
+	for _, expected := range []string{"anti-cheating", "mandatory-alignment", "tdd-reproduction", "atomic-change-units", "agents-md-single-writer", "commit-authority-separation"} {
 		r, ok := k.Rule(expected)
 		if !ok {
 			t.Errorf("expected rule %q to exist", expected)

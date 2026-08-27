@@ -20,7 +20,7 @@ func TestArtifact_BareDiscovery(t *testing.T) {
 	}
 
 	out := stdout.String()
-	for _, expected := range []string{"repo-summary", "build-plan", "review-plan", "review-findings"} {
+	for _, expected := range []string{"agents-md", "build-plan", "review-plan", "review-findings"} {
 		if !strings.Contains(out, expected) {
 			t.Errorf("expected artifact %q in discovery output, got: %s", expected, out)
 		}
@@ -32,7 +32,7 @@ func TestArtifact_BareDiscovery(t *testing.T) {
 		artifactType string
 		description  string
 	}{
-		{"repo-summary", "planner", "document", "Shared repository orientation"},
+		{"agents-md", "planner", "document", "Living operational memory"},
 		{"build-plan", "planner", "document", "Task-specific implementation plan"},
 		{"review-plan", "planner", "document", "Reviewer-only verification plan"},
 		{"review-findings", "reviewer", "message", "Structured findings reported by Reviewer"},
@@ -57,7 +57,27 @@ func TestArtifact_BareDiscovery(t *testing.T) {
 func TestArtifact_Query(t *testing.T) {
 	t.Parallel()
 
-	// 1. Document artifact (build-plan)
+	// 1. Document artifact (agents-md)
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"artifact", "agents-md"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("querying agents-md failed: %v", err)
+		}
+
+		var a knowledge.Artifact
+		if err := json.Unmarshal(stdout.Bytes(), &a); err != nil {
+			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
+		}
+		if a.Name != "agents-md" {
+			t.Errorf("expected artifact name 'agents-md', got %q", a.Name)
+		}
+		if len(a.Sections) != 5 {
+			t.Errorf("expected 5 sections for agents-md, got %d", len(a.Sections))
+		}
+	}
+
+	// 2. Document artifact (build-plan)
 	{
 		var stdout, stderr bytes.Buffer
 		err := cli.Execute([]string{"artifact", "build-plan"}, &stdout, &stderr, "dev")

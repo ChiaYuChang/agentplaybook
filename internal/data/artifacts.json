@@ -1,41 +1,41 @@
 [
   {
-    "name": "repo-summary",
-    "title": "Repository Summary",
-    "description": "Shared repository orientation and context produced during the init flow.",
+    "name": "agents-md",
+    "title": "Living AGENTS.md Operational Memory",
+    "description": "Living operational memory and agent-facing context maintained at the repository root.",
     "owner": "planner",
     "visibility": [
       "planner",
       "builder",
       "reviewer"
     ],
-    "path": ".agentplaybook/context/repository.md",
+    "path": "AGENTS.md",
     "type": "document",
     "sections": [
       {
-        "name": "Purpose & Scope",
+        "name": "Architectural Topology & Jurisdictions",
         "required": true,
-        "description": "High-level purpose of the repository, key problem domains, and major capabilities."
+        "description": "Repository tier, external interfaces, and jurisdictional boundaries (\"不宜跨區辦案\")."
       },
       {
-        "name": "Architecture & Tech Stack",
+        "name": "Global Operational Invariants",
         "required": true,
-        "description": "Programming languages, frameworks, major dependencies, and architectural patterns."
+        "description": "Project-level invariants such as non-interactive execution guards, Conventional Commits, and branch conventions."
       },
       {
-        "name": "Directory Layout & Responsibilities",
+        "name": "Builder Precautions & Gotchas",
         "required": true,
-        "description": "Top-level and key internal directories with their responsibilities."
+        "description": "Toolchain quirks, compiler limitations, and test runner constraints."
       },
       {
-        "name": "Toolchain & Testing Conventions",
+        "name": "Reviewer Precautions & Checklist",
         "required": true,
-        "description": "Standard commands for building, running, linting, and automated unit/integration testing."
+        "description": "Public verification guidelines and regression checkpoints (strictly excluding confidential test secrets)."
       },
       {
-        "name": "Known Constraints & Assumptions",
+        "name": "Active State & In-Flight Context",
         "required": true,
-        "description": "Environment requirements, platform boundaries, and invariant constraints."
+        "description": "Pre-commit baseline observation with mandatory provenance (Observed-At: <UTC timestamp> @ <base-revision-id>), dirty status, recent milestones, and next pickup item."
       }
     ]
   },

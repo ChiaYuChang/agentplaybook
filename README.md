@@ -14,9 +14,9 @@ Instead of stuffing massive, static role prompts into every agent turn—wasting
 - **Read-Only Collaboration Manual**: Zero side-effects on your target repository. No orchestrator runtime daemon, no external state store.
 - **5 Orthogonal Knowledge Domains**:
   - `role`: Durable participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`).
-  - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `build`, `review`).
-  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`repo-summary`, `build-plan`, `review-plan`, `review-findings`).
-  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `atomic-change-units`, `tdd-reproduction`).
+  - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `build`, `review`, `commit`).
+  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `review-findings`).
+  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `atomic-change-units`, `tdd-reproduction`, `agents-md-single-writer`, `commit-authority-separation`).
   - `config`: Supported languages, prefix templates, and transport settings.
 - **Progressive Disclosure UX**: Bare discovery commands output concise catalogs (Exit 0); specific queries return clean, indented JSON.
 - **Built for AI Agents**: Automatic self-caching runner script, compatible with [skills.sh](https://skills.sh) across 17+ agent harnesses.
@@ -88,13 +88,16 @@ agentplaybook role builder --communication
 ```bash
 # Full flow definition
 agentplaybook flow init
+agentplaybook flow commit
 
 # Isolated single step query
 agentplaybook flow build --step 2
+agentplaybook flow commit --step 5
 ```
 
 ### 4. Inspecting Artifact Contracts
 ```bash
+agentplaybook artifact agents-md
 agentplaybook artifact build-plan
 agentplaybook artifact review-findings
 ```
@@ -106,8 +109,66 @@ agentplaybook rule list
 
 # Explain specific rule IDs
 agentplaybook rule explain atomic-change-units
-agentplaybook rule explain anti-cheating mandatory-alignment
+agentplaybook rule explain agents-md-single-writer commit-authority-separation
 ```
+
+---
+
+## 3-Tier Architectural Delegation
+
+To eliminate mechanism leakage and preserve strict jurisdictional boundaries ("不宜跨區辦案"):
+
+- **Tier 3 Orchestration (`AgentPlaybook`)**: Purely conceptual multi-agent orchestration protocol. Governs agent roles (`Planner`, `Reviewer`, `Builder`), artifact contracts (`AGENTS.md`, `build-plan`, `review-plan`), and flow state machines (`init`, `plan`, `build`, `review`, `commit`). Defines *what evidence and gates must exist before handoffs are accepted*, remaining completely VCS-neutral and mechanism-agnostic (flow actions contain no raw `jj` or `git` commands).
+- **Tier 3 Policy Overlay (`agentcommit`)**: Specialized commit policy overlay skill governing candidate stabilization, TOCTOU verification, secret scanning execution, and authorization checks.
+- **Tier 2 Mechanism (`skills/jujutsu` & Git)**: Underlying version control mechanism skills. Concrete tool invocations, command flags, headless guards (`--no-pager`), temporary workspace routines, and conflict resolutions reside exclusively in mechanism skills.
+- **Tier 1 Tooling**: Raw binaries (`jj`, `git`, `gitleaks`).
+
+---
+
+## Living `AGENTS.md` Operational Memory
+
+Instead of fragmented append-only journal files that risk creating competing truths and $O(N)$ cold-start overhead, `AgentPlaybook` adopts a single, living `AGENTS.md` maintained at the repository root as an "Agent-Facing README" for instant $O(1)$ session bootstrapping.
+
+### Canonical 5 Sections
+1. **Architectural Topology & Jurisdictions**: Repository tier, external interfaces, and jurisdictional boundaries ("不宜跨區辦案").
+2. **Global Operational Invariants**: Project-level invariants (e.g., non-interactive execution guards, Conventional Commits, branch conventions).
+3. **Builder Precautions & Gotchas**: Toolchain quirks, compiler limitations, and test runner constraints.
+4. **Reviewer Precautions & Checklist**: Public verification guidelines and regression checkpoints (strictly excluding confidential test secrets).
+5. **Active State & In-Flight Context**: Pre-commit baseline observation with mandatory provenance (`Observed-At: <UTC timestamp> @ <base-revision-id>`), dirty status, recent milestones, and next pickup item.
+
+### Single-Writer & Ground Truth Invariants
+- **Single-Writer Principle**: Planner is the sole author and curator of `AGENTS.md`. Builder and Reviewer are strictly prohibited from editing it directly.
+- **Live VCS Revalidation**: Active State provides orienting context, never a substitute for live repository ground truth. Any receiving Planner cold-starting a session MUST execute fresh VCS inspection commands (`status`/`log`) to revalidate mutable facts before planning or executing tasks.
+- **Blind-Barrier Check**: During the commit flow, Reviewer conducts a narrow visibility check on `AGENTS.md` to ensure no confidential review criteria or hidden fixtures leak into shared documentation (`BARRIER_LEAK` returns to Planner for redaction).
+
+---
+
+## 9-Step Governed Commit Flow (`flow commit`)
+
+A conceptual, evidence-based commit pipeline modeling candidate stabilization, living memory updates, security verification, and separate human authorization:
+
+```text
+[1. Confirm Review Approval (REVIEW_PASS)]
+                    │
+[2. Await Explicit User Commit Request] ◄──────────────┐
+                    │                                  │ AUTHORIZATION_DENIED
+[3. Query Operational Caveats (Builder + Reviewer)]    │
+                    │                                  │
+[4. Update AGENTS.md (Planner sole writer)] ◄────┐     │
+                    │                            │     │
+[5. Reviewer Visibility Check] ─── BARRIER_LEAK ─┤     │
+                    │ AGENTS_REVIEW_PASS         │     │
+[6. Candidate Stabilization & Secret Scan] ── SCAN_FAILED
+                    │ SCAN_CLEAN                       │
+[7. Present Diff & Conventional Commit] ───────────────┘
+                    │ AUTHORIZATION_GRANTED
+[8. Seal Revision Locally (Planner VCS Governance)]
+                    │ PUBLICATION_AUTHORIZED
+[9. Publish Sealed Revision to Remote Repository]
+```
+
+- **Commit & Publication Authority Separation**: Human commit authorization permits local revision sealing only; publishing to a remote repository requires separate, explicit publication authorization.
+- **Fail-Closed Intent Recovery**: If commit authorization is denied (`AUTHORIZATION_DENIED`), Planner must return to Step 2 to await renewed user intent; autonomous re-drafting is strictly forbidden.
 
 ---
 

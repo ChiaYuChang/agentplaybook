@@ -6,27 +6,27 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Survey the repository and draft the repo-summary artifact."
+        "action": "Survey the repository and draft the initial AGENTS.md artifact."
       },
       {
         "index": 2,
         "actor": "reviewer",
-        "action": "Review the current repo-summary artifact and report missing, ambiguous, or incorrect context."
+        "action": "Review the current AGENTS.md artifact and report missing, ambiguous, or incorrect context."
       },
       {
         "index": 3,
         "actor": "planner",
-        "action": "Incorporate Reviewer feedback into the repo-summary artifact."
+        "action": "Incorporate Reviewer feedback into the AGENTS.md artifact."
       },
       {
         "index": 4,
         "actor": "builder",
-        "action": "Review the updated repo-summary artifact and report missing, ambiguous, or incorrect context."
+        "action": "Review the updated AGENTS.md artifact and report missing, ambiguous, or incorrect context."
       },
       {
         "index": 5,
         "actor": "planner",
-        "action": "Incorporate Builder feedback into the repo-summary artifact."
+        "action": "Incorporate Builder feedback into the AGENTS.md artifact."
       },
       {
         "index": 6,
@@ -46,7 +46,7 @@
       {
         "index": 7,
         "actor": "planner",
-        "action": "Finalize and persist the repo-summary artifact."
+        "action": "Finalize and persist the AGENTS.md artifact at repository root."
       }
     ]
   },
@@ -140,7 +140,7 @@
       {
         "index": 6,
         "actor": "planner",
-        "action": "Inspect the working copy diff against declared in-scope boundaries, execute the atomic Conventional Commit under Planner VCS governance, and advance to the next step or conclude build."
+        "action": "Inspect working copy diff against in-scope boundaries, verify local test execution, and hand off to Reviewer without committing."
       }
     ]
   },
@@ -206,7 +206,7 @@
       {
         "index": 6,
         "actor": "planner",
-        "action": "Summarize review results, confirm acceptance criteria satisfaction, and conclude the task."
+        "action": "Summarize review results, confirm acceptance criteria satisfaction (REVIEW_PASS), and advance to the commit flow."
       },
       {
         "index": 7,
@@ -231,6 +231,93 @@
         "index": 8,
         "actor": "planner",
         "action": "End the current review cycle and return to the plan flow to revise the task plans."
+      }
+    ]
+  },
+  {
+    "name": "commit",
+    "description": "Stabilize candidate identity, update living operational memory, perform security scans, and seal revisions under VCS governance upon human authorization.",
+    "steps": [
+      {
+        "index": 1,
+        "actor": "planner",
+        "action": "Confirm independent review approval (REVIEW_PASS) and establish candidate baseline."
+      },
+      {
+        "index": 2,
+        "actor": "planner",
+        "action": "Await explicit user commit request to initiate persistence."
+      },
+      {
+        "index": 3,
+        "actor": "planner",
+        "action": "Query operational caveats from Builder and Reviewer (Reviewer must only report public, independently observable operational facts or 'no publishable caveats')."
+      },
+      {
+        "index": 4,
+        "actor": "planner",
+        "action": "Update AGENTS.md with synthesized, sanitized caveats and fresh Observed-At provenance metadata."
+      },
+      {
+        "index": 5,
+        "actor": "reviewer",
+        "action": "Conduct narrow visibility and blind-barrier check on AGENTS.md to ensure no review secrets leaked.",
+        "conditions": [
+          {
+            "when": "AGENTS_REVIEW_PASS",
+            "then": 6
+          },
+          {
+            "when": "BARRIER_LEAK",
+            "then": 4
+          }
+        ]
+      },
+      {
+        "index": 6,
+        "actor": "planner",
+        "action": "Stabilize candidate snapshot identity, verify candidate equivalence, and execute fail-closed secret scan via active security gate mechanism (non-zero exit code halts pipeline).",
+        "conditions": [
+          {
+            "when": "SCAN_CLEAN",
+            "then": 7
+          },
+          {
+            "when": "SCAN_FAILED",
+            "then": 4
+          }
+        ]
+      },
+      {
+        "index": 7,
+        "actor": "planner",
+        "action": "Present finalized candidate diff and Conventional Commit message, awaiting explicit human commit authorization.",
+        "conditions": [
+          {
+            "when": "AUTHORIZATION_GRANTED",
+            "then": 8
+          },
+          {
+            "when": "AUTHORIZATION_DENIED",
+            "then": 2
+          }
+        ]
+      },
+      {
+        "index": 8,
+        "actor": "planner",
+        "action": "Verify unchanged candidate identity and seal revision locally under Planner VCS governance via active VCS mechanism capability.",
+        "conditions": [
+          {
+            "when": "PUBLICATION_AUTHORIZED",
+            "then": 9
+          }
+        ]
+      },
+      {
+        "index": 9,
+        "actor": "planner",
+        "action": "Publish sealed revision to remote repository under explicit publication authorization via active VCS mechanism capability."
       }
     ]
   }
