@@ -73,6 +73,8 @@ Version Control Governance is exclusively owned by Planner; Builder delivers ver
 - Planner owns VCS history and revision progression: inspect the working copy diff against declared in-scope boundaries, create and seal the atomic Conventional Commit, and advance to the next revision.
 - Git: Planner stages in-scope files and runs `git commit -m '...'` (which advances the active branch).
 - Jujutsu: Planner describes the finalized revision with `jj describe -m '...'` and opens the next revision with `jj new`. Moving bookmarks (for example, `jj bookmark set <name> -r @-`) is optional on intermediate steps and can be deferred until the milestone or task is validated.
+- These governance invariants are VCS-neutral: Builder delivers verified working copy diffs, and Planner owns commits and revision progression regardless of the backend.
+- Jujutsu is recommended for multi-agent collaboration because native change stacking supports isolated working-copy revisions. Git is fully supported when the same Builder handoff and Planner governance are maintained.
 
 ## Discovery
 

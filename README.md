@@ -55,6 +55,10 @@ go build -o bin/agentplaybook .
 
 `skills.sh` provides universal skill installation and loading across 17+ agent harnesses, including Antigravity, Claude Code, Cursor, OpenCode, Codex, and others. Multi-agent transport is separate: it governs real-time communication between agent sessions and is currently expected to be provided by Herdr. Installing a skill via skills.sh does not provide the transport layer.
 
+### VCS Recommendation
+
+Jujutsu is the preferred VCS for multi-agent collaboration because native change stacking supports isolated working-copy revisions and clear handoffs. Git is fully supported; use the same Planner-owned version control governance and verified diff handoff with either backend.
+
 ---
 
 ## CLI Usage

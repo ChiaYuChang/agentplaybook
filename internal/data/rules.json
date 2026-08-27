@@ -29,13 +29,16 @@
     "id": "tdd-reproduction",
     "title": "TDD Review Issue Reproduction & Branching SOP",
     "category": "protocol",
-    "summary": "Builder must write a reproduction test before modifying application code when addressing review findings.",
-    "details": "When review issues are forwarded by Planner, Builder must not jump straight to editing production code. A dedicated reproduction test must first be authored, followed by strict branching based on test behavior.",
+    "summary": "Evidence-based TDD governance requires a validated Red reproduction, a pinned baseline and frozen dependency surface, and an independently validated Green result.",
+    "details": "TDD review fixes are accepted from evidence rather than assumed transitions: Planner verifies that the Red reproduction expresses the reported assertion failure, records the baseline and complete frozen dependency surface, audits frozen paths before accepting Green work, preserves the baseline when conflicts occur, and hands the final green result to Reviewer for independent validation.",
     "guidelines": [
-      "Case A (Expected Failure / Red): The test reproduces the reported issue. Modify implementation code until the reproduction test and all existing tests pass (Green). Report fix and test logs to Planner.",
-      "Case B (Test Passes / No Error): The test passes despite attempts to reproduce. Refine the test. If repeated tests still pass, classify as a potential False Positive. STOP immediately and escalate to Planner.",
-      "Case C (Unexpected Error): The change triggers unrelated crashes or widespread regressions. STOP immediately and escalate to Planner with detailed error logs.",
-      "Never modify application code speculatively without reproducing the reported issue."
+      "Builder must establish a Red (failing) reproduction test before any application-code changes.",
+      "Planner verifies the reproduction failure is an assertion failure expressing the reported defect, not a compile, fixture, or timeout failure.",
+      "Planner records a baseline reference (revision ID or snapshot) and the complete frozen test dependency surface (test files, helpers, fixtures, mocks, golden files, generated inputs, and pre-existing dependencies the reproduction test depends on).",
+      "Builder must not alter any frozen path during the fix phase.",
+      "Planner compares all frozen paths to the baseline reference before accepting the fix handoff.",
+      "If the audit detects any diff in frozen paths, Planner stops acceptance and resolves or escalates; the original baseline reference is preserved as evidence.",
+      "Reviewer independently validates the final result once all tests are green."
     ]
   },
   {

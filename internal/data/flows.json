@@ -176,7 +176,7 @@
       {
         "index": 4,
         "actor": "builder",
-        "action": "Reproduce reported review-findings using TDD reproduction tests and evaluate outcome.",
+        "action": "Establish a failing reproduction test for the reported finding (application code Out-of-Scope during this phase), then hand off to Planner for baseline verification before proceeding to fix.",
         "conditions": [
           {
             "when": "ISSUE_REPRODUCED",
@@ -195,7 +195,7 @@
       {
         "index": 5,
         "actor": "builder",
-        "action": "Fix implementation until all tests pass (Green), and report resolved diff and test logs to Planner.",
+        "action": "Fix application code until all tests pass; frozen test dependency surface must not be modified. Builder may begin Green work only after Planner has recorded the baseline reference and frozen dependency surface under tdd-reproduction; Builder must not report FIX_VERIFIED until Planner has audited the frozen paths. Report resolved diff and test logs to Planner for frozen-path audit and VCS governance.",
         "conditions": [
           {
             "when": "FIX_VERIFIED",

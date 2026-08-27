@@ -152,6 +152,64 @@ func TestCLI_VCSCommitGovernance(t *testing.T) {
 	}
 }
 
+func TestCLI_PlanGateAndTDDBaseline(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.1.0"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	var planner knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "planner"), &planner); err != nil {
+		t.Fatalf("failed to decode planner role: %v", err)
+	}
+	if !slices.Contains(planner.Boundaries, "DO NOT self-approve task plans or bypass the Plan-Review Gate; task plans must be independently evaluated and approved by Reviewer before dispatching to Builder. Only an explicit user instruction may override this gate; Planner cannot waive it autonomously.") {
+		t.Error("expected planner boundary to prohibit bypassing the Plan-Review Gate")
+	}
+
+	var reviewer knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "reviewer"), &reviewer); err != nil {
+		t.Fatalf("failed to decode reviewer role: %v", err)
+	}
+	if !slices.Contains(reviewer.Responsibilities, "Exclusively hold the gate approval authority for task build-plans and review-plans during the plan flow.") {
+		t.Error("expected reviewer to hold plan gate approval authority")
+	}
+
+	var builder knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "builder"), &builder); err != nil {
+		t.Fatalf("failed to decode builder role: %v", err)
+	}
+	if !slices.Contains(builder.Boundaries, "DO NOT modify application code to address review findings without first establishing an expectedly failing TDD reproduction test.") {
+		t.Error("expected builder boundary to require a failing TDD reproduction test")
+	}
+
+	var rules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "tdd-reproduction"), &rules); err != nil {
+		t.Fatalf("failed to decode tdd-reproduction rule: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected one tdd-reproduction rule, got %d", len(rules))
+	}
+	for _, expected := range []string{
+		"Builder must establish a Red (failing) reproduction test before any application-code changes.",
+		"Planner verifies the reproduction failure is an assertion failure expressing the reported defect, not a compile, fixture, or timeout failure.",
+		"Planner records a baseline reference (revision ID or snapshot) and the complete frozen test dependency surface (test files, helpers, fixtures, mocks, golden files, generated inputs, and pre-existing dependencies the reproduction test depends on).",
+		"Builder must not alter any frozen path during the fix phase.",
+		"Planner compares all frozen paths to the baseline reference before accepting the fix handoff.",
+		"If the audit detects any diff in frozen paths, Planner stops acceptance and resolves or escalates; the original baseline reference is preserved as evidence.",
+		"Reviewer independently validates the final result once all tests are green.",
+	} {
+		if !slices.Contains(rules[0].Guidelines, expected) {
+			t.Errorf("expected tdd-reproduction guideline %q", expected)
+		}
+	}
+}
+
 func TestCLI_GoldenErrorMatrix(t *testing.T) {
 	t.Parallel()
 
