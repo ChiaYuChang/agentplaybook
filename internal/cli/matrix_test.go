@@ -75,6 +75,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "commit-authority-separation"},
 		{"rule", "explain", "ephemeral-communication-buffers"},
 		{"rule", "explain", "event-driven-transport-coordination"},
+		{"rule", "explain", "interface-stability-contract-testing"},
 	}
 
 	for _, cmd := range jsonCommands {
@@ -368,6 +369,78 @@ func TestCLI_LivingAgentsAndCommitFlow(t *testing.T) {
 		if !slices.Contains(authorityGuidelines, expected) {
 			t.Errorf("expected commit-authority-separation guideline %q", expected)
 		}
+	}
+}
+
+func TestCLI_InterfaceStabilityContractTesting(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.1.0"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	var rules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "interface-stability-contract-testing"), &rules); err != nil {
+		t.Fatalf("failed to decode interface-stability-contract-testing rule: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected one interface-stability-contract-testing rule, got %d", len(rules))
+	}
+	expectedGuidelines := []string{
+		"A build plan must identify all affected boundary symbols, endpoints, schemas, files, or consumer contracts, or explicitly state that no external boundary is affected.",
+		"Interface changes require a plan amendment before implementation, identifying affected consumers and compatibility or migration handling.",
+		"Contract tests must assert observable input/output, side effects, errors, or interoperability at the boundary, not internal implementation details or mere absence of failure.",
+		"A contract test must fail under at least one plausible violating implementation; Reviewer assesses falsifiability through targeted variation where feasible.",
+		"Unexpected cross-boundary dependencies require Planner escalation; Builder must not unilaterally expand scope.",
+		"Contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings; contract tests are required when boundary behavior is added, changed, or insufficiently protected.",
+	}
+	if len(rules[0].Guidelines) != len(expectedGuidelines) {
+		t.Fatalf("expected %d interface-stability-contract-testing guidelines, got %d", len(expectedGuidelines), len(rules[0].Guidelines))
+	}
+	for _, expected := range expectedGuidelines {
+		if !slices.Contains(rules[0].Guidelines, expected) {
+			t.Errorf("expected interface-stability-contract-testing guideline %q", expected)
+		}
+	}
+
+	var planner knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "planner"), &planner); err != nil {
+		t.Fatalf("failed to decode planner role: %v", err)
+	}
+	if !slices.Contains(planner.Responsibilities, "Declare all component boundary symbols, endpoints, schemas, or consumer contracts affected by a build plan, or explicitly state no external boundary is affected.") {
+		t.Error("expected planner responsibility to declare affected component boundaries")
+	}
+	if !slices.Contains(planner.Boundaries, "DO NOT permit implementation to alter public component interfaces without prior plan amendment identifying affected consumers and compatibility or migration handling.") {
+		t.Error("expected planner boundary to require plan amendment for public interface changes")
+	}
+
+	var builder knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "builder"), &builder); err != nil {
+		t.Fatalf("failed to decode builder role: %v", err)
+	}
+	if !slices.Contains(builder.Responsibilities, "When a component boundary or externally observable behavior is added, changed, or lacks protection, supply contract tests that assert observable input/output, side effects, errors, or interoperability at the boundary—not internal implementation details or mere absence of failure.") {
+		t.Error("expected builder responsibility to require meaningful contract tests")
+	}
+	for _, expected := range []string{
+		"DO NOT supply vacuous or tautological contract tests in place of substantive behavioral assertions.",
+		"Escalate to Planner rather than unilaterally widening scope when unexpected cross-boundary dependencies are encountered.",
+	} {
+		if !slices.Contains(builder.Boundaries, expected) {
+			t.Errorf("expected builder boundary %q", expected)
+		}
+	}
+
+	var reviewer knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "reviewer"), &reviewer); err != nil {
+		t.Fatalf("failed to decode reviewer role: %v", err)
+	}
+	if !slices.Contains(reviewer.Responsibilities, "Independently audit component interface stability and verify that contract tests assert genuine behavioral invariants—failing under at least one plausible violating implementation—distinct from TDD bug-fix reproductions.") {
+		t.Error("expected reviewer responsibility to audit falsifiable contract tests")
 	}
 }
 

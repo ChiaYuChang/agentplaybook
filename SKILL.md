@@ -50,6 +50,17 @@ Do not query every knowledge domain on every turn. Query only the specific domai
    sh "<skill-dir>/scripts/run-agentplaybook.sh" rule explain <rule-id>...
    ```
 
+## Interface Stability & Contract Testing
+
+The `interface-stability-contract-testing` rule governs component boundaries and the tests that protect them:
+
+- A build plan must identify all affected boundary symbols, endpoints, schemas, files, or consumer contracts, or explicitly state that no external boundary is affected.
+- Interface changes require a plan amendment before implementation, identifying affected consumers and compatibility or migration handling.
+- Contract tests must assert observable input/output, side effects, errors, or interoperability at the boundary, not internal implementation details or mere absence of failure.
+- A contract test must fail under at least one plausible violating implementation; Reviewer assesses falsifiability through targeted variation where feasible.
+- Unexpected cross-boundary dependencies require Planner escalation; Builder must not unilaterally expand scope.
+- Contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings; contract tests are required when boundary behavior is added, changed, or insufficiently protected.
+
 ## Ephemeral Communication Buffers
 
 In-flight exchanges between agents (such as orientation inquiries, alignment dialogues, or detailed review findings) are transient transport messages.

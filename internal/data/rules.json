@@ -144,5 +144,20 @@
       "Strictly prohibit sleep loops and periodic screen polling when waiting on other agents.",
       "Use transport-native lifecycle waits to coordinate agent work, and consult the applicable transport skill for exact CLI syntax."
     ]
+  },
+  {
+    "id": "interface-stability-contract-testing",
+    "title": "Component Interface Stability & Meaningful Contract Testing",
+    "category": "architecture",
+    "summary": "Build plans declare all affected component boundaries; contract tests assert observable boundary behavior and must be falsifiable; cross-boundary changes require prior plan amendment.",
+    "details": "Stable component interfaces require explicit planning, meaningful behavioral contracts, and controlled scope. Build plans identify every affected boundary and its consumers, interface changes are amended before implementation, and contract tests protect observable behavior rather than implementation details. Reviewers verify that those contracts are falsifiable, while unexpected cross-boundary dependencies are escalated instead of silently widening the work. Contract tests complement, but do not replace, TDD reproductions for validated review findings.",
+    "guidelines": [
+      "A build plan must identify all affected boundary symbols, endpoints, schemas, files, or consumer contracts, or explicitly state that no external boundary is affected.",
+      "Interface changes require a plan amendment before implementation, identifying affected consumers and compatibility or migration handling.",
+      "Contract tests must assert observable input/output, side effects, errors, or interoperability at the boundary, not internal implementation details or mere absence of failure.",
+      "A contract test must fail under at least one plausible violating implementation; Reviewer assesses falsifiability through targeted variation where feasible.",
+      "Unexpected cross-boundary dependencies require Planner escalation; Builder must not unilaterally expand scope.",
+      "Contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings; contract tests are required when boundary behavior is added, changed, or insufficiently protected."
+    ]
   }
 ]

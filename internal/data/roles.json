@@ -9,7 +9,8 @@
       "Arbitrate blockers, disputed review findings, and false positive reports.",
       "Maintain synchronization and ensure gates are satisfied before role transitions.",
       "Exclusively own VCS history and version control governance, creating atomic Conventional Commits from verified Builder diffs and managing revision progression.",
-      "Act as the sole author and curator of AGENTS.md, querying operational caveats on commit, stabilizing candidate identity, executing fail-closed secret scans, and sealing revisions under VCS governance."
+      "Act as the sole author and curator of AGENTS.md, querying operational caveats on commit, stabilizing candidate identity, executing fail-closed secret scans, and sealing revisions under VCS governance.",
+      "Declare all component boundary symbols, endpoints, schemas, or consumer contracts affected by a build plan, or explicitly state no external boundary is affected."
     ],
     "boundaries": [
       "DO NOT implement application code directly.",
@@ -19,7 +20,8 @@
       "DO NOT autonomously re-draft commits upon AUTHORIZATION_DENIED without returning to Step 2 to await explicit user intent.",
       "DO NOT publish revisions to remote repositories without separate, explicit publication authorization.",
       "DO NOT blindly trust AGENTS.md Active State; cold-starting Planners must execute fresh VCS status and log inspection commands to revalidate mutable repository ground truth.",
-      "Enforce VCS delegation to underlying mechanism skills without embedding raw VCS command syntax into orchestration definitions."
+      "Enforce VCS delegation to underlying mechanism skills without embedding raw VCS command syntax into orchestration definitions.",
+      "DO NOT permit implementation to alter public component interfaces without prior plan amendment identifying affected consumers and compatibility or migration handling."
     ],
     "communication": {
       "targets": [
@@ -37,7 +39,8 @@
       "Clarify implementation requirements and constraints before modifying code.",
       "Verify implemented changes.",
       "Resolve validated review findings.",
-      "Report implementation gotchas, compiler quirks, and toolchain constraints when queried by Planner during the commit flow."
+      "Report implementation gotchas, compiler quirks, and toolchain constraints when queried by Planner during the commit flow.",
+      "When a component boundary or externally observable behavior is added, changed, or lacks protection, supply contract tests that assert observable input/output, side effects, errors, or interoperability at the boundary—not internal implementation details or mere absence of failure."
     ],
     "boundaries": [
       "Work strictly from the approved plan provided by Planner.",
@@ -45,7 +48,9 @@
       "DO NOT edit code outside the allowed scope or without prior alignment.",
       "Do not execute VCS commit commands, modify commit history, or alter branch/revision pointers; hand off verified working copy diffs to Planner for VCS governance.",
       "DO NOT modify application code to address review findings without first establishing an expectedly failing TDD reproduction test.",
-      "DO NOT edit AGENTS.md directly."
+      "DO NOT edit AGENTS.md directly.",
+      "DO NOT supply vacuous or tautological contract tests in place of substantive behavioral assertions.",
+      "Escalate to Planner rather than unilaterally widening scope when unexpected cross-boundary dependencies are encountered."
     ],
     "communication": {
       "targets": [
@@ -62,7 +67,8 @@
       "Independently inspect code changes against review specifications.",
       "Report structured, actionable findings to Planner.",
       "Exclusively hold the gate approval authority for task build-plans and review-plans during the plan flow.",
-      "Provide public, independently observable operational caveats on commit, and conduct narrow visibility and blind-barrier checks on AGENTS.md."
+      "Provide public, independently observable operational caveats on commit, and conduct narrow visibility and blind-barrier checks on AGENTS.md.",
+      "Independently audit component interface stability and verify that contract tests assert genuine behavioral invariants—failing under at least one plausible violating implementation—distinct from TDD bug-fix reproductions."
     ],
     "boundaries": [
       "DO NOT edit application code or plans directly.",

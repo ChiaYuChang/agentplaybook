@@ -16,7 +16,7 @@ Instead of stuffing massive, static role prompts into every agent turn—wasting
   - `role`: Durable participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`).
   - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `build`, `review`, `commit`).
   - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `review-findings`).
-  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `atomic-change-units`, `tdd-reproduction`, `agents-md-single-writer`, `commit-authority-separation`).
+  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `atomic-change-units`, `tdd-reproduction`, `agents-md-single-writer`, `commit-authority-separation`, `interface-stability-contract-testing`).
   - `config`: Supported languages, prefix templates, and transport settings.
 - **Progressive Disclosure UX**: Bare discovery commands output concise catalogs (Exit 0); specific queries return clean, indented JSON.
 - **Built for AI Agents**: Automatic self-caching runner script, compatible with [skills.sh](https://skills.sh) across 17+ agent harnesses.
@@ -114,6 +114,16 @@ agentplaybook rule list
 agentplaybook rule explain atomic-change-units
 agentplaybook rule explain agents-md-single-writer commit-authority-separation
 ```
+
+### Interface Stability & Contract Testing
+Build plans and implementation diffs must preserve stable component interfaces through explicit boundary declarations and meaningful contract tests:
+
+- A build plan must identify all affected boundary symbols, endpoints, schemas, files, or consumer contracts, or explicitly state that no external boundary is affected.
+- Interface changes require a plan amendment before implementation, identifying affected consumers and compatibility or migration handling.
+- Contract tests must assert observable input/output, side effects, errors, or interoperability at the boundary, not internal implementation details or mere absence of failure.
+- A contract test must fail under at least one plausible violating implementation; Reviewer assesses falsifiability through targeted variation where feasible.
+- Unexpected cross-boundary dependencies require Planner escalation; Builder must not unilaterally expand scope.
+- Contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings; contract tests are required when boundary behavior is added, changed, or insufficiently protected.
 
 ---
 
