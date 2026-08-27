@@ -24,7 +24,7 @@ Interpret the retrieved guidance and perform the work using your own reasoning a
 Do not query every knowledge domain on every turn. Query only the specific domain required for your immediate context:
 
 1. **Role & Identity**:
-   When establishing your participant identity or checking your allowed boundaries and responsibilities:
+   When establishing your participant identity or checking your allowed boundaries and responsibilities (the CLI is the sole authoritative source of truth; legacy `roles/` markdown files are removed):
    ```sh
    sh "<skill-dir>/scripts/run-agentplaybook.sh" role <role-name>
    # Selectors: --description, --responsibility, --boundary, --communication

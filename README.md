@@ -74,6 +74,9 @@ agentplaybook rule      # List rule subcommands
 ```
 
 ### 2. Inspecting Roles & Boundaries
+
+> **Breaking Change (v0.2.0)**: The legacy `roles/` directory (`roles/*.md`) has been removed. Role definitions, boundaries, responsibilities, and communication targets are inspected exclusively via the `agentplaybook role <name>` CLI command backed by embedded knowledge datasets.
+
 ```bash
 # Full role definition (JSON)
 agentplaybook role builder

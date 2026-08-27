@@ -19,7 +19,7 @@
 
 ## Builder Precautions & Gotchas
 
-- **Nested `.git` in `roles/`**: Ensure no nested `.git/` directory exists inside `roles/`. A nested `.git/` causes Jujutsu to ignore the folder and Git to treat it as an untracked submodule. Keep `roles/*.md` tracked directly under parent repository governance.
+- **CLI Role Discovery as Sole Truth**: Tracked `roles/*.md` files have been deprecated and removed in `v0.2.0`. All role queries must be conducted via `agentplaybook role <name>` backed by `internal/data/roles.json`.
 - **Sequential Step Validation**: In `internal/data/flows.json`, `validate.go` requires steps without conditions to sequence to `Index+1`. Intermediate steps with conditional branching (such as Step 8 `PUBLICATION_AUTHORIZED -> 9`) must declare explicit condition targets to satisfy validation.
 - **Go Embed Data Invalidation**: `internal/data/*.json` files are embedded via Go `embed.go`. All edits to embedded JSON must be strictly well-formed, as JSON syntax errors invalidate test execution across the entire CLI suite.
 
@@ -31,8 +31,8 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-08-27T20:44:25Z @ f82faf54dfbbfd5ce99df0d1e81a91c88a3d7756`
-- **Dirty Status**: Modified in-scope files for `v0.1.7` (`README.md`, `SKILL.md`, `internal/data/*.json`, `internal/cli/*_test.go`, `roles/*.md`, `scripts/VERSION`, `AGENTS.md`).
-- **Milestone**: `v0.1.7` - Living `AGENTS.md` Operational Memory & 9-Step Governed Commit Flow.
+- **Observed-At**: `2026-08-27T20:57:40Z @ 910cfe8cce0b6b1dfb89ce192e053b66ab029f72`
+- **Dirty Status**: Modified in-scope files for `v0.2.0` (deleted `roles/*.md`, updated `scripts/VERSION`, `README.md`, `SKILL.md`, and `AGENTS.md`).
+- **Milestone**: `v0.2.0` - Deprecate Legacy Roles Directory & Establish CLI Single Source of Truth.
 - **Next Pickup Item**: Conclude Governed Commit Flow Step 5 (Reviewer narrow visibility gate), Step 6 (snapshot secret scanning), Step 7 (human commit authorization), and Step 8 (local revision sealing).
 - **Ground Truth Revalidation Invariant**: Receiving Planners cold-starting a session MUST execute fresh VCS inspection commands (`git status` or `jj --no-pager status`) to revalidate mutable repository ground truth rather than blindly trusting this Active State block.
