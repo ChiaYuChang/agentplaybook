@@ -17,6 +17,8 @@ The runner prefers a cached prebuilt release binary for supported Linux and macO
 
 Use `--update` as the first runner argument or set `AGENTPLAYBOOK_UPDATE=1` to force-refresh the prebuilt binary from GitHub Releases, bypassing the cache while retaining checksum verification and atomic replacement; failed refreshes fall back to local `go build`. Use `--build` as the first runner argument or set `AGENTPLAYBOOK_BUILD=1` to bypass the cached prebuilt binary and atomically replace it with a fresh local build. These runner flags are consumed and are not forwarded to the CLI. Set `AGENTPLAYBOOK_RELEASE_BASE_URL` to override the release base URL for mirrors or test fixtures. `AGENTPLAYBOOK_DEV=1` retains direct local-workspace compilation.
 
+Runner progress is emitted only to `stderr`; CLI output on `stdout` remains clean for pipelines, and normal warm cache hits emit nothing. Cache misses report download, SHA-256 verification, and successful caching. Smart `--update` downloads `checksums.txt` first, compares its archive hash with `.archive_hash`, and reports `already up-to-date` without downloading the archive when unchanged; changed releases are verified and atomically installed. Local builds invalidate `.archive_hash` before compilation.
+
 ## Core Philosophy
 
 The AgentPlaybook CLI is an informational collaboration manual. It provides on-demand reference for roles, flows, artifact contracts, and rules.

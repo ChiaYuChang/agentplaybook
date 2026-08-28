@@ -39,6 +39,7 @@ fi
 
 # AGENTPLAYBOOK_DEV=1 (or WORKFLOW_DEV=1) runs the binary built directly from the local workspace.
 if [ -n "${AGENTPLAYBOOK_DEV:-}" ] || [ -n "${WORKFLOW_DEV:-}" ]; then
+	echo "agentplaybook: compiling dev binary from workspace (AGENTPLAYBOOK_DEV=1)..." >&2
 	dev_binary="${cache_root}/dev/${binary_name}"
 	mkdir -p "${cache_root}/dev"
 	(
@@ -50,6 +51,7 @@ fi
 
 install_dir="${cache_root}/${cli_version}"
 binary_path="${install_dir}/${binary_name}"
+archive_hash_path="${install_dir}/.archive_hash"
 
 release_os=""
 case "$(uname -s 2>/dev/null || true)" in
@@ -94,6 +96,15 @@ cleanup_tmp_dir() {
 }
 
 build_local() {
+	if [ "${build_reason}" = "fallback" ]; then
+		:
+	elif [ "${force_build}" -eq 1 ]; then
+		echo "agentplaybook: building agentplaybook@${cli_version} from source (--build requested)..." >&2
+	else
+		echo "agentplaybook: building agentplaybook@${cli_version} from source..." >&2
+	fi
+	mkdir -p "${install_dir}"
+	rm -f "${install_dir}/.archive_hash"
 	if ! command -v go >/dev/null 2>&1; then
 		echo "agentplaybook: Go toolchain is required to build agentplaybook@${cli_version}" >&2
 		return 1
@@ -105,6 +116,7 @@ build_local() {
 		GOFLAGS= GOWORK=off CGO_ENABLED=0 go build -ldflags "-X main.version=${cli_version}" -o "${tmp_dir}/${binary_name}" .
 	)
 	mv -f "${tmp_dir}/${binary_name}" "${binary_path}"
+	echo "agentplaybook: build complete and cached successfully." >&2
 }
 
 download_file() {
@@ -130,20 +142,13 @@ sha256_file() {
 	fi
 }
 
-download_prebuilt() {
-	archive_name="${binary_name}-${release_os}-${release_arch}.tar.gz"
-	archive_path="${tmp_dir}/${archive_name}"
+download_manifest() {
 	checksums_path="${tmp_dir}/checksums.txt"
 	record_path="${tmp_dir}/checksum.record"
 
-	prepare_tmp_dir
-	if ! download_file "${release_base_url}/${archive_name}" "${archive_path}"; then
-		return 1
-	fi
 	if ! download_file "${release_base_url}/checksums.txt" "${checksums_path}"; then
 		return 1
 	fi
-
 	awk -v target="${archive_name}" '$2 == target {print $1}' "${checksums_path}" > "${record_path}"
 	record_count="$(awk 'NF {count++} END {print count + 0}' "${record_path}")"
 	if [ "${record_count}" -ne 1 ]; then
@@ -157,15 +162,20 @@ EOF
 	then
 		return 1
 	fi
+	expected_hash="$(printf '%s' "${expected_hash}" | tr '[:upper:]' '[:lower:]')"
+}
+
+verify_archive() {
 	if ! actual_hash="$(sha256_file "${archive_path}")"; then
 		return 1
 	fi
-	expected_hash="$(printf '%s' "${expected_hash}" | tr '[:upper:]' '[:lower:]')"
 	actual_hash="$(printf '%s' "${actual_hash}" | tr '[:upper:]' '[:lower:]')"
 	if [ "${expected_hash}" != "${actual_hash}" ]; then
 		return 1
 	fi
+}
 
+install_prebuilt() {
 	if ! tar -xzf "${archive_path}" -C "${tmp_dir}" "${binary_name}"; then
 		return 1
 	fi
@@ -174,18 +184,88 @@ EOF
 	else
 		return 1
 	fi
-	mv -f "${tmp_dir}/${binary_name}" "${binary_path}"
+	printf '%s\n' "${expected_hash}" > "${tmp_dir}/.archive_hash"
+	if ! mv -f "${tmp_dir}/${binary_name}" "${binary_path}"; then
+		return 1
+	fi
+	if ! mv -f "${tmp_dir}/.archive_hash" "${archive_hash_path}"; then
+		return 1
+	fi
+}
+
+download_prebuilt() {
+	archive_name="${binary_name}-${release_os}-${release_arch}.tar.gz"
+	archive_path="${tmp_dir}/${archive_name}"
+
+	prepare_tmp_dir
+	echo "agentplaybook: downloading prebuilt ${cli_version} (${release_os}/${release_arch})..." >&2
+	if ! download_file "${release_base_url}/${archive_name}" "${archive_path}"; then
+		return 1
+	fi
+	if ! download_manifest; then
+		return 1
+	fi
+	echo "agentplaybook: verifying SHA-256 checksum..." >&2
+	if ! verify_archive; then
+		return 1
+	fi
+	if ! install_prebuilt; then
+		return 1
+	fi
+	echo "agentplaybook: binary verified and cached successfully." >&2
+}
+
+update_prebuilt() {
+	archive_name="${binary_name}-${release_os}-${release_arch}.tar.gz"
+	archive_path="${tmp_dir}/${archive_name}"
+
+	prepare_tmp_dir
+	echo "agentplaybook: checking for updates..." >&2
+	if ! download_manifest; then
+		return 1
+	fi
+	if [ -f "${archive_hash_path}" ] && [ -x "${binary_path}" ]; then
+		cached_hash="$(tr -d '[:space:]' < "${archive_hash_path}")"
+		if [ "${expected_hash}" = "${cached_hash}" ]; then
+			echo "agentplaybook: already up-to-date (${cli_version})." >&2
+			return 0
+		fi
+	fi
+
+	echo "agentplaybook: downloading updated release ${cli_version} (${release_os}/${release_arch})..." >&2
+	if ! download_file "${release_base_url}/${archive_name}" "${archive_path}"; then
+		return 1
+	fi
+	echo "agentplaybook: verifying SHA-256 checksum..." >&2
+	if ! verify_archive; then
+		return 1
+	fi
+	if ! install_prebuilt; then
+		return 1
+	fi
+	echo "agentplaybook: updated successfully." >&2
 }
 
 release_base_url="${AGENTPLAYBOOK_RELEASE_BASE_URL:-https://github.com/ChiaYuChang/agentplaybook/releases/download/${cli_version}}"
 release_base_url="${release_base_url%/}"
 
-if [ "${force_build}" -eq 0 ] && [ "${platform_supported}" -eq 1 ]; then
+build_reason=""
+if [ "${force_build}" -eq 0 ] && [ "${force_update}" -eq 1 ] && [ "${platform_supported}" -eq 1 ]; then
+	if update_prebuilt; then
+		cleanup_tmp_dir
+		exec "${binary_path}" "$@"
+	fi
+	cleanup_tmp_dir
+	build_reason="fallback"
+	echo "agentplaybook: warning: prebuilt download/verification failed, falling back to local build from source..." >&2
+elif [ "${force_build}" -eq 0 ] && [ "${platform_supported}" -eq 1 ]; then
 	if download_prebuilt; then
 		cleanup_tmp_dir
 		exec "${binary_path}" "$@"
 	fi
 	cleanup_tmp_dir
+	build_reason="fallback"
+	echo "agentplaybook: warning: prebuilt download/verification failed, falling back to local build from source..." >&2
 fi
 
 build_local

@@ -66,6 +66,8 @@ AGENTPLAYBOOK_BUILD=1 scripts/run-agentplaybook.sh --help
 
 Set `AGENTPLAYBOOK_RELEASE_BASE_URL` to override the release download base URL for mirrors or controlled fixtures. `AGENTPLAYBOOK_DEV=1` continues to build directly from the local workspace.
 
+Runner progress is written to `stderr`; CLI output on `stdout` remains clean for piping. Warm cache hits are silent. Cache misses report download, SHA-256 verification, and successful caching. `--update` downloads only `checksums.txt` first and compares its archive hash with the cached `.archive_hash`; matching releases report `already up-to-date` without downloading the archive, while changed releases are downloaded, verified, and atomically replaced. Local builds remove `.archive_hash` before compilation.
+
 ### Installation and Transport
 
 `skills.sh` provides universal skill installation and loading across 17+ agent harnesses, including Antigravity, Claude Code, Cursor, OpenCode, Codex, and others. Multi-agent transport is separate: it governs real-time communication between agent sessions and is currently expected to be provided by Herdr. Installing a skill via skills.sh does not provide the transport layer.
@@ -164,8 +166,8 @@ Build plans and implementation diffs must preserve stable component interfaces t
 To eliminate mechanism leakage and preserve strict jurisdictional boundaries (strict separation of concerns):
 
 - **Tier 3 Orchestration (`AgentPlaybook`)**: Purely conceptual multi-agent orchestration protocol. Governs agent roles (`Planner`, `Reviewer`, `Builder`), artifact contracts (`AGENTS.md`, `build-plan`, `review-plan`), and flow state machines (`init`, `plan`, `build`, `review`, `commit`). Defines *what evidence and gates must exist before handoffs are accepted*, remaining completely VCS-neutral and mechanism-agnostic (flow actions contain no raw `jj` or `git` commands).
-- **Tier 3 Policy Overlay (`agentcommit`)**: Specialized commit policy overlay skill governing candidate stabilization, TOCTOU verification, secret scanning execution, and authorization checks.
-- **Tier 2 Mechanism (`skills/jujutsu` & Git)**: Underlying version control mechanism skills. Concrete tool invocations, command flags, headless guards (`--no-pager`), temporary workspace routines, and conflict resolutions reside exclusively in mechanism skills.
+- **Tier 3 Policy Overlay ([`agentcommit`](https://github.com/ChiaYuChang/agentcommit))**: Specialized commit policy overlay skill governing candidate stabilization, TOCTOU verification, secret scanning execution, and authorization checks.
+- **Tier 2 Mechanism (Jujutsu & Git VCS Mechanism Skills)**: Underlying version control mechanism skills. Concrete tool invocations, command flags, headless guards (`--no-pager`), temporary workspace routines, and conflict resolutions reside exclusively in mechanism skills.
 - **Tier 1 Tooling**: Raw binaries (`jj`, `git`, `gitleaks`).
 
 ---

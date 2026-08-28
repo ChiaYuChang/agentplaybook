@@ -6,7 +6,7 @@
 - **External Interfaces**: Go CLI (`agentplaybook`) discovery commands (`role`, `flow`, `artifact`, `rule`) with JSON output.
 - **Jurisdictional Boundaries (strict separation of concerns)**:
   - `AgentPlaybook`: Conceptual, evidence-based governance. Strictly VCS-neutral; no raw shell scripts or command syntax.
-  - VCS Mechanism: Low-level mechanics, headless guards (`--no-pager`), workspace management delegated to active VCS skill (`skills/jujutsu` or Git).
+  - VCS Mechanism: Low-level mechanics, headless guards (`--no-pager`), workspace management delegated to active VCS skill (Jujutsu / `agentjj` or Git).
   - Policy Overlay: Commit candidate stabilization, TOCTOU defense, secret scanning delegated to active commit policy overlay (`agentcommit`).
 
 ## Global Operational Invariants
@@ -29,7 +29,7 @@
 - **`flow commit` Non-Mutating Command**: `agentplaybook flow commit` queryable workflow metadata only; coordinator flow, not mutating binary CLI command.
 - **`AGENTPLAYBOOK_DEV=1` Cache Race**: Concurrent CLI queries with `AGENTPLAYBOOK_DEV=1` trigger build race on cache (`text file busy`). Run development queries sequentially.
 - **Stateless Replaceability**: Builder stateless/disposable. Bloated or rate-limited sessions replaced from approved `<slug>.plan.md` without compaction token overhead.
-- **Runner Download & Flag Precedence**: `run-agentplaybook.sh` parses leading flags in loop. `--build` (force compile) > `--update` (force release download) > on-demand cache check. Verifies SHA-256 and non-symlink before atomic install.
+- **Runner Progress & Smart Update**: `run-agentplaybook.sh` emits progress to stderr (clean stdout). Smart `--update` checks `checksums.txt` vs `.archive_hash` to avoid archive re-download when already up-to-date. `build_local` explicitly invalidates `.archive_hash`.
 
 ## Reviewer Precautions & Checklist
 
@@ -43,8 +43,8 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-08-28T21:19:00Z @ f1eb78102476093f2f89fadf59abdcb34baf78e0`
-- **Dirty Status**: Modified in-scope files for `v0.2.6` (`.github/workflows/release.yml`, `scripts/run-agentplaybook.sh`, `scripts/VERSION`, `README.md`, `SKILL.md`, and `AGENTS.md`).
-- **Milestone**: `v0.2.6` - GitHub Actions Release Workflow, Prebuilt Binary Download, Security Hardening & User-Initiated Update Governance.
+- **Observed-At**: `2026-08-28T21:43:00Z @ 07819874c70c951708a504754e2020d1ce9d74aa`
+- **Dirty Status**: Modified in-scope files for runner progress visibility, smart update, and Tier documentation refinement (`scripts/run-agentplaybook.sh`, `README.md`, `SKILL.md`, and `AGENTS.md`).
+- **Milestone**: `v0.2.6` Patch - Runner Progress Visibility, Smart Update & Tier Linkage Governance.
 - **Next Pickup Item**: Conclude Governed Commit Flow Step 5 (Reviewer narrow visibility gate), Step 6 (snapshot secret scanning), Step 7 (human commit authorization), and Step 8 (local revision sealing).
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `git status` or `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.
