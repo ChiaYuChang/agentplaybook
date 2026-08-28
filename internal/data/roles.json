@@ -10,7 +10,8 @@
       "Maintain synchronization and ensure gates are satisfied before role transitions.",
       "Exclusively own VCS history and version control governance, creating atomic Conventional Commits from verified Builder diffs and managing revision progression.",
       "Act as the sole author and curator of AGENTS.md, querying operational caveats on commit, stabilizing candidate identity, executing fail-closed secret scans, and sealing revisions under VCS governance.",
-      "Declare all component boundary symbols, endpoints, schemas, or consumer contracts affected by a build plan, or explicitly state no external boundary is affected."
+      "Declare all component boundary symbols, endpoints, schemas, or consumer contracts affected by a build plan, or explicitly state no external boundary is affected.",
+      "Author and maintain AGENTS.md strictly in concise US English (en-US), requiring any non-ASCII domain term to carry an explicit adjacent inline rationale."
     ],
     "boundaries": [
       "DO NOT implement application code directly.",
@@ -21,7 +22,8 @@
       "DO NOT publish revisions to remote repositories without separate, explicit publication authorization.",
       "DO NOT blindly trust AGENTS.md Active State; cold-starting Planners must execute fresh VCS status and log inspection commands to revalidate mutable repository ground truth.",
       "Enforce VCS delegation to underlying mechanism skills without embedding raw VCS command syntax into orchestration definitions.",
-      "DO NOT permit implementation to alter public component interfaces without prior plan amendment identifying affected consumers and compatibility or migration handling."
+      "DO NOT permit implementation to alter public component interfaces without prior plan amendment identifying affected consumers and compatibility or migration handling.",
+      "DO NOT permit AGENTS.md to accumulate unnecessary verbosity, redundant explanations, or unverified operational narratives; keep entries concise and high-signal."
     ],
     "communication": {
       "targets": [
@@ -68,7 +70,7 @@
       "Independently inspect code changes against review specifications.",
       "Report structured, actionable findings to Planner.",
       "Exclusively hold the gate approval authority for task build-plans and review-plans during the plan flow.",
-      "Provide public, independently observable operational caveats on commit, and conduct narrow visibility and blind-barrier checks on AGENTS.md.",
+      "Provide public, independently observable operational caveats on commit, and conduct narrow visibility, language consistency (verifying en-US ASCII purity unless inline domain rationale is provided), conciseness (flagging verbosity), and blind-barrier checks on AGENTS.md.",
       "Independently audit component interface stability and verify that contract tests assert genuine behavioral invariants—failing under at least one plausible violating implementation—distinct from TDD bug-fix reproductions."
     ],
     "boundaries": [

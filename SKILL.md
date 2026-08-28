@@ -110,6 +110,10 @@ When coordinating across agents in Herdr, follow a zero-poll policy: never use `
 - **Ground Truth Revalidation**: Active State provides orienting context, never a substitute for live repository ground truth. Cold-starting Planners must execute fresh VCS status and log inspection commands to revalidate mutable facts before planning or executing tasks.
 - **Blind-Barrier Check**: Reviewer conducts a narrow visibility check on `AGENTS.md` during the commit flow to ensure no confidential review criteria or hidden fixtures leak (`BARRIER_LEAK` returns to Planner for redaction).
 
+### Language & Conciseness Standard
+
+`AGENTS.md` must be authored in concise US English (`en-US`) and remain pure ASCII by default. A non-ASCII domain term is permitted only with an explicit adjacent inline rationale, such as `(domain term: concise rationale)`; this is the inline exception contract. Planner keeps entries concise and high-signal, excluding unnecessary verbosity, redundant explanations, and unverified operational narratives. Reviewer audits the file during the commit flow for unauthorized non-ASCII text lacking inline justification, excessive verbosity or bloat, and confidential barrier leakage.
+
 ## Governed 9-Step Commit Flow (`flow commit`)
 
 Version Control Governance is executed through a conceptual, evidence-based commit pipeline:

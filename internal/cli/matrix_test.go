@@ -354,6 +354,8 @@ func TestCLI_LivingAgentsAndCommitFlow(t *testing.T) {
 		"The Active State section must record baseline provenance with 'Observed-At: <UTC timestamp> @ <base-revision-id>', dirty status, recent milestones, and next pickup item.",
 		"Receiving Planners cold-starting a session must execute fresh VCS status and log commands to revalidate mutable ground truth before planning or executing tasks.",
 		"Reviewer must conduct narrow visibility and blind-barrier checks on AGENTS.md during the commit flow (BARRIER_LEAK returns to Planner for redaction).",
+		"AGENTS.md must be authored in concise US English (en-US); any non-ASCII domain term must carry an explicit adjacent inline rationale.",
+		"Reviewer audits AGENTS.md during the commit flow for secret leaks, unauthorized non-ASCII text lacking inline justification, and excessive verbosity or bloat.",
 	} {
 		if !slices.Contains(singleWriterGuidelines, expected) {
 			t.Errorf("expected agents-md-single-writer guideline %q", expected)
@@ -376,6 +378,59 @@ func TestCLI_LivingAgentsAndCommitFlow(t *testing.T) {
 	} {
 		if !slices.Contains(authorityGuidelines, expected) {
 			t.Errorf("expected commit-authority-separation guideline %q", expected)
+		}
+	}
+}
+
+func TestCLI_AgentsLanguageConciseness(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.1.0"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	var planner knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "planner"), &planner); err != nil {
+		t.Fatalf("failed to decode planner role: %v", err)
+	}
+	if !slices.Contains(planner.Responsibilities, "Author and maintain AGENTS.md strictly in concise US English (en-US), requiring any non-ASCII domain term to carry an explicit adjacent inline rationale.") {
+		t.Error("expected planner responsibility to require concise en-US AGENTS.md content")
+	}
+	if !slices.Contains(planner.Boundaries, "DO NOT permit AGENTS.md to accumulate unnecessary verbosity, redundant explanations, or unverified operational narratives; keep entries concise and high-signal.") {
+		t.Error("expected planner boundary to prohibit verbose or unverified AGENTS.md content")
+	}
+
+	var reviewer knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "reviewer"), &reviewer); err != nil {
+		t.Fatalf("failed to decode reviewer role: %v", err)
+	}
+	if !slices.Contains(reviewer.Responsibilities, "Provide public, independently observable operational caveats on commit, and conduct narrow visibility, language consistency (verifying en-US ASCII purity unless inline domain rationale is provided), conciseness (flagging verbosity), and blind-barrier checks on AGENTS.md.") {
+		t.Error("expected reviewer responsibility to audit AGENTS.md language and conciseness")
+	}
+
+	var rules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "agents-md-single-writer"), &rules); err != nil {
+		t.Fatalf("failed to decode agents-md-single-writer rule: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected one agents-md-single-writer rule, got %d", len(rules))
+	}
+	for _, expected := range []string{
+		"Planner is the sole author and curator of AGENTS.md; Builder and Reviewer must never edit AGENTS.md directly.",
+		"AGENTS.md contains 5 canonical sections: Architectural Topology & Jurisdictions, Global Operational Invariants, Builder Precautions & Gotchas, Reviewer Precautions & Checklist, and Active State & In-Flight Context.",
+		"The Active State section must record baseline provenance with 'Observed-At: <UTC timestamp> @ <base-revision-id>', dirty status, recent milestones, and next pickup item.",
+		"Receiving Planners cold-starting a session must execute fresh VCS status and log commands to revalidate mutable ground truth before planning or executing tasks.",
+		"Reviewer must conduct narrow visibility and blind-barrier checks on AGENTS.md during the commit flow (BARRIER_LEAK returns to Planner for redaction).",
+		"AGENTS.md must be authored in concise US English (en-US); any non-ASCII domain term must carry an explicit adjacent inline rationale.",
+		"Reviewer audits AGENTS.md during the commit flow for secret leaks, unauthorized non-ASCII text lacking inline justification, and excessive verbosity or bloat.",
+	} {
+		if !slices.Contains(rules[0].Guidelines, expected) {
+			t.Errorf("expected agents-md-single-writer guideline %q", expected)
 		}
 	}
 }

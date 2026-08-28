@@ -171,6 +171,12 @@ Instead of fragmented append-only journal files that risk creating competing tru
 - **Live VCS Revalidation**: Active State provides orienting context, never a substitute for live repository ground truth. Any receiving Planner cold-starting a session MUST execute fresh VCS inspection commands (`status`/`log`) to revalidate mutable facts before planning or executing tasks.
 - **Blind-Barrier Check**: During the commit flow, Reviewer conducts a narrow visibility check on `AGENTS.md` to ensure no confidential review criteria or hidden fixtures leak into shared documentation (`BARRIER_LEAK` returns to Planner for redaction).
 
+### Language & Conciseness Standard
+- `AGENTS.md` must be authored in concise US English (`en-US`) and remain pure ASCII by default.
+- A non-ASCII domain term is permitted only with an explicit adjacent inline rationale, such as `(domain term: concise rationale)`; this is the inline exception contract.
+- Planner keeps entries concise and high-signal, excluding unnecessary verbosity, redundant explanations, and unverified operational narratives.
+- Reviewer audits the file during the commit flow for unauthorized non-ASCII text lacking inline justification, excessive verbosity or bloat, and confidential barrier leakage.
+
 ---
 
 ## 9-Step Governed Commit Flow (`flow commit`)

@@ -13,6 +13,7 @@
 
 - **Non-Interactive Execution**: All operations must be headless-safe; interactive TUIs, unshielded pagers, and interactive confirmation prompts are prohibited in unattended sessions.
 - **Living Memory Single-Writer Principle**: Planner is the sole author and curator of `AGENTS.md`. Builder, Reviewer, and Scout must never edit `AGENTS.md` directly.
+- **Language Standard & Conciseness**: `AGENTS.md` must be authored strictly in concise US English (en-US); any non-ASCII domain term requires an explicit adjacent inline rationale. Avoid conversational verbosity and redundant operational narratives.
 - **Commit & Publication Authority Separation**: Commit authorization permits local revision sealing only. Remote publication requires separate, explicit human authorization.
 - **Fail-Closed Intent Recovery**: Upon `AUTHORIZATION_DENIED`, Planner must return to Step 2 to await renewed user intent; autonomous re-drafting is strictly forbidden.
 - **Conventional Commits**: Commit messages follow Conventional Commits specification (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`).
@@ -33,11 +34,12 @@
 - **Public-Only Guidance**: Ensure `AGENTS.md` contains only public, independently observable operational guidance, strictly excluding confidential review criteria, hidden test fixtures, or private inspection techniques.
 - **Contract Test Falsifiability**: Boundary contract tests must verify observable behavior and be falsifiable under a plausible violating implementation; they do not replace TDD reproductions for review findings.
 - **Scout Survey Evidence & Confidentiality**: When Scout is deployed, verify that `scout-survey` provides concrete provenance, evidence paths, and uncertainty markers. Ensure Scout remains read-only and is never granted access to confidential review plans or reviewer verification artifacts.
+- **Language Purity & Conciseness Audit**: During Step 5 commit checks, audit `AGENTS.md` for secret leaks, unauthorized non-ASCII text lacking inline rationale, and conversational verbosity or bloat.
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-08-28T13:22:00Z @ 2d39de9be5b3773c1b8dde190d9d393c78a5e1b5`
-- **Dirty Status**: Modified in-scope files for `v0.2.2` (`internal/data/roles.json`, `internal/data/artifacts.json`, `internal/data/rules.json`, `internal/data/flows.json`, `internal/knowledge/model.go`, `internal/knowledge/knowledge_test.go`, `internal/cli/*_test.go`, `scripts/VERSION`, `README.md`, `SKILL.md`, and `AGENTS.md`).
-- **Milestone**: `v0.2.2` - Scout Role & Read-Only Reconnaissance Governance.
+- **Observed-At**: `2026-08-28T13:51:00Z @ d3cb57d4da51bd211a48cd2c6f79453c5d024a79`
+- **Dirty Status**: Modified in-scope files for `v0.2.3` (`internal/data/roles.json`, `internal/data/rules.json`, `internal/cli/matrix_test.go`, `scripts/VERSION`, `README.md`, `SKILL.md`, and `AGENTS.md`).
+- **Milestone**: `v0.2.3` - Living AGENTS.md Language Standard & Conciseness Governance.
 - **Next Pickup Item**: Conclude Governed Commit Flow Step 5 (Reviewer narrow visibility gate), Step 6 (snapshot secret scanning), Step 7 (human commit authorization), and Step 8 (local revision sealing).
 - **Ground Truth Revalidation Invariant**: Receiving Planners cold-starting a session MUST execute fresh VCS inspection commands (`git status` or `jj --no-pager status`) to revalidate mutable repository ground truth rather than blindly trusting this Active State block.

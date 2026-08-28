@@ -97,14 +97,16 @@
     "id": "agents-md-single-writer",
     "title": "Living AGENTS.md Single-Writer & Ground Truth Invariant",
     "category": "protocol",
-    "summary": "Planner is the sole author and curator of AGENTS.md; Reviewer and Builder are strictly prohibited from editing it directly.",
-    "details": "AGENTS.md serves as living operational memory at the repository root across 5 canonical sections. To prevent race conditions and conflicting truths, Planner is the sole writer. Active State provides orienting context with mandatory Observed-At provenance, but receiving Planners must always execute fresh VCS status and log inspection commands to revalidate live repository ground truth rather than blindly trusting cached state. Reviewer conducts narrow visibility checks to prevent secret leakage.",
+    "summary": "Planner is the sole author and curator of concise, en-US AGENTS.md; Reviewer audits language consistency, conciseness, and blind-barrier integrity while Builder is strictly prohibited from editing it directly.",
+    "details": "AGENTS.md serves as living operational memory at the repository root across 5 canonical sections. To prevent race conditions and conflicting truths, Planner is the sole writer. AGENTS.md must be authored in concise US English (en-US); any non-ASCII domain term must carry an explicit adjacent inline rationale, otherwise the file remains pure ASCII. Entries must stay concise and high-signal without redundant explanations or unverified operational narratives. Active State provides orienting context with mandatory Observed-At provenance, but receiving Planners must always execute fresh VCS status and log inspection commands to revalidate live repository ground truth rather than blindly trusting cached state. Reviewer conducts narrow visibility, language consistency, conciseness, and blind-barrier checks to prevent secret leakage, unauthorized text, and operational bloat.",
     "guidelines": [
       "Planner is the sole author and curator of AGENTS.md; Builder and Reviewer must never edit AGENTS.md directly.",
       "AGENTS.md contains 5 canonical sections: Architectural Topology & Jurisdictions, Global Operational Invariants, Builder Precautions & Gotchas, Reviewer Precautions & Checklist, and Active State & In-Flight Context.",
       "The Active State section must record baseline provenance with 'Observed-At: <UTC timestamp> @ <base-revision-id>', dirty status, recent milestones, and next pickup item.",
       "Receiving Planners cold-starting a session must execute fresh VCS status and log commands to revalidate mutable ground truth before planning or executing tasks.",
-      "Reviewer must conduct narrow visibility and blind-barrier checks on AGENTS.md during the commit flow (BARRIER_LEAK returns to Planner for redaction)."
+      "Reviewer must conduct narrow visibility and blind-barrier checks on AGENTS.md during the commit flow (BARRIER_LEAK returns to Planner for redaction).",
+      "AGENTS.md must be authored in concise US English (en-US); any non-ASCII domain term must carry an explicit adjacent inline rationale.",
+      "Reviewer audits AGENTS.md during the commit flow for secret leaks, unauthorized non-ASCII text lacking inline justification, and excessive verbosity or bloat."
     ]
   },
   {
