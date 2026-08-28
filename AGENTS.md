@@ -18,6 +18,7 @@
 - **Commit & Publication Separation**: Human commit auth = local seal only. Remote push requires separate explicit user auth.
 - **Fail-Closed Intent Recovery**: On `AUTHORIZATION_DENIED`, return to Step 2 awaiting renewed user intent. Autonomous re-drafting forbidden.
 - **Conventional Commits**: Messages follow Conventional Commits specification (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`).
+- **No Background Auto-Update**: Updates user-initiated only. Runner never polls, downloads, or mutates repository in background without explicit invocation.
 
 ## Builder Precautions & Gotchas
 
@@ -28,6 +29,7 @@
 - **`flow commit` Non-Mutating Command**: `agentplaybook flow commit` queryable workflow metadata only; coordinator flow, not mutating binary CLI command.
 - **`AGENTPLAYBOOK_DEV=1` Cache Race**: Concurrent CLI queries with `AGENTPLAYBOOK_DEV=1` trigger build race on cache (`text file busy`). Run development queries sequentially.
 - **Stateless Replaceability**: Builder stateless/disposable. Bloated or rate-limited sessions replaced from approved `<slug>.plan.md` without compaction token overhead.
+- **Runner Download & Flag Precedence**: `run-agentplaybook.sh` parses leading flags in loop. `--build` (force compile) > `--update` (force release download) > on-demand cache check. Verifies SHA-256 and non-symlink before atomic install.
 
 ## Reviewer Precautions & Checklist
 
@@ -41,8 +43,8 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-08-28T15:30:00Z @ b72c8d65e263ebbfa0fd57116893d684cd3ee4bf`
-- **Dirty Status**: Modified in-scope files for `v0.2.5` (`internal/data/roles.json`, `internal/data/rules.json`, `internal/knowledge/knowledge_test.go`, `internal/cli/matrix_test.go`, `scripts/VERSION`, `README.md`, `SKILL.md`, and `AGENTS.md`).
-- **Milestone**: `v0.2.5` - Role-Tiered Context Lifecycle, Compaction Governance & Prefixed Caveman Protocol.
+- **Observed-At**: `2026-08-28T21:19:00Z @ f1eb78102476093f2f89fadf59abdcb34baf78e0`
+- **Dirty Status**: Modified in-scope files for `v0.2.6` (`.github/workflows/release.yml`, `scripts/run-agentplaybook.sh`, `scripts/VERSION`, `README.md`, `SKILL.md`, and `AGENTS.md`).
+- **Milestone**: `v0.2.6` - GitHub Actions Release Workflow, Prebuilt Binary Download, Security Hardening & User-Initiated Update Governance.
 - **Next Pickup Item**: Conclude Governed Commit Flow Step 5 (Reviewer narrow visibility gate), Step 6 (snapshot secret scanning), Step 7 (human commit authorization), and Step 8 (local revision sealing).
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `git status` or `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

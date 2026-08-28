@@ -51,6 +51,21 @@ cd agentplaybook
 go build -o bin/agentplaybook .
 ```
 
+### Prebuilt Release Binaries
+
+`scripts/run-agentplaybook.sh` downloads the matching Linux or macOS (`amd64` or `arm64`) release archive when no versioned cache exists. Before extraction, it requires exactly one matching archive record in `checksums.txt` and verifies the archive with SHA-256. Download, platform, or checksum failures fall back to a local `go build` when Go is available.
+
+Use `--update` or `AGENTPLAYBOOK_UPDATE=1` to force-refresh the prebuilt binary from GitHub Releases, bypassing the cache while retaining checksum verification and atomic replacement. If the refresh fails, the runner falls back to a local `go build`. Use `--build` or `AGENTPLAYBOOK_BUILD=1` to bypass a cached prebuilt binary and atomically replace it with a fresh local build:
+
+```bash
+scripts/run-agentplaybook.sh --update --version
+AGENTPLAYBOOK_UPDATE=1 scripts/run-agentplaybook.sh --help
+scripts/run-agentplaybook.sh --build --version
+AGENTPLAYBOOK_BUILD=1 scripts/run-agentplaybook.sh --help
+```
+
+Set `AGENTPLAYBOOK_RELEASE_BASE_URL` to override the release download base URL for mirrors or controlled fixtures. `AGENTPLAYBOOK_DEV=1` continues to build directly from the local workspace.
+
 ### Installation and Transport
 
 `skills.sh` provides universal skill installation and loading across 17+ agent harnesses, including Antigravity, Claude Code, Cursor, OpenCode, Codex, and others. Multi-agent transport is separate: it governs real-time communication between agent sessions and is currently expected to be provided by Herdr. Installing a skill via skills.sh does not provide the transport layer.

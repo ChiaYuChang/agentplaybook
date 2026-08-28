@@ -13,6 +13,10 @@ Commands:
 - Linux or macOS: `sh "<skill-dir>/scripts/run-agentplaybook.sh"`
 - Local development: `AGENTPLAYBOOK_DEV=1 sh "<skill-dir>/scripts/run-agentplaybook.sh"`
 
+The runner prefers a cached prebuilt release binary for supported Linux and macOS (`amd64` or `arm64`) hosts. On a cache miss, it downloads the matching archive and `checksums.txt`, requires exactly one matching archive record, verifies SHA-256 before extraction, and atomically installs only an executable verified archive. Download, platform, or checksum failures fall back to local `go build`; unsupported platforms always use the local build path.
+
+Use `--update` as the first runner argument or set `AGENTPLAYBOOK_UPDATE=1` to force-refresh the prebuilt binary from GitHub Releases, bypassing the cache while retaining checksum verification and atomic replacement; failed refreshes fall back to local `go build`. Use `--build` as the first runner argument or set `AGENTPLAYBOOK_BUILD=1` to bypass the cached prebuilt binary and atomically replace it with a fresh local build. These runner flags are consumed and are not forwarded to the CLI. Set `AGENTPLAYBOOK_RELEASE_BASE_URL` to override the release base URL for mirrors or test fixtures. `AGENTPLAYBOOK_DEV=1` retains direct local-workspace compilation.
+
 ## Core Philosophy
 
 The AgentPlaybook CLI is an informational collaboration manual. It provides on-demand reference for roles, flows, artifact contracts, and rules.
