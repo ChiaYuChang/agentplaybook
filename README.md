@@ -177,6 +177,19 @@ Instead of fragmented append-only journal files that risk creating competing tru
 - Planner keeps entries concise and high-signal, excluding unnecessary verbosity, redundant explanations, and unverified operational narratives.
 - Reviewer audits the file during the commit flow for unauthorized non-ASCII text lacking inline justification, excessive verbosity or bloat, and confidential barrier leakage.
 
+### Telegraphic Memory & Inter-Agent Communication
+- `AGENTS.md` is machine-facing operational memory and a token-dense cache for LLM agents, not human-facing prose. Use concise fragments; drop articles, filler words, conversational pleasantries, and redundant grammar while preserving exact technical terms and code symbols.
+- Inter-agent communication permits and encourages telegraphic (caveman) compression. Prompts, responses, alignment inquiries, review findings, and caveat reports may omit polite framing in favor of compact, structured technical fragments that minimize transport token consumption.
+- Telegraphic formatting is an endogenous specification only; it introduces no new runtime packages, binaries, or dependencies.
+
+## Acknowledgements & Prior Art
+- **Caveman Prompting Pattern**: Julius Brussee, [`github.com/JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman), for the telegraphic token-dense compression paradigm for LLMs.
+- **Jujutsu (`jj`)**: [`github.com/jj-vcs/jj`](https://github.com/jj-vcs/jj), the Git-compatible VCS with first-class change stacking and working-copy snapshots.
+- **Gitleaks**: [`github.com/gitleaks/gitleaks`](https://github.com/gitleaks/gitleaks), the automated audit and secret detection engine used for pre-commit verification.
+- **Test-Driven Development & Contract Testing**: Kent Beck, *Test-Driven Development: By Example* (Addison-Wesley, 2002); Ian Robinson, *Consumer-Driven Contracts: A Service Evolution Pattern* (2006), [`martinfowler.com/articles/consumerDrivenContracts.html`](https://martinfowler.com/articles/consumerDrivenContracts.html).
+
+These specifications introduce no new runtime dependencies.
+
 ---
 
 ## 9-Step Governed Commit Flow (`flow commit`)

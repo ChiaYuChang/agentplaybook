@@ -114,6 +114,10 @@ When coordinating across agents in Herdr, follow a zero-poll policy: never use `
 
 `AGENTS.md` must be authored in concise US English (`en-US`) and remain pure ASCII by default. A non-ASCII domain term is permitted only with an explicit adjacent inline rationale, such as `(domain term: concise rationale)`; this is the inline exception contract. Planner keeps entries concise and high-signal, excluding unnecessary verbosity, redundant explanations, and unverified operational narratives. Reviewer audits the file during the commit flow for unauthorized non-ASCII text lacking inline justification, excessive verbosity or bloat, and confidential barrier leakage.
 
+### Telegraphic Memory & Inter-Agent Communication
+
+`AGENTS.md` is machine-facing operational memory and a token-dense cache for LLM agents, not human-facing prose. Use concise fragments; drop articles, filler words, conversational pleasantries, and redundant grammar while preserving exact technical terms and code symbols. Inter-agent communication permits and encourages telegraphic (caveman) compression: prompts, responses, alignment inquiries, review findings, and caveat reports may omit polite framing in favor of compact, structured technical fragments that minimize transport token consumption. This formatting is an endogenous specification only and introduces no new runtime packages, binaries, or dependencies.
+
 ## Governed 9-Step Commit Flow (`flow commit`)
 
 Version Control Governance is executed through a conceptual, evidence-based commit pipeline:

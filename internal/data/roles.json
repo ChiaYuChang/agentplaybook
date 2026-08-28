@@ -11,7 +11,8 @@
       "Exclusively own VCS history and version control governance, creating atomic Conventional Commits from verified Builder diffs and managing revision progression.",
       "Act as the sole author and curator of AGENTS.md, querying operational caveats on commit, stabilizing candidate identity, executing fail-closed secret scans, and sealing revisions under VCS governance.",
       "Declare all component boundary symbols, endpoints, schemas, or consumer contracts affected by a build plan, or explicitly state no external boundary is affected.",
-      "Author and maintain AGENTS.md strictly in concise US English (en-US), requiring any non-ASCII domain term to carry an explicit adjacent inline rationale."
+      "Author and maintain AGENTS.md in telegraphic, token-dense style (omitting filler words, conversational prose, and redundant grammar), maximizing token efficiency for LLM parsing while keeping exact technical terms and code symbols in concise US English (en-US); any non-ASCII domain term must carry an explicit adjacent inline rationale.",
+      "Permit and encourage telegraphic inter-agent messaging: omit conversational filler, pleasantries, and polite framing in favor of compact, structured technical fragments."
     ],
     "boundaries": [
       "DO NOT implement application code directly.",
@@ -23,7 +24,7 @@
       "DO NOT blindly trust AGENTS.md Active State; cold-starting Planners must execute fresh VCS status and log inspection commands to revalidate mutable repository ground truth.",
       "Enforce VCS delegation to underlying mechanism skills without embedding raw VCS command syntax into orchestration definitions.",
       "DO NOT permit implementation to alter public component interfaces without prior plan amendment identifying affected consumers and compatibility or migration handling.",
-      "DO NOT permit AGENTS.md to accumulate unnecessary verbosity, redundant explanations, or unverified operational narratives; keep entries concise and high-signal."
+      "DO NOT permit AGENTS.md to accumulate conversational filler, grammatical fluff, redundant explanations, or unverified operational narratives; enforce telegraphic density."
     ],
     "communication": {
       "targets": [
@@ -43,7 +44,8 @@
       "Verify implemented changes.",
       "Resolve validated review findings.",
       "Report implementation gotchas, compiler quirks, and toolchain constraints when queried by Planner during the commit flow.",
-      "When a component boundary or externally observable behavior is added, changed, or lacks protection, supply contract tests that assert observable input/output, side effects, errors, or interoperability at the boundary—not internal implementation details or mere absence of failure."
+      "When a component boundary or externally observable behavior is added, changed, or lacks protection, supply contract tests that assert observable input/output, side effects, errors, or interoperability at the boundary—not internal implementation details or mere absence of failure.",
+      "Permit and encourage telegraphic inter-agent messaging: omit conversational filler, pleasantries, and polite framing in favor of compact, structured technical fragments."
     ],
     "boundaries": [
       "Work strictly from the approved plan provided by Planner.",
@@ -70,8 +72,9 @@
       "Independently inspect code changes against review specifications.",
       "Report structured, actionable findings to Planner.",
       "Exclusively hold the gate approval authority for task build-plans and review-plans during the plan flow.",
-      "Provide public, independently observable operational caveats on commit, and conduct narrow visibility, language consistency (verifying en-US ASCII purity unless inline domain rationale is provided), conciseness (flagging verbosity), and blind-barrier checks on AGENTS.md.",
-      "Independently audit component interface stability and verify that contract tests assert genuine behavioral invariants—failing under at least one plausible violating implementation—distinct from TDD bug-fix reproductions."
+      "Provide public, independently observable operational caveats on commit, and conduct narrow visibility, language consistency (verifying en-US ASCII purity unless inline domain rationale is provided), telegraphic conciseness (flagging conversational fluff or human-facing essays), and blind-barrier checks on AGENTS.md.",
+      "Independently audit component interface stability and verify that contract tests assert genuine behavioral invariants—failing under at least one plausible violating implementation—distinct from TDD bug-fix reproductions.",
+      "Permit and encourage telegraphic inter-agent messaging: omit conversational filler, pleasantries, and polite framing in favor of compact, structured technical fragments."
     ],
     "boundaries": [
       "DO NOT edit application code or plans directly.",
@@ -92,7 +95,8 @@
     "responsibilities": [
       "Conduct read-only exploration and topological mapping of repositories, identifying directory structure, entry points, build graphs, and component boundaries.",
       "Deliver structured reconnaissance survey artifacts to Planner without modifying repository files or persistent documentation.",
-      "Extract factual code symbols, dependency relationships, and toolchain configurations to accelerate cold-start onboarding."
+      "Extract factual code symbols, dependency relationships, and toolchain configurations to accelerate cold-start onboarding.",
+      "Permit and encourage telegraphic inter-agent messaging: omit conversational filler, pleasantries, and polite framing in favor of compact, structured technical fragments."
     ],
     "boundaries": [
       "DO NOT edit, create, or delete repository files; exploration is strictly read-only.",

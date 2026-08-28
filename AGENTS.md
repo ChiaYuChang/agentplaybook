@@ -2,44 +2,45 @@
 
 ## Architectural Topology & Jurisdictions
 
-- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook`) governing multi-agent collaboration, durable roles (`planner`, `reviewer`, `builder`, `scout`), deterministic flows (`init`, `plan`, `build`, `review`, `commit`), and memory lifecycle contracts.
-- **External Interfaces**: Go CLI binary (`agentplaybook`) providing discovery-friendly commands (`role`, `flow`, `artifact`, `rule`) with JSON output.
+- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook`). Roles: `planner`, `reviewer`, `builder`, `scout`. Flows: `init`, `plan`, `build`, `review`, `commit`. Memory: living `AGENTS.md`.
+- **External Interfaces**: Go CLI (`agentplaybook`) discovery commands (`role`, `flow`, `artifact`, `rule`) with JSON output.
 - **Jurisdictional Boundaries (strict separation of concerns)**:
-  - `AgentPlaybook` maintains purely conceptual, evidence-based governance, remaining strictly VCS-neutral without embedding raw shell scripts or command syntax.
-  - Low-level VCS mechanics, headless guards (`--no-pager`), and workspace management are delegated to the active VCS mechanism skill (`/home/cychang/Projects/agent/skills/jujutsu` or Git).
-  - Commit candidate stabilization, TOCTOU defense, and secret scanning are governed via the active commit policy overlay (`agentcommit`).
+  - `AgentPlaybook`: Conceptual, evidence-based governance. Strictly VCS-neutral; no raw shell scripts or command syntax.
+  - VCS Mechanism: Low-level mechanics, headless guards (`--no-pager`), workspace management delegated to active VCS skill (`skills/jujutsu` or Git).
+  - Policy Overlay: Commit candidate stabilization, TOCTOU defense, secret scanning delegated to active commit policy overlay (`agentcommit`).
 
 ## Global Operational Invariants
 
-- **Non-Interactive Execution**: All operations must be headless-safe; interactive TUIs, unshielded pagers, and interactive confirmation prompts are prohibited in unattended sessions.
-- **Living Memory Single-Writer Principle**: Planner is the sole author and curator of `AGENTS.md`. Builder, Reviewer, and Scout must never edit `AGENTS.md` directly.
-- **Language Standard & Conciseness**: `AGENTS.md` must be authored strictly in concise US English (en-US); any non-ASCII domain term requires an explicit adjacent inline rationale. Avoid conversational verbosity and redundant operational narratives.
-- **Commit & Publication Authority Separation**: Commit authorization permits local revision sealing only. Remote publication requires separate, explicit human authorization.
-- **Fail-Closed Intent Recovery**: Upon `AUTHORIZATION_DENIED`, Planner must return to Step 2 to await renewed user intent; autonomous re-drafting is strictly forbidden.
-- **Conventional Commits**: Commit messages follow Conventional Commits specification (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`).
+- **Non-Interactive Execution**: Headless-safe only. Prohibit interactive TUIs, unshielded pagers, confirmation prompts in unattended sessions.
+- **Living Memory Single-Writer**: Planner sole author/curator of `AGENTS.md`. Builder, Reviewer, Scout never edit directly.
+- **Language Standard & Telegraphic Style**: Machine-facing memory in concise en-US ASCII. Drop articles/filler/prose. Non-ASCII domain terms require explicit adjacent inline rationale. Exact symbols/paths mandatory.
+- **Inter-Agent Messaging**: Efficiency-first. Drop pleasantries, social framing, human prose. Transmit compact, structured technical payloads with exact symbols/paths.
+- **Commit & Publication Separation**: Human commit auth = local seal only. Remote push requires separate explicit user auth.
+- **Fail-Closed Intent Recovery**: On `AUTHORIZATION_DENIED`, return to Step 2 awaiting renewed user intent. Autonomous re-drafting forbidden.
+- **Conventional Commits**: Messages follow Conventional Commits specification (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`).
 
 ## Builder Precautions & Gotchas
 
-- **CLI Role Discovery as Sole Truth**: Tracked `roles/*.md` files have been deprecated and removed in `v0.2.0`. All role queries must be conducted via `agentplaybook role <name>` backed by `internal/data/roles.json`.
-- **Sequential Step Validation**: In `internal/data/flows.json`, `validate.go` requires steps without conditions to sequence to `Index+1`. Intermediate steps with conditional branching (such as Step 1 `DIRECT_SURVEY -> 3` or Step 8 `PUBLICATION_AUTHORIZED -> 9`) must declare explicit condition targets to satisfy validation.
-- **Go Embed Data Invalidation**: `internal/data/*.json` files are embedded via Go `embed.go`. All edits to embedded JSON must be strictly well-formed, as JSON syntax errors invalidate test execution across the entire CLI suite.
-- **`rtk git diff` Path Scope**: When running path-scoped `git diff` via `rtk`, include `--no-ext-diff` before `--`; otherwise paths may be misinterpreted as revision arguments rather than path filters.
-- **`flow commit` Not a Mutating CLI Command**: The 9-step governed commit flow is queryable via `agentplaybook flow commit` but its execution is strictly Planner-governed coordination. Do not attempt to invoke it as a standalone mutating CLI command; execute each step under Planner authority.
-- **`AGENTPLAYBOOK_DEV=1` Self-Cache Compilation Race**: Executing concurrent CLI queries with `AGENTPLAYBOOK_DEV=1` can cause a build race during binary caching resulting in `fork/exec ...: text file busy`. Execute development commands sequentially to ensure reliable caching.
+- **CLI Role Discovery Sole Truth**: Tracked `roles/*.md` removed in v0.2.0. Query roles via `agentplaybook role <name>` backed by `internal/data/roles.json`.
+- **Step Sequence Validation**: `validate.go` requires linear steps to sequence to `Index+1`. Conditional branches (e.g. `DIRECT_SURVEY -> 3`, `PUBLICATION_AUTHORIZED -> 9`) require explicit condition targets.
+- **Go Embed Data Invalidation**: `internal/data/*.json` embedded via `embed.go`. Syntax errors invalidate full CLI test suite.
+- **`rtk git diff` Path Scope**: Include `--no-ext-diff` before `--` to prevent path filters being parsed as revisions.
+- **`flow commit` Non-Mutating Command**: `agentplaybook flow commit` queryable workflow metadata only; coordinator flow, not mutating binary CLI command.
+- **`AGENTPLAYBOOK_DEV=1` Cache Race**: Concurrent CLI queries with `AGENTPLAYBOOK_DEV=1` trigger build race on cache (`text file busy`). Run development queries sequentially.
 
 ## Reviewer Precautions & Checklist
 
-- **Single Source of Truth**: Treat `internal/data/*.json` as the CLI's source of truth. Keep flow, artifact, role, rule, and documentation contracts synchronized and covered by matrix tests.
-- **VCS-Neutral Language**: Verify that all flow step actions and descriptions remain purely conceptual and evidence-based without embedding raw `jj` or `git` command strings.
-- **Public-Only Guidance**: Ensure `AGENTS.md` contains only public, independently observable operational guidance, strictly excluding confidential review criteria, hidden test fixtures, or private inspection techniques.
-- **Contract Test Falsifiability**: Boundary contract tests must verify observable behavior and be falsifiable under a plausible violating implementation; they do not replace TDD reproductions for review findings.
-- **Scout Survey Evidence & Confidentiality**: When Scout is deployed, verify that `scout-survey` provides concrete provenance, evidence paths, and uncertainty markers. Ensure Scout remains read-only and is never granted access to confidential review plans or reviewer verification artifacts.
-- **Language Purity & Conciseness Audit**: During Step 5 commit checks, audit `AGENTS.md` for secret leaks, unauthorized non-ASCII text lacking inline rationale, and conversational verbosity or bloat.
+- **Single Source of Truth**: `internal/data/*.json` canonical CLI truth. Sync flow, artifact, role, rule, docs contracts; cover via matrix tests.
+- **VCS-Neutral Language**: Flow step actions and descriptions must remain conceptual/evidence-based; zero embedded `jj`/`git` commands.
+- **Public-Only Guidance**: `AGENTS.md` contains public operational guidance only. Exclude private review criteria, hidden test fixtures, inspection techniques.
+- **Contract Test Falsifiability**: Boundary contract tests assert observable behavior and must fail on plausible violating implementation; distinct from TDD reproductions.
+- **Scout Survey Evidence & Confidentiality**: Verify `scout-survey` provenance, evidence paths, uncertainty markers. Keep Scout read-only; never grant access to private review artifacts.
+- **Language Purity & Telegraphic Audit**: During Step 5 commit checks, audit `AGENTS.md` for secret leaks, unauthorized non-ASCII text lacking inline rationale, and conversational fluff.
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-08-28T13:51:00Z @ d3cb57d4da51bd211a48cd2c6f79453c5d024a79`
-- **Dirty Status**: Modified in-scope files for `v0.2.3` (`internal/data/roles.json`, `internal/data/rules.json`, `internal/cli/matrix_test.go`, `scripts/VERSION`, `README.md`, `SKILL.md`, and `AGENTS.md`).
-- **Milestone**: `v0.2.3` - Living AGENTS.md Language Standard & Conciseness Governance.
+- **Observed-At**: `2026-08-28T14:12:00Z @ 5c4329605aa444ee28ebb987af76e958703efec4`
+- **Dirty Status**: Modified in-scope files for `v0.2.4` (`internal/data/roles.json`, `internal/data/rules.json`, `internal/cli/matrix_test.go`, `scripts/VERSION`, `README.md`, `SKILL.md`, and `AGENTS.md`).
+- **Milestone**: `v0.2.4` - Telegraphic Token-Dense AGENTS.md, Inter-Agent Caveman Protocol & Acknowledgements Governance.
 - **Next Pickup Item**: Conclude Governed Commit Flow Step 5 (Reviewer narrow visibility gate), Step 6 (snapshot secret scanning), Step 7 (human commit authorization), and Step 8 (local revision sealing).
-- **Ground Truth Revalidation Invariant**: Receiving Planners cold-starting a session MUST execute fresh VCS inspection commands (`git status` or `jj --no-pager status`) to revalidate mutable repository ground truth rather than blindly trusting this Active State block.
+- **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `git status` or `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

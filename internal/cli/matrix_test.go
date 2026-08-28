@@ -398,19 +398,30 @@ func TestCLI_AgentsLanguageConciseness(t *testing.T) {
 	if err := json.Unmarshal(queryJSON("role", "planner"), &planner); err != nil {
 		t.Fatalf("failed to decode planner role: %v", err)
 	}
-	if !slices.Contains(planner.Responsibilities, "Author and maintain AGENTS.md strictly in concise US English (en-US), requiring any non-ASCII domain term to carry an explicit adjacent inline rationale.") {
-		t.Error("expected planner responsibility to require concise en-US AGENTS.md content")
+	if !slices.Contains(planner.Responsibilities, "Author and maintain AGENTS.md in telegraphic, token-dense style (omitting filler words, conversational prose, and redundant grammar), maximizing token efficiency for LLM parsing while keeping exact technical terms and code symbols in concise US English (en-US); any non-ASCII domain term must carry an explicit adjacent inline rationale.") {
+		t.Error("expected planner responsibility to require telegraphic, token-dense AGENTS.md content with inline rationale")
 	}
-	if !slices.Contains(planner.Boundaries, "DO NOT permit AGENTS.md to accumulate unnecessary verbosity, redundant explanations, or unverified operational narratives; keep entries concise and high-signal.") {
-		t.Error("expected planner boundary to prohibit verbose or unverified AGENTS.md content")
+	if !slices.Contains(planner.Boundaries, "DO NOT permit AGENTS.md to accumulate conversational filler, grammatical fluff, redundant explanations, or unverified operational narratives; enforce telegraphic density.") {
+		t.Error("expected planner boundary to enforce telegraphic density")
 	}
 
 	var reviewer knowledge.RoleDefinition
 	if err := json.Unmarshal(queryJSON("role", "reviewer"), &reviewer); err != nil {
 		t.Fatalf("failed to decode reviewer role: %v", err)
 	}
-	if !slices.Contains(reviewer.Responsibilities, "Provide public, independently observable operational caveats on commit, and conduct narrow visibility, language consistency (verifying en-US ASCII purity unless inline domain rationale is provided), conciseness (flagging verbosity), and blind-barrier checks on AGENTS.md.") {
-		t.Error("expected reviewer responsibility to audit AGENTS.md language and conciseness")
+	if !slices.Contains(reviewer.Responsibilities, "Provide public, independently observable operational caveats on commit, and conduct narrow visibility, language consistency (verifying en-US ASCII purity unless inline domain rationale is provided), telegraphic conciseness (flagging conversational fluff or human-facing essays), and blind-barrier checks on AGENTS.md.") {
+		t.Error("expected reviewer responsibility to audit AGENTS.md telegraphic conciseness")
+	}
+
+	telegraphicMessageContract := "Permit and encourage telegraphic inter-agent messaging: omit conversational filler, pleasantries, and polite framing in favor of compact, structured technical fragments."
+	for _, roleName := range []string{"planner", "builder", "reviewer", "scout"} {
+		var role knowledge.RoleDefinition
+		if err := json.Unmarshal(queryJSON("role", roleName), &role); err != nil {
+			t.Fatalf("failed to decode %s role: %v", roleName, err)
+		}
+		if !slices.Contains(role.Responsibilities, telegraphicMessageContract) {
+			t.Errorf("expected %s responsibility to permit telegraphic inter-agent messaging", roleName)
+		}
 	}
 
 	var rules []knowledge.Rule
@@ -428,10 +439,22 @@ func TestCLI_AgentsLanguageConciseness(t *testing.T) {
 		"Reviewer must conduct narrow visibility and blind-barrier checks on AGENTS.md during the commit flow (BARRIER_LEAK returns to Planner for redaction).",
 		"AGENTS.md must be authored in concise US English (en-US); any non-ASCII domain term must carry an explicit adjacent inline rationale.",
 		"Reviewer audits AGENTS.md during the commit flow for secret leaks, unauthorized non-ASCII text lacking inline justification, and excessive verbosity or bloat.",
+		"AGENTS.md is machine-facing operational memory written in telegraphic, token-dense style: drop articles, conversational filler, and narrative pleasantries; fragments are expected; technical terms and code symbols must remain exact.",
 	} {
 		if !slices.Contains(rules[0].Guidelines, expected) {
 			t.Errorf("expected agents-md-single-writer guideline %q", expected)
 		}
+	}
+
+	var communicationRules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "ephemeral-communication-buffers"), &communicationRules); err != nil {
+		t.Fatalf("failed to decode ephemeral-communication-buffers rule: %v", err)
+	}
+	if len(communicationRules) != 1 {
+		t.Fatalf("expected one ephemeral-communication-buffers rule, got %d", len(communicationRules))
+	}
+	if !slices.Contains(communicationRules[0].Guidelines, "Inter-agent communication permits and encourages telegraphic (caveman) compression: drop conversational filler, pleasantries, and polite framing; communicate in compact, structured technical fragments to minimize transport token consumption.") {
+		t.Error("expected ephemeral communication rule to permit telegraphic compression")
 	}
 }
 
