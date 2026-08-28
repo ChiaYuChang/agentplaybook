@@ -20,7 +20,7 @@ func TestRole_BareDiscovery(t *testing.T) {
 	}
 
 	out := stdout.String()
-	for _, expected := range []string{"planner", "builder", "reviewer"} {
+	for _, expected := range []string{"planner", "builder", "reviewer", "scout"} {
 		if !strings.Contains(out, expected) {
 			t.Errorf("expected role %q in discovery output, got: %s", expected, out)
 		}

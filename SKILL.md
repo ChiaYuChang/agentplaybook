@@ -50,6 +50,28 @@ Do not query every knowledge domain on every turn. Query only the specific domai
    sh "<skill-dir>/scripts/run-agentplaybook.sh" rule explain <rule-id>...
    ```
 
+## Scout Role & Read-Only Reconnaissance
+
+The optional `scout` role performs strictly read-only reconnaissance for large or unfamiliar repositories. Scout maps directory structure, entry points, build graphs, component boundaries, factual symbols, dependencies, and toolchains, then sends a transient `scout-survey` message to Planner. Scout must not edit, create, or delete repository files, modify VCS state, or edit `AGENTS.md`.
+
+The `scout-survey` artifact contains seven required fields: `id`, `provenance`, `repository_topology`, `module_boundaries`, `build_and_toolchains`, `evidence`, and `uncertainties`. Planner validates those findings against live repository ground truth before synthesizing them into `AGENTS.md` or task plans. Scout must not read, search for, or request task-specific review plans, reviewer-only tests, or verification artifacts.
+
+Model capacity routing is advisory: the default recommendation is `Scout >= Reviewer >= Planner >= Builder`, with model allocation scaled by task domain, scope, uncertainty, and risk.
+
+## Repository Initialization Reconnaissance
+
+The `init` flow has nine steps with an optional Scout branch:
+
+1. Planner assesses repository scale and chooses `SCOUT_RECON_REQUIRED` -> Step 2 or `DIRECT_SURVEY` -> Step 3.
+2. Scout performs read-only topological reconnaissance and returns a structured `scout-survey` to Planner.
+3. Planner validates Scout evidence against repository ground truth, or performs the direct survey, and drafts `AGENTS.md`.
+4. Reviewer reviews the current `AGENTS.md` artifact.
+5. Planner incorporates Reviewer feedback.
+6. Builder reviews the updated `AGENTS.md` artifact.
+7. Planner incorporates Builder feedback.
+8. Planner evaluates consensus: `QUESTIONS_RAISED` -> Step 4 or `NO_QUESTIONS_RAISED` -> Step 9.
+9. Planner finalizes and persists `AGENTS.md`.
+
 ## Interface Stability & Contract Testing
 
 The `interface-stability-contract-testing` rule governs component boundaries and the tests that protect them:
@@ -78,7 +100,7 @@ When coordinating across agents in Herdr, follow a zero-poll policy: never use `
 ## Living AGENTS.md and Single-Writer Principle
 
 `AgentPlaybook` adopts a single, living `AGENTS.md` at the repository root as an "Agent-Facing README" for instant $O(1)$ session bootstrapping across 5 canonical sections:
-1. **Architectural Topology & Jurisdictions**: Repository tier, external interfaces, and jurisdictional boundaries ("不宜跨區辦案").
+1. **Architectural Topology & Jurisdictions**: Repository tier, external interfaces, and jurisdictional boundaries (strict separation of concerns).
 2. **Global Operational Invariants**: Project-level invariants (e.g., non-interactive execution guards, Conventional Commits, branch conventions).
 3. **Builder Precautions & Gotchas**: Toolchain quirks, compiler limitations, and test runner constraints.
 4. **Reviewer Precautions & Checklist**: Public verification guidelines and regression checkpoints (strictly excluding confidential test secrets).

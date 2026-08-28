@@ -13,9 +13,9 @@ Instead of stuffing massive, static role prompts into every agent turn—wasting
 
 - **Read-Only Collaboration Manual**: Zero side-effects on your target repository. No orchestrator runtime daemon, no external state store.
 - **5 Orthogonal Knowledge Domains**:
-  - `role`: Durable participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`).
+  - `role`: Durable participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`, `scout`).
   - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `build`, `review`, `commit`).
-  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `review-findings`).
+  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `review-findings`, `scout-survey`).
   - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `atomic-change-units`, `tdd-reproduction`, `agents-md-single-writer`, `commit-authority-separation`, `interface-stability-contract-testing`).
   - `config`: Supported languages, prefix templates, and transport settings.
 - **Progressive Disclosure UX**: Bare discovery commands output concise catalogs (Exit 0); specific queries return clean, indented JSON.
@@ -87,7 +87,23 @@ agentplaybook role builder --boundary
 agentplaybook role builder --communication
 ```
 
+### Scout Role & Read-Only Reconnaissance
+The optional `scout` role performs read-only reconnaissance of large or unfamiliar repositories. Scout maps directory structure, entry points, build graphs, component boundaries, symbols, dependencies, and toolchains, then delivers factual findings to Planner without modifying repository files or persistent documentation.
+
+```bash
+agentplaybook role scout
+agentplaybook role scout --responsibility
+agentplaybook role scout --boundary
+agentplaybook role scout --communication
+```
+
+Scout findings use the transient `scout-survey` message artifact. It records the survey pass ID, provenance, repository topology, module boundaries, build and toolchain observations, concrete evidence, and uncertainties. Planner validates the evidence against live repository ground truth before synthesizing it into `AGENTS.md` or task plans; Scout never edits `AGENTS.md` and must not access reviewer-only artifacts.
+
+Model capacity routing is advisory rather than mandatory: the default recommendation is `Scout >= Reviewer >= Planner >= Builder`, with allocation scaled by task domain, scope, uncertainty, and risk.
+
 ### 3. Inspecting Flows & Step SOPs
+The `init` flow has 9 steps and an optional Scout reconnaissance branch. Step 1 routes `SCOUT_RECON_REQUIRED` to Step 2, where Scout returns a `scout-survey`; `DIRECT_SURVEY` routes directly to Step 3, where Planner validates evidence or surveys the repository before drafting `AGENTS.md`. Reviewer and Builder inquiry convergence then proceeds through Steps 4-8, and Planner finalizes the artifact in Step 9.
+
 ```bash
 # Full flow definition
 agentplaybook flow init
@@ -103,6 +119,7 @@ agentplaybook flow commit --step 5
 agentplaybook artifact agents-md
 agentplaybook artifact build-plan
 agentplaybook artifact review-findings
+agentplaybook artifact scout-survey
 ```
 
 ### 5. Inspecting Behavioral Rules
@@ -129,7 +146,7 @@ Build plans and implementation diffs must preserve stable component interfaces t
 
 ## 3-Tier Architectural Delegation
 
-To eliminate mechanism leakage and preserve strict jurisdictional boundaries ("不宜跨區辦案"):
+To eliminate mechanism leakage and preserve strict jurisdictional boundaries (strict separation of concerns):
 
 - **Tier 3 Orchestration (`AgentPlaybook`)**: Purely conceptual multi-agent orchestration protocol. Governs agent roles (`Planner`, `Reviewer`, `Builder`), artifact contracts (`AGENTS.md`, `build-plan`, `review-plan`), and flow state machines (`init`, `plan`, `build`, `review`, `commit`). Defines *what evidence and gates must exist before handoffs are accepted*, remaining completely VCS-neutral and mechanism-agnostic (flow actions contain no raw `jj` or `git` commands).
 - **Tier 3 Policy Overlay (`agentcommit`)**: Specialized commit policy overlay skill governing candidate stabilization, TOCTOU verification, secret scanning execution, and authorization checks.
@@ -143,7 +160,7 @@ To eliminate mechanism leakage and preserve strict jurisdictional boundaries ("�
 Instead of fragmented append-only journal files that risk creating competing truths and $O(N)$ cold-start overhead, `AgentPlaybook` adopts a single, living `AGENTS.md` maintained at the repository root as an "Agent-Facing README" for instant $O(1)$ session bootstrapping.
 
 ### Canonical 5 Sections
-1. **Architectural Topology & Jurisdictions**: Repository tier, external interfaces, and jurisdictional boundaries ("不宜跨區辦案").
+1. **Architectural Topology & Jurisdictions**: Repository tier, external interfaces, and jurisdictional boundaries (strict separation of concerns).
 2. **Global Operational Invariants**: Project-level invariants (e.g., non-interactive execution guards, Conventional Commits, branch conventions).
 3. **Builder Precautions & Gotchas**: Toolchain quirks, compiler limitations, and test runner constraints.
 4. **Reviewer Precautions & Checklist**: Public verification guidelines and regression checkpoints (strictly excluding confidential test secrets).

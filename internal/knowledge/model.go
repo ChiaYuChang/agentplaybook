@@ -20,6 +20,7 @@ const (
 	RolePlanner  Role = "planner"
 	RoleBuilder  Role = "builder"
 	RoleReviewer Role = "reviewer"
+	RoleScout    Role = "scout"
 )
 
 // RoleDefinition defines the identity and boundaries of a participant role.

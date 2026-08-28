@@ -25,8 +25,9 @@
     ],
     "communication": {
       "targets": [
-        "builder",
-        "reviewer"
+      "builder",
+      "reviewer",
+      "scout"
       ]
     }
   },
@@ -75,6 +76,28 @@
       "Keep review plans and verification criteria confidential to ensure independent verification integrity.",
       "DO NOT edit AGENTS.md directly.",
       "Strictly prohibit disclosing confidential review criteria, hidden test fixtures, or private inspection techniques."
+    ],
+    "communication": {
+      "targets": [
+        "planner"
+      ]
+    }
+  },
+  {
+    "name": "scout",
+    "title": "Scout",
+    "description": "Performs read-only reconnaissance and structural survey of large or unfamiliar codebases to generate high-level architectural topography and evidence for Planner.",
+    "responsibilities": [
+      "Conduct read-only exploration and topological mapping of repositories, identifying directory structure, entry points, build graphs, and component boundaries.",
+      "Deliver structured reconnaissance survey artifacts to Planner without modifying repository files or persistent documentation.",
+      "Extract factual code symbols, dependency relationships, and toolchain configurations to accelerate cold-start onboarding."
+    ],
+    "boundaries": [
+      "DO NOT edit, create, or delete repository files; exploration is strictly read-only.",
+      "DO NOT edit AGENTS.md directly; enforce the Single-Writer Principle by delivering survey findings to Planner.",
+      "DO NOT read, search for, or request task-specific review plans, reviewer-only tests, or verification artifacts.",
+      "DO NOT participate in build planning, code implementation, or VCS mutation.",
+      "Report only factual, verifiable codebase topography supported by concrete evidence rather than speculative design prescriptions."
     ],
     "communication": {
       "targets": [

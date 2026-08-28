@@ -159,5 +159,19 @@
       "Unexpected cross-boundary dependencies require Planner escalation; Builder must not unilaterally expand scope.",
       "Contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings; contract tests are required when boundary behavior is added, changed, or insufficiently protected."
     ]
+  },
+  {
+    "id": "scout-recon-read-only",
+    "title": "Scout Read-Only Reconnaissance & Synthesis Protocol",
+    "category": "protocol",
+    "summary": "Scout performs strictly read-only codebase reconnaissance, delivering transient survey artifacts with provenance and evidence directly to Planner for AGENTS.md synthesis while preserving the Single-Writer Principle.",
+    "details": "On large or unfamiliar codebases, Scout operates as a read-only reconnaissance specialist. Scout maps code topography, interfaces, and build graphs without creating or modifying repository files. Scout delivers transient survey messages with evidence and provenance directly to Planner, who validates findings against ground truth before synthesizing them into AGENTS.md or task plans. Scout must not access reviewer artifacts. Model tiering provides advisory capacity guidance (Scout >= Reviewer >= Planner >= Builder) with allocation scaling based on task domain, scope, uncertainty, and risk.",
+    "guidelines": [
+      "Scout performs strictly read-only reconnaissance; creating, editing, or deleting repository files is strictly prohibited.",
+      "Scout delivers transient survey findings with provenance and evidence directly to Planner; Scout must never write or edit AGENTS.md directly, preserving the Single-Writer Principle.",
+      "Scout must not read, search for, or request task-specific review plans, reviewer-only tests, or verification artifacts.",
+      "Planner validates Scout findings and evidence against live repository ground truth before synthesizing them into AGENTS.md or task plans.",
+      "Model tiering recommends Scout >= Reviewer >= Planner >= Builder as advisory capacity routing guidance, with model selection scaling by task domain, scope, uncertainty, and risk."
+    ]
   }
 ]

@@ -6,45 +6,65 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Survey the repository and draft the initial AGENTS.md artifact."
+        "action": "Assess repository scale and complexity to determine if Scout reconnaissance is required, or proceed to direct survey.",
+        "conditions": [
+          {
+            "when": "SCOUT_RECON_REQUIRED",
+            "then": 2
+          },
+          {
+            "when": "DIRECT_SURVEY",
+            "then": 3
+          }
+        ]
       },
       {
         "index": 2,
-        "actor": "reviewer",
-        "action": "Review the current AGENTS.md artifact and report missing, ambiguous, or incorrect context."
+        "actor": "scout",
+        "action": "Perform read-only topological reconnaissance and return a structured scout-survey message artifact to Planner."
       },
       {
         "index": 3,
         "actor": "planner",
-        "action": "Incorporate Reviewer feedback into the AGENTS.md artifact."
+        "action": "Validate scout-survey evidence against repository ground truth (or perform direct repository survey) and draft the initial AGENTS.md artifact."
       },
       {
         "index": 4,
-        "actor": "builder",
-        "action": "Review the updated AGENTS.md artifact and report missing, ambiguous, or incorrect context."
+        "actor": "reviewer",
+        "action": "Review the current AGENTS.md artifact and report missing, ambiguous, or incorrect context."
       },
       {
         "index": 5,
         "actor": "planner",
-        "action": "Incorporate Builder feedback into the AGENTS.md artifact."
+        "action": "Incorporate Reviewer feedback into the AGENTS.md artifact."
       },
       {
         "index": 6,
+        "actor": "builder",
+        "action": "Review the updated AGENTS.md artifact and report missing, ambiguous, or incorrect context."
+      },
+      {
+        "index": 7,
+        "actor": "planner",
+        "action": "Incorporate Builder feedback into the AGENTS.md artifact."
+      },
+      {
+        "index": 8,
         "actor": "planner",
         "action": "Evaluate whether the current inquiry pass reached consensus.",
         "conditions": [
           {
             "when": "QUESTIONS_RAISED",
-            "then": 2
+            "then": 4
           },
           {
             "when": "NO_QUESTIONS_RAISED",
-            "then": 7
+            "then": 9
           }
         ]
       },
       {
-        "index": 7,
+        "index": 9,
         "actor": "planner",
         "action": "Finalize and persist the AGENTS.md artifact at repository root."
       }

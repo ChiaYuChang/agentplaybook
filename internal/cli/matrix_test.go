@@ -52,11 +52,17 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"role", "planner"},
 		{"role", "builder"},
 		{"role", "reviewer"},
+		{"role", "scout"},
 		{"role", "builder", "--responsibility"},
 		{"role", "builder", "--boundary"},
 		{"role", "builder", "--communication"},
+		{"role", "scout", "--responsibility"},
+		{"role", "scout", "--boundary"},
+		{"role", "scout", "--communication"},
+		{"role", "planner", "--communication"},
 		{"flow", "init"},
 		{"flow", "init", "--step", "1"},
+		{"flow", "init", "--step", "2"},
 		{"flow", "plan"},
 		{"flow", "build"},
 		{"flow", "review"},
@@ -65,6 +71,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"artifact", "build-plan"},
 		{"artifact", "review-plan"},
 		{"artifact", "review-findings"},
+		{"artifact", "scout-survey"},
 		{"rule", "list"},
 		{"rule", "explain", "anti-cheating"},
 		{"rule", "explain", "atomic-change-units"},
@@ -76,6 +83,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "ephemeral-communication-buffers"},
 		{"rule", "explain", "event-driven-transport-coordination"},
 		{"rule", "explain", "interface-stability-contract-testing"},
+		{"rule", "explain", "scout-recon-read-only"},
 	}
 
 	for _, cmd := range jsonCommands {
@@ -441,6 +449,150 @@ func TestCLI_InterfaceStabilityContractTesting(t *testing.T) {
 	}
 	if !slices.Contains(reviewer.Responsibilities, "Independently audit component interface stability and verify that contract tests assert genuine behavioral invariants—failing under at least one plausible violating implementation—distinct from TDD bug-fix reproductions.") {
 		t.Error("expected reviewer responsibility to audit falsifiable contract tests")
+	}
+}
+
+func TestCLI_ScoutReconnaissance(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.1.0"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	var scout knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "scout"), &scout); err != nil {
+		t.Fatalf("failed to decode scout role: %v", err)
+	}
+	if scout.Title != "Scout" {
+		t.Errorf("expected scout title %q, got %q", "Scout", scout.Title)
+	}
+	for _, expected := range []string{
+		"Conduct read-only exploration and topological mapping of repositories, identifying directory structure, entry points, build graphs, and component boundaries.",
+		"Deliver structured reconnaissance survey artifacts to Planner without modifying repository files or persistent documentation.",
+		"Extract factual code symbols, dependency relationships, and toolchain configurations to accelerate cold-start onboarding.",
+	} {
+		if !slices.Contains(scout.Responsibilities, expected) {
+			t.Errorf("expected scout responsibility %q", expected)
+		}
+	}
+	for _, expected := range []string{
+		"DO NOT edit, create, or delete repository files; exploration is strictly read-only.",
+		"DO NOT edit AGENTS.md directly; enforce the Single-Writer Principle by delivering survey findings to Planner.",
+		"DO NOT read, search for, or request task-specific review plans, reviewer-only tests, or verification artifacts.",
+		"DO NOT participate in build planning, code implementation, or VCS mutation.",
+		"Report only factual, verifiable codebase topography supported by concrete evidence rather than speculative design prescriptions.",
+	} {
+		if !slices.Contains(scout.Boundaries, expected) {
+			t.Errorf("expected scout boundary %q", expected)
+		}
+	}
+	if len(scout.Communication.Targets) != 1 || scout.Communication.Targets[0] != knowledge.RolePlanner {
+		t.Errorf("expected scout communication target planner, got %v", scout.Communication.Targets)
+	}
+
+	var planner knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "planner"), &planner); err != nil {
+		t.Fatalf("failed to decode planner role: %v", err)
+	}
+	if !slices.Contains(planner.Communication.Targets, knowledge.RoleScout) {
+		t.Errorf("expected planner communication targets to include scout, got %v", planner.Communication.Targets)
+	}
+
+	var survey knowledge.Artifact
+	if err := json.Unmarshal(queryJSON("artifact", "scout-survey"), &survey); err != nil {
+		t.Fatalf("failed to decode scout-survey artifact: %v", err)
+	}
+	if survey.Owner != knowledge.RoleScout || survey.Type != "message" {
+		t.Errorf("unexpected scout-survey metadata: %+v", survey)
+	}
+	if len(survey.Visibility) != 2 || survey.Visibility[0] != knowledge.RolePlanner || survey.Visibility[1] != knowledge.RoleScout {
+		t.Errorf("expected scout-survey visibility [planner scout], got %v", survey.Visibility)
+	}
+	expectedFields := []string{"id", "provenance", "repository_topology", "module_boundaries", "build_and_toolchains", "evidence", "uncertainties"}
+	if len(survey.Fields) != len(expectedFields) {
+		t.Fatalf("expected %d scout-survey fields, got %d", len(expectedFields), len(survey.Fields))
+	}
+	for i, expected := range expectedFields {
+		if survey.Fields[i].Name != expected || !survey.Fields[i].Required {
+			t.Errorf("expected required scout-survey field %q, got %+v", expected, survey.Fields[i])
+		}
+	}
+
+	var init knowledge.Flow
+	if err := json.Unmarshal(queryJSON("flow", "init"), &init); err != nil {
+		t.Fatalf("failed to decode init flow: %v", err)
+	}
+	if len(init.Steps) != 9 {
+		t.Fatalf("expected 9 init steps, got %d", len(init.Steps))
+	}
+	step1 := init.Steps[0]
+	conditions := make(map[string]int)
+	for _, condition := range step1.Conditions {
+		conditions[condition.When] = condition.Then
+	}
+	if conditions["DIRECT_SURVEY"] != 3 || conditions["SCOUT_RECON_REQUIRED"] != 2 {
+		t.Errorf("unexpected init step 1 conditions: %v", conditions)
+	}
+	if init.Steps[1].Actor != knowledge.RoleScout {
+		t.Errorf("expected init step 2 actor scout, got %q", init.Steps[1].Actor)
+	}
+	if init.Steps[3].Actor != knowledge.RoleReviewer {
+		t.Errorf("expected init step 4 actor reviewer, got %q", init.Steps[3].Actor)
+	}
+	step8 := init.Steps[7]
+	consensusConditions := make(map[string]int)
+	for _, condition := range step8.Conditions {
+		consensusConditions[condition.When] = condition.Then
+	}
+	if consensusConditions["QUESTIONS_RAISED"] != 4 || consensusConditions["NO_QUESTIONS_RAISED"] != 9 {
+		t.Errorf("unexpected init step 8 conditions: %v", consensusConditions)
+	}
+
+	var step1Query knowledge.FlowStep
+	if err := json.Unmarshal(queryJSON("flow", "init", "--step", "1"), &step1Query); err != nil {
+		t.Fatalf("failed to decode init step 1: %v", err)
+	}
+	step1QueryConditions := make(map[string]int)
+	for _, condition := range step1Query.Conditions {
+		step1QueryConditions[condition.When] = condition.Then
+	}
+	if step1Query.Index != 1 || step1QueryConditions["DIRECT_SURVEY"] != 3 {
+		t.Errorf("unexpected init step 1 query: %+v", step1Query)
+	}
+	var step2Query knowledge.FlowStep
+	if err := json.Unmarshal(queryJSON("flow", "init", "--step", "2"), &step2Query); err != nil {
+		t.Fatalf("failed to decode init step 2: %v", err)
+	}
+	if step2Query.Index != 2 || step2Query.Actor != knowledge.RoleScout {
+		t.Errorf("unexpected init step 2 query: %+v", step2Query)
+	}
+
+	var rules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "scout-recon-read-only"), &rules); err != nil {
+		t.Fatalf("failed to decode scout-recon-read-only rule: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected one scout-recon-read-only rule, got %d", len(rules))
+	}
+	expectedGuidelines := []string{
+		"Scout performs strictly read-only reconnaissance; creating, editing, or deleting repository files is strictly prohibited.",
+		"Scout delivers transient survey findings with provenance and evidence directly to Planner; Scout must never write or edit AGENTS.md directly, preserving the Single-Writer Principle.",
+		"Scout must not read, search for, or request task-specific review plans, reviewer-only tests, or verification artifacts.",
+		"Planner validates Scout findings and evidence against live repository ground truth before synthesizing them into AGENTS.md or task plans.",
+		"Model tiering recommends Scout >= Reviewer >= Planner >= Builder as advisory capacity routing guidance, with model selection scaling by task domain, scope, uncertainty, and risk.",
+	}
+	if len(rules[0].Guidelines) != len(expectedGuidelines) {
+		t.Fatalf("expected %d scout-recon-read-only guidelines, got %d", len(expectedGuidelines), len(rules[0].Guidelines))
+	}
+	for _, expected := range expectedGuidelines {
+		if !slices.Contains(rules[0].Guidelines, expected) {
+			t.Errorf("expected scout-recon-read-only guideline %q", expected)
+		}
 	}
 }
 

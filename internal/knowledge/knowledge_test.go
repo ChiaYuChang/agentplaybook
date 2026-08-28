@@ -24,10 +24,10 @@ func TestLoad_Success(t *testing.T) {
 
 	// 2. Verify Roles
 	roles := k.Roles()
-	if len(roles) != 3 {
-		t.Fatalf("expected 3 roles, got %d", len(roles))
+	if len(roles) != 4 {
+		t.Fatalf("expected 4 roles, got %d", len(roles))
 	}
-	for _, expected := range []string{"planner", "builder", "reviewer"} {
+	for _, expected := range []string{"planner", "builder", "reviewer", "scout"} {
 		r, ok := k.Role(expected)
 		if !ok {
 			t.Errorf("expected role %q to exist", expected)
@@ -57,8 +57,38 @@ func TestLoad_Success(t *testing.T) {
 	if !ok {
 		t.Errorf("expected init step 2 to exist")
 	}
-	if step2.Index != 2 || step2.Actor != "reviewer" {
+	if step2.Index != 2 || step2.Actor != knowledge.RoleScout {
 		t.Errorf("unexpected step 2 data: %+v", step2)
+	}
+	initFlow, _ := k.Flow("init")
+	if len(initFlow.Steps) != 9 {
+		t.Errorf("expected 9 steps in init flow, got %d", len(initFlow.Steps))
+	}
+	step1, _ := k.FlowStep("init", 1)
+	conditions := make(map[string]int)
+	for _, c := range step1.Conditions {
+		conditions[c.When] = c.Then
+	}
+	if conditions["DIRECT_SURVEY"] != 3 {
+		t.Errorf("expected DIRECT_SURVEY to point to step 3, got %d", conditions["DIRECT_SURVEY"])
+	}
+	if conditions["SCOUT_RECON_REQUIRED"] != 2 {
+		t.Errorf("expected SCOUT_RECON_REQUIRED to point to step 2, got %d", conditions["SCOUT_RECON_REQUIRED"])
+	}
+	step4, _ := k.FlowStep("init", 4)
+	if step4.Actor != knowledge.RoleReviewer {
+		t.Errorf("expected init step 4 actor reviewer, got %q", step4.Actor)
+	}
+	step8, _ := k.FlowStep("init", 8)
+	consensusConditions := make(map[string]int)
+	for _, c := range step8.Conditions {
+		consensusConditions[c.When] = c.Then
+	}
+	if consensusConditions["QUESTIONS_RAISED"] != 4 {
+		t.Errorf("expected QUESTIONS_RAISED to point to step 4, got %d", consensusConditions["QUESTIONS_RAISED"])
+	}
+	if consensusConditions["NO_QUESTIONS_RAISED"] != 9 {
+		t.Errorf("expected NO_QUESTIONS_RAISED to point to step 9, got %d", consensusConditions["NO_QUESTIONS_RAISED"])
 	}
 	if _, ok := k.FlowStep("init", 999); ok {
 		t.Errorf("expected non-existent step to return false")
@@ -97,10 +127,10 @@ func TestLoad_Success(t *testing.T) {
 
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
-	if len(artifacts) != 4 {
-		t.Fatalf("expected 4 artifacts, got %d", len(artifacts))
+	if len(artifacts) != 5 {
+		t.Fatalf("expected 5 artifacts, got %d", len(artifacts))
 	}
-	for _, expected := range []string{"agents-md", "build-plan", "review-plan", "review-findings"} {
+	for _, expected := range []string{"agents-md", "build-plan", "review-plan", "review-findings", "scout-survey"} {
 		a, ok := k.Artifact(expected)
 		if !ok {
 			t.Errorf("expected artifact %q to exist", expected)
@@ -118,6 +148,16 @@ func TestLoad_Success(t *testing.T) {
 	reviewFindings, _ := k.Artifact("review-findings")
 	if len(reviewFindings.Visibility) != 2 {
 		t.Errorf("expected review-findings visibility to have 2 roles, got %v", reviewFindings.Visibility)
+	}
+	scoutSurvey, _ := k.Artifact("scout-survey")
+	if scoutSurvey.Owner != knowledge.RoleScout || scoutSurvey.Type != "message" {
+		t.Errorf("unexpected scout-survey metadata: %+v", scoutSurvey)
+	}
+	if len(scoutSurvey.Visibility) != 2 || scoutSurvey.Visibility[0] != knowledge.RolePlanner || scoutSurvey.Visibility[1] != knowledge.RoleScout {
+		t.Errorf("expected scout-survey visibility [planner scout], got %v", scoutSurvey.Visibility)
+	}
+	if len(scoutSurvey.Fields) != 7 {
+		t.Errorf("expected scout-survey to have 7 fields, got %d", len(scoutSurvey.Fields))
 	}
 
 	// 5. Verify Rules

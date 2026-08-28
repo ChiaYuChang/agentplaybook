@@ -20,7 +20,7 @@ func TestArtifact_BareDiscovery(t *testing.T) {
 	}
 
 	out := stdout.String()
-	for _, expected := range []string{"agents-md", "build-plan", "review-plan", "review-findings"} {
+	for _, expected := range []string{"agents-md", "build-plan", "review-plan", "review-findings", "scout-survey"} {
 		if !strings.Contains(out, expected) {
 			t.Errorf("expected artifact %q in discovery output, got: %s", expected, out)
 		}
@@ -36,6 +36,7 @@ func TestArtifact_BareDiscovery(t *testing.T) {
 		{"build-plan", "planner", "document", "Task-specific implementation plan"},
 		{"review-plan", "planner", "document", "Reviewer-only verification plan"},
 		{"review-findings", "reviewer", "message", "Structured findings reported by Reviewer"},
+		{"scout-survey", "scout", "message", "Transient message artifact containing read-only architectural topography"},
 	}
 	for _, expected := range expectedRows {
 		found := false

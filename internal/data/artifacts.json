@@ -15,7 +15,7 @@
       {
         "name": "Architectural Topology & Jurisdictions",
         "required": true,
-        "description": "Repository tier, external interfaces, and jurisdictional boundaries (\"不宜跨區辦案\")."
+        "description": "Repository tier, external interfaces, and jurisdictional boundaries (strict separation of concerns)."
       },
       {
         "name": "Global Operational Invariants",
@@ -166,6 +166,54 @@
         "name": "reproduction_scenario",
         "required": true,
         "description": "Steps or input conditions needed for Builder to write a reproduction test."
+      }
+    ]
+  },
+  {
+    "name": "scout-survey",
+    "title": "Scout Reconnaissance Survey",
+    "description": "Transient message artifact containing read-only architectural topography, evidence, and structural survey delivered by Scout to Planner during cold-start reconnaissance or large-scale exploration.",
+    "owner": "scout",
+    "visibility": [
+      "planner",
+      "scout"
+    ],
+    "type": "message",
+    "fields": [
+      {
+        "name": "id",
+        "required": true,
+        "description": "Unique identifier for the survey pass"
+      },
+      {
+        "name": "provenance",
+        "required": true,
+        "description": "Surveyed repository revision ID, UTC timestamp, and explored path or subsystem scope"
+      },
+      {
+        "name": "repository_topology",
+        "required": true,
+        "description": "Observed directory structure, primary entry points, module hierarchy, and component layout"
+      },
+      {
+        "name": "module_boundaries",
+        "required": true,
+        "description": "Identified public interfaces, exposed API/CLI symbols, and subsystem boundary contracts"
+      },
+      {
+        "name": "build_and_toolchains",
+        "required": true,
+        "description": "Detected build tools, compiler configurations, package dependencies, and test runners"
+      },
+      {
+        "name": "evidence",
+        "required": true,
+        "description": "Factual evidence list including inspected file paths, extracted symbols, and verification commands"
+      },
+      {
+        "name": "uncertainties",
+        "required": true,
+        "description": "Identified unknowns, ambiguous areas, low-confidence inferences, and items requiring Planner ground-truth verification"
       }
     ]
   }

@@ -44,8 +44,19 @@ func TestFlow_QueryFull(t *testing.T) {
 	if f.Name != "init" {
 		t.Errorf("expected flow name 'init', got %q", f.Name)
 	}
-	if len(f.Steps) != 7 {
-		t.Errorf("expected 7 steps in init, got %d", len(f.Steps))
+	if len(f.Steps) != 9 {
+		t.Errorf("expected 9 steps in init, got %d", len(f.Steps))
+	}
+	step1 := f.Steps[0]
+	conditions := make(map[string]int)
+	for _, c := range step1.Conditions {
+		conditions[c.When] = c.Then
+	}
+	if conditions["DIRECT_SURVEY"] != 3 {
+		t.Errorf("expected DIRECT_SURVEY to target step 3, got %d", conditions["DIRECT_SURVEY"])
+	}
+	if conditions["SCOUT_RECON_REQUIRED"] != 2 {
+		t.Errorf("expected SCOUT_RECON_REQUIRED to target step 2, got %d", conditions["SCOUT_RECON_REQUIRED"])
 	}
 }
 
@@ -64,7 +75,24 @@ func TestFlow_StepFlag(t *testing.T) {
 		if err := json.Unmarshal(stdout.Bytes(), &s); err != nil {
 			t.Fatalf("failed to decode step JSON: %v", err)
 		}
-		if s.Index != 2 || s.Actor != "reviewer" {
+		if s.Index != 2 || s.Actor != "scout" {
+			t.Errorf("unexpected step data: %+v", s)
+		}
+	}
+
+	// 2. Existing reviewer step remains at step 4
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"flow", "init", "--step", "4"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("--step 4 failed: %v", err)
+		}
+
+		var s knowledge.FlowStep
+		if err := json.Unmarshal(stdout.Bytes(), &s); err != nil {
+			t.Fatalf("failed to decode step JSON: %v", err)
+		}
+		if s.Index != 4 || s.Actor != "reviewer" {
 			t.Errorf("unexpected step data: %+v", s)
 		}
 	}
