@@ -179,8 +179,13 @@ Instead of fragmented append-only journal files that risk creating competing tru
 
 ### Telegraphic Memory & Inter-Agent Communication
 - `AGENTS.md` is machine-facing operational memory and a token-dense cache for LLM agents, not human-facing prose. Use concise fragments; drop articles, filler words, conversational pleasantries, and redundant grammar while preserving exact technical terms and code symbols.
-- Inter-agent communication permits and encourages telegraphic (caveman) compression. Prompts, responses, alignment inquiries, review findings, and caveat reports may omit polite framing in favor of compact, structured technical fragments that minimize transport token consumption.
+- Inter-agent communication requires telegraphic (caveman) compression for all exchanges (including [Planner], [Reviewer], [Builder], [Scout], or [<role>] prefixed messages), omitting conversational filler and pleasantries in favor of compact structured technical fragments.
 - Telegraphic formatting is an endogenous specification only; it introduces no new runtime packages, binaries, or dependencies.
+
+### Role-Tiered Context Lifecycle & Compaction Governance
+- Reviewer operates on high-tier reasoning models; after completing a commit flow, self-evaluate context utilization and compact or clean up when usage exceeds 50% or accumulated review history bloats operating costs.
+- Builder operates as a stateless, disposable worker; replace bloated or quota-limited sessions with a fresh instance from the approved `<slug>.plan.md` rather than spending tokens on compaction.
+- Planner retains orchestration history, curates living memory, and anchors transitions across ephemeral role lifecycles.
 
 ## Acknowledgements & Prior Art
 - **Caveman Prompting Pattern**: Julius Brussee, [`github.com/JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman), for the telegraphic token-dense compression paradigm for LLMs.

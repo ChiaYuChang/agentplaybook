@@ -165,7 +165,7 @@ func TestLoad_Success(t *testing.T) {
 	if len(rules) < 9 {
 		t.Fatalf("expected at least 9 rules, got %d", len(rules))
 	}
-	for _, expected := range []string{"anti-cheating", "mandatory-alignment", "tdd-reproduction", "atomic-change-units", "agents-md-single-writer", "commit-authority-separation"} {
+	for _, expected := range []string{"anti-cheating", "mandatory-alignment", "tdd-reproduction", "atomic-change-units", "agents-md-single-writer", "commit-authority-separation", "role-context-lifecycle"} {
 		r, ok := k.Rule(expected)
 		if !ok {
 			t.Errorf("expected rule %q to exist", expected)

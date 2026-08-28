@@ -135,7 +135,19 @@
       "If no suitable ignored scratch directory exists, create a unique temporary directory with mktemp -d /tmp/agentplaybook-XXXXXX.",
       "Strictly prohibit modifying .git/, .git/info/exclude, or .gitignore solely for communication buffering.",
       "Never commit or track files in scratch directories.",
-      "Inter-agent communication permits and encourages telegraphic (caveman) compression: drop conversational filler, pleasantries, and polite framing; communicate in compact, structured technical fragments to minimize transport token consumption."
+      "Inter-agent communication requires telegraphic (caveman) compression for all exchanges (including [Planner], [Reviewer], [Builder], [Scout], or [<role>] prefixed messages): drop conversational filler, pleasantries, and polite framing; communicate in compact, structured technical fragments to minimize transport token consumption."
+    ]
+  },
+  {
+    "id": "role-context-lifecycle",
+    "title": "Role-Tiered Context Lifecycle & Compaction Governance",
+    "category": "operational",
+    "summary": "High-tier Reviewer self-evaluates compaction post-commit (when usage > 50% or review history accumulates), while Builder operates as a stateless replaceable worker with zero compaction overhead.",
+    "details": "Reviewer operates on high-tier reasoning models where accumulated review artifacts increase context caching and token costs; after completing a commit flow, Reviewer self-evaluates context utilization and compacts or cleans up when usage exceeds 50% or review history accumulates. Builder is a stateless, disposable worker: bloated or quota-limited sessions are replaced from the approved <slug>.plan.md rather than compacted. Planner preserves orchestration continuity, curates living memory, and anchors transitions across ephemeral role lifecycles.",
+    "guidelines": [
+      "Reviewer must self-evaluate context window utilization after completing a commit flow, executing compaction when usage exceeds 50% or when accumulated review history bloats high-tier model operating costs.",
+      "Builder operates as a stateless, disposable worker; bloated Builder sessions are replaced with fresh instances rather than spending tokens on compaction.",
+      "Planner retains orchestration history and manages living memory transitions across ephemeral agent lifecycles."
     ]
   },
   {

@@ -27,6 +27,7 @@
 - **`rtk git diff` Path Scope**: Include `--no-ext-diff` before `--` to prevent path filters being parsed as revisions.
 - **`flow commit` Non-Mutating Command**: `agentplaybook flow commit` queryable workflow metadata only; coordinator flow, not mutating binary CLI command.
 - **`AGENTPLAYBOOK_DEV=1` Cache Race**: Concurrent CLI queries with `AGENTPLAYBOOK_DEV=1` trigger build race on cache (`text file busy`). Run development queries sequentially.
+- **Stateless Replaceability**: Builder stateless/disposable. Bloated or rate-limited sessions replaced from approved `<slug>.plan.md` without compaction token overhead.
 
 ## Reviewer Precautions & Checklist
 
@@ -36,11 +37,12 @@
 - **Contract Test Falsifiability**: Boundary contract tests assert observable behavior and must fail on plausible violating implementation; distinct from TDD reproductions.
 - **Scout Survey Evidence & Confidentiality**: Verify `scout-survey` provenance, evidence paths, uncertainty markers. Keep Scout read-only; never grant access to private review artifacts.
 - **Language Purity & Telegraphic Audit**: During Step 5 commit checks, audit `AGENTS.md` for secret leaks, unauthorized non-ASCII text lacking inline rationale, and conversational fluff.
+- **Post-Commit Compaction Self-Evaluation**: After completing commit flow, self-evaluate context window; execute compaction when usage > 50% or review clutter accumulates on high-tier model.
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-08-28T14:12:00Z @ 5c4329605aa444ee28ebb987af76e958703efec4`
-- **Dirty Status**: Modified in-scope files for `v0.2.4` (`internal/data/roles.json`, `internal/data/rules.json`, `internal/cli/matrix_test.go`, `scripts/VERSION`, `README.md`, `SKILL.md`, and `AGENTS.md`).
-- **Milestone**: `v0.2.4` - Telegraphic Token-Dense AGENTS.md, Inter-Agent Caveman Protocol & Acknowledgements Governance.
+- **Observed-At**: `2026-08-28T15:30:00Z @ b72c8d65e263ebbfa0fd57116893d684cd3ee4bf`
+- **Dirty Status**: Modified in-scope files for `v0.2.5` (`internal/data/roles.json`, `internal/data/rules.json`, `internal/knowledge/knowledge_test.go`, `internal/cli/matrix_test.go`, `scripts/VERSION`, `README.md`, `SKILL.md`, and `AGENTS.md`).
+- **Milestone**: `v0.2.5` - Role-Tiered Context Lifecycle, Compaction Governance & Prefixed Caveman Protocol.
 - **Next Pickup Item**: Conclude Governed Commit Flow Step 5 (Reviewer narrow visibility gate), Step 6 (snapshot secret scanning), Step 7 (human commit authorization), and Step 8 (local revision sealing).
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `git status` or `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

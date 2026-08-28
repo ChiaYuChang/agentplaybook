@@ -413,14 +413,15 @@ func TestCLI_AgentsLanguageConciseness(t *testing.T) {
 		t.Error("expected reviewer responsibility to audit AGENTS.md telegraphic conciseness")
 	}
 
-	telegraphicMessageContract := "Permit and encourage telegraphic inter-agent messaging: omit conversational filler, pleasantries, and polite framing in favor of compact, structured technical fragments."
+	telegraphicMessageContract := "Communicate using telegraphic Caveman mode for all inter-agent messages (including [Planner], [Reviewer], [Builder], [Scout], or [<role>] prefixed exchanges): omit conversational filler, pleasantries, and polite framing in favor of compact, structured technical fragments."
+	ephemeralCavemanMandate := "Inter-agent communication requires telegraphic (caveman) compression for all exchanges (including [Planner], [Reviewer], [Builder], [Scout], or [<role>] prefixed messages): drop conversational filler, pleasantries, and polite framing; communicate in compact, structured technical fragments to minimize transport token consumption."
 	for _, roleName := range []string{"planner", "builder", "reviewer", "scout"} {
 		var role knowledge.RoleDefinition
 		if err := json.Unmarshal(queryJSON("role", roleName), &role); err != nil {
 			t.Fatalf("failed to decode %s role: %v", roleName, err)
 		}
 		if !slices.Contains(role.Responsibilities, telegraphicMessageContract) {
-			t.Errorf("expected %s responsibility to permit telegraphic inter-agent messaging", roleName)
+			t.Errorf("expected %s responsibility to use the unified telegraphic Caveman contract", roleName)
 		}
 	}
 
@@ -453,8 +454,60 @@ func TestCLI_AgentsLanguageConciseness(t *testing.T) {
 	if len(communicationRules) != 1 {
 		t.Fatalf("expected one ephemeral-communication-buffers rule, got %d", len(communicationRules))
 	}
-	if !slices.Contains(communicationRules[0].Guidelines, "Inter-agent communication permits and encourages telegraphic (caveman) compression: drop conversational filler, pleasantries, and polite framing; communicate in compact, structured technical fragments to minimize transport token consumption.") {
-		t.Error("expected ephemeral communication rule to permit telegraphic compression")
+	if !slices.Contains(communicationRules[0].Guidelines, ephemeralCavemanMandate) {
+		t.Error("expected ephemeral communication rule to require one unified Caveman mandate")
+	}
+}
+
+func TestCLI_RoleContextLifecycle(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.1.0"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	var reviewer knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "reviewer"), &reviewer); err != nil {
+		t.Fatalf("failed to decode reviewer role: %v", err)
+	}
+	if !slices.Contains(reviewer.Responsibilities, "Self-evaluate context window utilization after completing a commit flow, executing compaction or session cleanup when context usage exceeds 50% or when accumulated review history bloats high-tier model operating costs.") {
+		t.Error("expected reviewer responsibility to govern high-tier context compaction")
+	}
+
+	var builder knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "builder"), &builder); err != nil {
+		t.Fatalf("failed to decode builder role: %v", err)
+	}
+	if !slices.Contains(builder.Responsibilities, "Operate as a stateless, easily replaceable worker; when context window is bloated or model quotas are reached, discard the session and allow Planner to spawn a fresh instance from the approved plan rather than spending tokens on compaction.") {
+		t.Error("expected builder responsibility to govern stateless replaceability")
+	}
+
+	var rules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "role-context-lifecycle"), &rules); err != nil {
+		t.Fatalf("failed to decode role-context-lifecycle rule: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected one role-context-lifecycle rule, got %d", len(rules))
+	}
+	if rules[0].ID != "role-context-lifecycle" {
+		t.Fatalf("expected role-context-lifecycle rule, got %q", rules[0].ID)
+	}
+	if !strings.Contains(rules[0].Details, "approved <slug>.plan.md") {
+		t.Error("expected role-context-lifecycle details to reference the approved plan artifact convention")
+	}
+	for _, expected := range []string{
+		"Reviewer must self-evaluate context window utilization after completing a commit flow, executing compaction when usage exceeds 50% or when accumulated review history bloats high-tier model operating costs.",
+		"Builder operates as a stateless, disposable worker; bloated Builder sessions are replaced with fresh instances rather than spending tokens on compaction.",
+		"Planner retains orchestration history and manages living memory transitions across ephemeral agent lifecycles.",
+	} {
+		if !slices.Contains(rules[0].Guidelines, expected) {
+			t.Errorf("expected role-context-lifecycle guideline %q", expected)
+		}
 	}
 }
 
