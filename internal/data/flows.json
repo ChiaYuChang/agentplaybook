@@ -6,7 +6,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Assess repository scale and complexity to determine if Scout reconnaissance is required, or proceed to direct survey.",
+        "action": "First inspect active same-workspace peer sessions through the active harness transport; prioritize discovery and dispatch to existing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents; then continue to repository scale assessment or anchor capture: assess repository scale and complexity to determine if Scout reconnaissance is required, or proceed to direct survey.",
         "conditions": [
           {
             "when": "SCOUT_RECON_REQUIRED",
@@ -77,7 +77,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Author the build-plan and review-plan artifacts for the task."
+        "action": "Author the build-plan (ensuring reviewable implementation units) and review-plan (mapping verification paths to every material Build Plan invariant and optionally proposing Track B definitions) for the task."
       },
       {
         "index": 2,
@@ -87,7 +87,7 @@
       {
         "index": 3,
         "actor": "reviewer",
-        "action": "Inspect build-plan and review-plan artifacts for clarity, feasibility, scope boundaries, and verification criteria.",
+        "action": "Inspect build-plan and review-plan artifacts for clarity, feasibility, scope boundaries, verification coverage of all material invariants, and optional Track B definitions.",
         "conditions": [
           {
             "when": "PLAN_REVIEW_REJECT",
@@ -102,7 +102,7 @@
       {
         "index": 4,
         "actor": "planner",
-        "action": "Revise build-plan and review-plan artifacts based on Reviewer feedback.",
+        "action": "Revise build-plan and review-plan artifacts based on Reviewer feedback and Track B requirements.",
         "conditions": [
           {
             "when": "PLANS_REVISED",
@@ -134,8 +134,7 @@
       {
         "index": 3,
         "actor": "planner",
-        "action": "Answer alignment inquiries and confirm scope boundaries and self-testing expectations."
-        ,
+        "action": "Answer alignment inquiries and confirm scope boundaries and self-testing expectations.",
         "conditions": [
           {
             "when": "CLARIFICATION_REQUIRED",
@@ -166,7 +165,7 @@
   },
   {
     "name": "review",
-    "description": "Independently inspect code diff, execute TDD issue reproduction and fix loop, and resolve escalations.",
+    "description": "Independently inspect code diff, evaluate severity and evidence modes (Track A/B or static), execute reproduction and fix loop, and synthesize review resolution.",
     "steps": [
       {
         "index": 1,
@@ -176,7 +175,7 @@
       {
         "index": 2,
         "actor": "reviewer",
-        "action": "Inspect code diff against the review-plan artifact for scope compliance, correctness, and test adequacy.",
+        "action": "Inspect code diff against the review-plan artifact for scope compliance, correctness, test adequacy, Track B differentials, and classify findings into formal severities (Blocker, Major, Minor, Other) with evidence mode (unresolved Blocker blocks REVIEW_PASS; resolved or arbitrated Blocker and resolved or waived Major may pass; Minor and Other do not block).",
         "conditions": [
           {
             "when": "REVIEW_PASS",
@@ -191,12 +190,12 @@
       {
         "index": 3,
         "actor": "planner",
-        "action": "Forward actionable review-findings to Builder, strictly withholding the review-plan artifact."
+        "action": "Forward actionable review-findings to Builder with severity and evidence mode, strictly withholding the review-plan artifact."
       },
       {
         "index": 4,
         "actor": "builder",
-        "action": "Establish a failing reproduction test for the reported finding (application code Out-of-Scope during this phase), then hand off to Planner for baseline verification before proceeding to fix.",
+        "action": "Establish a Track A failing reproduction test for behavioral findings (application code Out-of-Scope during this phase) or compile static/specification evidence for non-behavioral findings, then hand off to Planner for baseline verification before proceeding to fix.",
         "conditions": [
           {
             "when": "ISSUE_REPRODUCED",
@@ -215,7 +214,7 @@
       {
         "index": 5,
         "actor": "builder",
-        "action": "Fix application code until all tests pass; frozen test dependency surface must not be modified. Builder may begin Green work only after Planner has recorded the baseline reference and frozen dependency surface under tdd-reproduction; Builder must not report FIX_VERIFIED until Planner has audited the frozen paths. Report resolved diff and test logs to Planner for frozen-path audit and VCS governance.",
+        "action": "Fix application code until all tests pass (or verified static evidence is produced); frozen test dependency surface must not be modified. Builder may begin Green work only after Planner has recorded the baseline reference and frozen dependency surface under Track A verification; Builder must not report FIX_VERIFIED until Planner has audited the frozen paths. Report resolved diff and test logs to Planner for frozen-path audit and VCS governance.",
         "conditions": [
           {
             "when": "FIX_VERIFIED",
@@ -226,12 +225,12 @@
       {
         "index": 6,
         "actor": "planner",
-        "action": "Summarize review results, confirm acceptance criteria satisfaction (REVIEW_PASS), and advance to the commit flow."
+        "action": "Summarize review results, verify that unresolved Blockers are resolved or arbitrated and Major findings are resolved or waived (Minor and Other do not block), synthesize a sanitized review-resolution artifact, confirm REVIEW_PASS, and advance to the commit flow."
       },
       {
         "index": 7,
         "actor": "planner",
-        "action": "Arbitrate escalation with Reviewer (clarify/waive false positive, or evaluate scope change/plan update for unexpected error).",
+        "action": "Arbitrate escalation with Reviewer (arbitrate Blocker, record waiver with rationale for Major, clarify/waive false positive, or evaluate scope change/plan update for unexpected error).",
         "conditions": [
           {
             "when": "ISSUE_WAIVED",
@@ -338,6 +337,122 @@
         "index": 9,
         "actor": "planner",
         "action": "Publish sealed revision to remote repository under explicit publication authorization via active VCS mechanism capability."
+      }
+    ]
+  },
+  {
+    "name": "session-handoff",
+    "description": "Formally capture anchor state, conduct multi-round readiness audit, enforce scoping boundaries, and execute validated session takeover.",
+    "steps": [
+      {
+        "index": 1,
+        "actor": "planner",
+        "action": "First inspect active same-workspace peer sessions through the active harness transport; prioritize discovery and dispatch to existing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents; then continue to repository scale assessment or anchor capture: capture all State & Topology Anchor fields and handoff evidence.",
+        "conditions": [
+          {
+            "when": "ANCHOR_CAPTURED",
+            "then": 2
+          },
+          {
+            "when": "ANCHOR_INVALID",
+            "then": 1
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "actor": "planner",
+        "action": "Revalidate anchor against live repository ground truth through the active VCS mechanism and scoped inspection.",
+        "conditions": [
+          {
+            "when": "GROUND_TRUTH_CONFIRMED",
+            "then": 3
+          },
+          {
+            "when": "GROUND_TRUTH_CONFLICT",
+            "then": 1
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "actor": "planner",
+        "action": "Complete Readiness Audit Round 1 across all four mandatory dimensions: Plan Understanding, Progress & State Understanding, Architectural & Governance Decisions, and Permissions & Path-Scoping Invariants.",
+        "conditions": [
+          {
+            "when": "ROUND_1_COMPLETE",
+            "then": 4
+          },
+          {
+            "when": "AUDIT_BLOCKED",
+            "then": 3
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "actor": "planner",
+        "action": "Complete Readiness Audit Round 2 across all four mandatory dimensions (Plan Understanding, Progress & State Understanding, Architectural & Governance Decisions, and Permissions & Path-Scoping Invariants); challenge unresolved assumptions.",
+        "conditions": [
+          {
+            "when": "ROUND_2_COMPLETE",
+            "then": 5
+          },
+          {
+            "when": "AUDIT_BLOCKED",
+            "then": 3
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "actor": "planner",
+        "action": "Complete Readiness Audit Round 3 across all four mandatory dimensions (Plan Understanding, Progress & State Understanding, Architectural & Governance Decisions, and Permissions & Path-Scoping Invariants); record questions and evidence.",
+        "conditions": [
+          {
+            "when": "ROUND_3_COMPLETE",
+            "then": 6
+          },
+          {
+            "when": "QUESTIONS_REMAIN",
+            "then": 4
+          }
+        ]
+      },
+      {
+        "index": 6,
+        "actor": "planner",
+        "action": "Enforce exact authorized tool roots, peer-session discovery/dispatch policy, blind barrier, and takeover permissions.",
+        "conditions": [
+          {
+            "when": "TAKEOVER_PERMISSIONS_CLEAR",
+            "then": 7
+          },
+          {
+            "when": "SCOPE_OR_BARRIER_VIOLATION",
+            "then": 3
+          }
+        ]
+      },
+      {
+        "index": 7,
+        "actor": "planner",
+        "action": "Evaluate independent PLAN_REVIEW_PASS, declared boundaries, falsifiable contracts, VCS-neutral wording, authorization separation, and release cadence.",
+        "conditions": [
+          {
+            "when": "TAKEOVER_READY",
+            "then": 8
+          },
+          {
+            "when": "READINESS_BLOCKED",
+            "then": 4
+          }
+        ]
+      },
+      {
+        "index": 8,
+        "actor": "planner",
+        "action": "Emit compact validated takeover state with anchor, audit evidence, risks, and next pickup."
       }
     ]
   }

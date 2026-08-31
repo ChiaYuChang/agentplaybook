@@ -39,10 +39,10 @@ func TestLoad_Success(t *testing.T) {
 
 	// 3. Verify Flows
 	flows := k.Flows()
-	if len(flows) != 5 {
-		t.Fatalf("expected 5 flows, got %d", len(flows))
+	if len(flows) != 6 {
+		t.Fatalf("expected 6 flows, got %d", len(flows))
 	}
-	for _, expected := range []string{"init", "plan", "build", "review", "commit"} {
+	for _, expected := range []string{"init", "plan", "build", "review", "commit", "session-handoff"} {
 		f, ok := k.Flow(expected)
 		if !ok {
 			t.Errorf("expected flow %q to exist", expected)
@@ -125,12 +125,29 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("expected 9 steps in commit flow, got %d", len(commitFlow.Steps))
 	}
 
+	// Regression check: session-handoff flow has 8 steps
+	handoffFlow, ok := k.Flow("session-handoff")
+	if !ok {
+		t.Fatalf("expected session-handoff flow to exist")
+	}
+	if len(handoffFlow.Steps) != 8 {
+		t.Errorf("expected 8 steps in session-handoff flow, got %d", len(handoffFlow.Steps))
+	}
+	handoffStep1, _ := k.FlowStep("session-handoff", 1)
+	handoffStep1Conditions := make(map[string]int)
+	for _, c := range handoffStep1.Conditions {
+		handoffStep1Conditions[c.When] = c.Then
+	}
+	if handoffStep1Conditions["ANCHOR_CAPTURED"] != 2 || handoffStep1Conditions["ANCHOR_INVALID"] != 1 {
+		t.Errorf("unexpected session-handoff step 1 conditions: %v", handoffStep1Conditions)
+	}
+
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
-	if len(artifacts) != 5 {
-		t.Fatalf("expected 5 artifacts, got %d", len(artifacts))
+	if len(artifacts) != 6 {
+		t.Fatalf("expected 6 artifacts, got %d", len(artifacts))
 	}
-	for _, expected := range []string{"agents-md", "build-plan", "review-plan", "review-findings", "scout-survey"} {
+	for _, expected := range []string{"agents-md", "build-plan", "review-plan", "review-findings", "scout-survey", "review-resolution"} {
 		a, ok := k.Artifact(expected)
 		if !ok {
 			t.Errorf("expected artifact %q to exist", expected)
@@ -159,13 +176,33 @@ func TestLoad_Success(t *testing.T) {
 	if len(scoutSurvey.Fields) != 7 {
 		t.Errorf("expected scout-survey to have 7 fields, got %d", len(scoutSurvey.Fields))
 	}
+	reviewResolution, _ := k.Artifact("review-resolution")
+	if reviewResolution.Owner != knowledge.RolePlanner || reviewResolution.Type != "document" {
+		t.Errorf("unexpected review-resolution metadata: %+v", reviewResolution)
+	}
+	if len(reviewResolution.Sections) != 5 {
+		t.Errorf("expected review-resolution to have 5 sections, got %d", len(reviewResolution.Sections))
+	}
 
 	// 5. Verify Rules
 	rules := k.Rules()
-	if len(rules) < 9 {
-		t.Fatalf("expected at least 9 rules, got %d", len(rules))
+	if len(rules) < 14 {
+		t.Fatalf("expected at least 14 rules, got %d", len(rules))
 	}
-	for _, expected := range []string{"anti-cheating", "mandatory-alignment", "tdd-reproduction", "atomic-change-units", "agents-md-single-writer", "commit-authority-separation", "role-context-lifecycle"} {
+	for _, expected := range []string{
+		"anti-cheating",
+		"mandatory-alignment",
+		"tdd-reproduction",
+		"atomic-change-units",
+		"agents-md-single-writer",
+		"commit-authority-separation",
+		"role-context-lifecycle",
+		"session-handoff-audit",
+		"planner-reviewability",
+		"review-severity-semantics",
+		"track-b-action-differential-verification",
+		"out-of-tree-baseline-mirror",
+	} {
 		r, ok := k.Rule(expected)
 		if !ok {
 			t.Errorf("expected rule %q to exist", expected)

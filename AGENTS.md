@@ -4,6 +4,7 @@
 
 - **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook`). Roles: `planner`, `reviewer`, `builder`, `scout`. Flows: `init`, `plan`, `build`, `review`, `commit`. Memory: living `AGENTS.md`.
 - **External Interfaces**: Go CLI (`agentplaybook`) discovery commands (`role`, `flow`, `artifact`, `rule`) with JSON output.
+- **Artifact Governance**: `build-plan`/`review-plan` define task work and evidence; optional Track B lives in `review-plan`; `review-findings` carries severity and concrete evidence; Planner-owned `review-resolution` stores task-specific outcomes.
 - **Jurisdictional Boundaries (strict separation of concerns)**:
   - `AgentPlaybook`: Conceptual, evidence-based governance. Strictly VCS-neutral; no raw shell scripts or command syntax.
   - VCS Mechanism: Low-level mechanics, headless guards (`--no-pager`), workspace management delegated to active VCS skill (Jujutsu / `agentjj` or Git).
@@ -19,6 +20,9 @@
 - **Fail-Closed Intent Recovery**: On `AUTHORIZATION_DENIED`, return to Step 2 awaiting renewed user intent. Autonomous re-drafting forbidden.
 - **Conventional Commits**: Messages follow Conventional Commits specification (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`).
 - **No Background Auto-Update**: Updates user-initiated only. Runner never polls, downloads, or mutates repository in background without explicit invocation.
+- **Reviewability & Evidence**: Planner decomposes units by coupling, cross-cutting scope, mixed concerns, and verification heterogeneity; no rigid line-count threshold. Every material Build Plan criterion maps to an independent Review Plan verification path.
+- **Finding Severity**: Exactly `Blocker`, `Major`, `Minor`, `Other`. Unresolved Blocker blocks `REVIEW_PASS`; Major requires resolution or documented Planner waiver; Minor/Other non-blocking.
+- **Verification Tracks**: Track A covers local behavioral RED/GREEN. Non-behavioral findings use static/specification evidence. Optional Track B covers complete action differentials with baseline identity and distribution evidence.
 
 ## Builder Precautions & Gotchas
 
@@ -30,6 +34,9 @@
 - **`AGENTPLAYBOOK_DEV=1` Cache Race**: Concurrent CLI queries with `AGENTPLAYBOOK_DEV=1` trigger build race on cache (`text file busy`). Run development queries sequentially.
 - **Stateless Replaceability**: Builder stateless/disposable. Bloated or rate-limited sessions replaced from approved `<slug>.plan.md` without compaction token overhead.
 - **Runner Progress & Smart Update**: `run-agentplaybook.sh` emits progress to stderr (clean stdout). Smart `--update` checks `checksums.txt` vs `.archive_hash` to avoid archive re-download when already up-to-date. `build_local` explicitly invalidates `.archive_hash`.
+- **Artifact Data Shape**: Message artifacts use `ArtifactField`; document artifacts use `ArtifactSection`. JSON syntax or missing embedded rule/artifact references invalidate the CLI test suite.
+- **Non-Behavioral Review Evidence**: Docs, schema, and contract-rule findings use static/specification evidence and must not create artificial RED test harnesses.
+- **Dev Query Sequencing**: `AGENTPLAYBOOK_DEV=1` CLI queries share a build cache; concurrent invocations can produce `text file busy`. Run query sequences sequentially.
 
 ## Reviewer Precautions & Checklist
 
@@ -37,14 +44,16 @@
 - **VCS-Neutral Language**: Flow step actions and descriptions must remain conceptual/evidence-based; zero embedded `jj`/`git` commands.
 - **Public-Only Guidance**: `AGENTS.md` contains public operational guidance only. Exclude private review criteria, hidden test fixtures, inspection techniques.
 - **Contract Test Falsifiability**: Boundary contract tests assert observable behavior and must fail on plausible violating implementation; distinct from TDD reproductions.
+- **Plan Coverage**: Audit every material Build Plan invariant against an independent Review Plan verification path; inspect optional Track B fields and severity disposition semantics.
+- **Resolution Hygiene**: Shared `review-resolution` is Planner-sanitized and actionable-only; exclude review-plan criteria, hidden fixtures, and private inspection methods. Keep task-specific findings out of `AGENTS.md`.
 - **Scout Survey Evidence & Confidentiality**: Verify `scout-survey` provenance, evidence paths, uncertainty markers. Keep Scout read-only; never grant access to private review artifacts.
 - **Language Purity & Telegraphic Audit**: During Step 5 commit checks, audit `AGENTS.md` for secret leaks, unauthorized non-ASCII text lacking inline rationale, and conversational fluff.
 - **Post-Commit Compaction Self-Evaluation**: After completing commit flow, self-evaluate context window; execute compaction when usage > 50% or review clutter accumulates on high-tier model.
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-08-28T21:43:00Z @ 07819874c70c951708a504754e2020d1ce9d74aa`
-- **Dirty Status**: Modified in-scope files for runner progress visibility, smart update, and Tier documentation refinement (`scripts/run-agentplaybook.sh`, `README.md`, `SKILL.md`, and `AGENTS.md`).
-- **Milestone**: `v0.2.6` Patch - Runner Progress Visibility, Smart Update & Tier Linkage Governance.
-- **Next Pickup Item**: Conclude Governed Commit Flow Step 5 (Reviewer narrow visibility gate), Step 6 (snapshot secret scanning), Step 7 (human commit authorization), and Step 8 (local revision sealing).
+- **Observed-At**: `2026-08-31T15:57:59Z @ fe9ffdd1`
+- **Dirty Status**: Modified 11 integration files for AI Reviewer Spec six-pillar governance; prior session-handoff changes preserved. `AGENTS.md` updated by Planner during commit flow.
+- **Milestone**: AI Reviewer Spec 3-Tier Integration - `REVIEW_PASS`.
+- **Next Pickup Item**: Complete Governed Commit Flow Step 5 (Reviewer visibility gate), Step 6 (candidate stabilization and secret scan), Step 7 (human commit authorization), and Step 8 (local revision sealing).
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `git status` or `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

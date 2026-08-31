@@ -27,18 +27,19 @@
   },
   {
     "id": "tdd-reproduction",
-    "title": "TDD Review Issue Reproduction & Branching SOP",
+    "title": "Track A Local Behavioral Verification & Evidence Protocol",
     "category": "protocol",
-    "summary": "Evidence-based TDD governance requires a validated Red reproduction, a pinned baseline and frozen dependency surface, and an independently validated Green result.",
-    "details": "TDD review fixes are accepted from evidence rather than assumed transitions: Planner verifies that the Red reproduction expresses the reported assertion failure, records the baseline and complete frozen dependency surface, audits frozen paths before accepting Green work, preserves the baseline when conflicts occur, and hands the final green result to Reviewer for independent validation.",
+    "summary": "Governs single-function/local logic RED -> GREEN verification for behavioral changes while non-behavioral findings (docs, lint, static policy, design) use static/specification evidence without artificial failing tests.",
+    "details": "Track A verification governs local behavioral changes and defect resolutions through single-function, local-logic test reproduction (RED -> GREEN). Builder establishes a failing reproduction test for behavioral findings, freezes dependencies, and verifies the fix. Non-behavioral review findings (such as documentation, linting, static policies, naming, or design comments) do not require artificial failing test harnesses; instead, they are validated using static/specification evidence, lint reports, or design audits.",
     "guidelines": [
-      "Builder must establish a Red (failing) reproduction test before any application-code changes.",
+      "Track A verification applies to local behavioral changes and bug fixes, requiring a Red (failing) reproduction test before modifying application code.",
       "Planner verifies the reproduction failure is an assertion failure expressing the reported defect, not a compile, fixture, or timeout failure.",
       "Planner records a baseline reference (revision ID or snapshot) and the complete frozen test dependency surface (test files, helpers, fixtures, mocks, golden files, generated inputs, and pre-existing dependencies the reproduction test depends on).",
       "Builder must not alter any frozen path during the fix phase.",
       "Planner compares all frozen paths to the baseline reference before accepting the fix handoff.",
       "If the audit detects any diff in frozen paths, Planner stops acceptance and resolves or escalates; the original baseline reference is preserved as evidence.",
-      "Reviewer independently validates the final result once all tests are green."
+      "Non-behavioral findings (documentation, lint, static policy, design) use static/specification evidence rather than artificial failing tests.",
+      "Reviewer independently validates final results using Track A green tests or verified static evidence."
     ]
   },
   {
@@ -188,6 +189,76 @@
       "Scout must not read, search for, or request task-specific review plans, reviewer-only tests, or verification artifacts.",
       "Planner validates Scout findings and evidence against live repository ground truth before synthesizing them into AGENTS.md or task plans.",
       "Model tiering recommends Scout >= Reviewer >= Planner >= Builder as advisory capacity routing guidance, with model selection scaling by task domain, scope, uncertainty, and risk."
+    ]
+  },
+  {
+    "id": "session-handoff-audit",
+    "title": "Session Handoff & Takeover Audit Protocol",
+    "category": "protocol",
+    "summary": "Formalizes structured session handover via State & Topology Anchor capture, >= 3 readiness audit rounds, and path-scoping enforcement before takeover or dispatch.",
+    "details": "Session handoff and cold-start takeover require rigorous orientation and verification before modifying code or delegating tasks. The outgoing or incoming coordinator establishes a State & Topology Anchor capturing target_roots, tier_topology, role_assignments, baseline_revision, dirty_status, recent_milestones, utc_plan_paths, next_pickup, and evidence. Planner revalidates this anchor against live repository ground truth through active VCS status and log inspection. Coordinator conducts at least 3 structured readiness-audit rounds covering Plan Understanding, Progress & State Understanding, Architectural & Governance Decisions, and Permissions & Path-Scoping Invariants. On Planner startup or workflow initiation, Planner discovers active same-workspace peer sessions through the active harness transport and prioritizes dispatching to existing dedicated Reviewer, Builder, or Scout peer sessions via transport agent-prompt capability rather than spawning nested subagents. All core invariants are maintained: 3-tier architectural delegation, VCS neutrality with zero shell/VCS syntax in playbook actions, Plan-Review Gate independence, Builder blind barrier, Planner-only AGENTS.md single-writer with ASCII/en-US language rules, 9-step commit and publication authorization separation with no autonomous publication, telegraphic Caveman inter-agent messaging, and role context lifecycle management. Daily bugfix/patch commits roll on main without SemVer tag bumps; SemVer tags and release publication are reserved for consolidated milestones and remain explicitly authorized.",
+    "guidelines": [
+      "Capture State & Topology Anchor fields (target_roots, tier_topology, role_assignments, baseline_revision, dirty_status, recent_milestones, utc_plan_paths, next_pickup, and evidence); handoff state is orienting context and must be revalidated against live repository ground truth.",
+      "Execute at least 3 structured readiness-audit rounds before concluding takeover or dispatching tasks, with each round verifying Plan Understanding, Progress & State Understanding, Architectural & Governance Decisions, and Permissions & Path-Scoping Invariants.",
+      "Enforce strict path-scoping to authorized target roots and maintain the Builder blind barrier, strictly prohibiting access to review plans or private verification criteria.",
+      "On Planner startup or workflow initiation, inspect active same-workspace peer sessions through the active harness transport; prioritize dispatch to existing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents.",
+      "Preserve the Plan-Review Gate, AGENTS.md Single-Writer Principle, and 9-step commit flow separating local commit sealing from explicit human publication authorization; autonomous publication is strictly forbidden.",
+      "Adhere to release cadence: daily bugfix/patch commits roll on main without SemVer tag bumps; SemVer tags and release publication are reserved for consolidated milestones and remain explicitly authorized.",
+      "Maintain 3-tier architectural delegation, telegraphic Caveman messaging, role-tiered context lifecycle, and pure VCS-neutral workflow actions without raw shell or VCS syntax."
+    ]
+  },
+  {
+    "id": "planner-reviewability",
+    "title": "Planner Implementation-Unit Reviewability & Verification Coverage",
+    "category": "architecture",
+    "summary": "Planner owns implementation unit reviewability using structural coupling signals (no >400 LOC hard limit); every material Build Plan invariant receives an independent Review Plan verification path.",
+    "details": "Planner is responsible for ensuring that task build plans decompose changes into reviewable implementation units. Reviewability decomposition relies on domain-driven signals: strong coupling, cross-cutting architectural scope, mixed concerns, and verification heterogeneity—not an arbitrary or rigid line-count threshold like >400 LOC. Every material invariant, boundary condition, and acceptance criterion declared in the Build Plan must have a corresponding, independently reviewable verification path in the Review Plan to satisfy the Plan-Review Gate.",
+    "guidelines": [
+      "Planner owns the reviewability of implementation units, evaluating decomposition based on coupling, cross-cutting scope, mixed concerns, and verification heterogeneity rather than a rigid line-count threshold.",
+      "Every material invariant, boundary condition, and acceptance criterion in the Build Plan must have a dedicated, independently verifiable path in the Review Plan.",
+      "Reviewer audits Build Plan to Review Plan verification coverage during the Plan-Review Gate and reports missing coverage as a gate blocker."
+    ]
+  },
+  {
+    "id": "review-severity-semantics",
+    "title": "Review Finding Severity Classification & Gate Semantics",
+    "category": "protocol",
+    "summary": "Defines exactly four severity levels (Blocker, Major, Minor, Other); unresolved Blockers halt review approval; Major requires fix or recorded Planner waiver; Minor and Other are non-blocking.",
+    "details": "Review findings are classified strictly into four unambiguous severity levels: Blocker, Major, Minor, and Other. Ambiguous terms such as 'Critical' are strictly prohibited. An unresolved Blocker prohibits REVIEW_PASS and requires code resolution or explicit Planner arbitration. A Major finding requires code resolution unless explicitly waived by Planner with documented rationale. Minor findings are non-blocking suggestions that Builder may address optionally. Other findings represent observations, architectural discussions, or alternative approaches. All findings must be accompanied by concrete evidence.",
+    "guidelines": [
+      "Review findings must be classified using exactly one of the four formal severity levels: Blocker, Major, Minor, or Other; the term 'Critical' is strictly excluded.",
+      "An unresolved Blocker strictly blocks REVIEW_PASS and requires implementation resolution or formal Planner arbitration.",
+      "A Major finding requires code resolution before advancing, unless Planner explicitly records a documented waiver with rationale.",
+      "Minor and Other findings are non-blocking advisory observations and do not halt the review gate."
+    ]
+  },
+  {
+    "id": "track-b-action-differential-verification",
+    "title": "Track B Action-Differential Verification Protocol",
+    "category": "protocol",
+    "summary": "Optional verification track spanning complete action boundaries between Unit and E2E for performance-quality and supply-chain/security evidence using statistical distributions.",
+    "details": "Track B action-differential verification provides evidence across a complete action boundary between Unit and E2E for two distinct purposes: performance-quality characterization and supply-chain/security boundary audit. When Track B is selected during planning, the Review Plan defines the action, boundary, baseline_identity, environment, metrics, sampling strategy, and acceptance criteria. Measurements use interleaved distribution sampling evaluating median, p95, and variance. Any unexplained persistent differential between candidate and baseline requires explicit investigation before approval. Tier 3 collaboration manuals define only conceptual evidence requirements, delegating physical execution mechanics to Tier 2/Tier 1 skills.",
+    "guidelines": [
+      "Track B verification evaluates complete action boundaries between Unit and E2E for performance-quality metrics or supply-chain/security differential audit.",
+      "When Track B is selected, the Review Plan must define the action, boundary, baseline_identity, environment, metrics, sampling, and criteria.",
+      "Track B measurements must employ interleaved sampling and report distribution statistics including median, p95, and variance.",
+      "Any unexplained persistent differential between candidate and baseline identity requires formal investigation before review approval.",
+      "Tier 3 playbook definitions remain conceptual and VCS-neutral, delegating concrete execution, benchmarking, and transport mechanics to Tier 2 skills."
+    ]
+  },
+  {
+    "id": "out-of-tree-baseline-mirror",
+    "title": "Out-of-Tree Baseline Mirror Governance Protocol",
+    "category": "protocol",
+    "summary": "Governs persistent reconstructible B0 baseline cache, Planner-only lifecycle (creation, synchronization, advancement, retirement), read-only Reviewer identity assertion, BASELINE_STALE fail-closed behavior, and accepted-only advancement.",
+    "details": "To support reliable Track B action-differential measurements, Planner maintains an out-of-tree baseline mirror representing the pinned baseline identity B0. The mirror is persistent, reconstructible, and isolated from candidate working trees, identified by the authoritative identity tuple (repository_identity, baseline_identity). Planner exclusively owns the baseline mirror lifecycle across creation, synchronization, advancement, and retirement; Reviewer performs read-only assertions of baseline identity equivalence. If the candidate base revision drifts from B0, the gate fails closed with BASELINE_STALE. Mirror advancement requires local ACCEPTED status plus post-seal equivalence; advancement is strictly forbidden on REVIEW_PASS, commit success, and publication, maintaining the invariant that ACCEPTED is distinct from PUBLISHED. Concurrent baseline access must be preserved without in-place mutation. Physical directory layouts and VCS operations are delegated to Tier 2 mechanism skills.",
+    "guidelines": [
+      "The baseline mirror is maintained out-of-tree as a persistent, reconstructible reference identified by the authoritative tuple (repository_identity, baseline_identity) representing pinned baseline identity B0.",
+      "Planner exclusively owns the baseline mirror lifecycle across creation, synchronization, advancement, and retirement; Reviewer asserts read-only baseline identity equivalence without mutating the mirror.",
+      "If the candidate base revision does not match B0, the verification gate fails closed with BASELINE_STALE.",
+      "Mirror advancement requires local ACCEPTED status plus post-seal equivalence and is strictly forbidden on REVIEW_PASS, commit success, or publication, preserving the separation between ACCEPTED and PUBLISHED.",
+      "Out-of-tree baseline mirrors must support concurrent evaluation without polluting candidate working directories.",
+      "Tier 3 rules define baseline governance conceptually, delegating concrete workspace, clone, and VCS mechanics to Tier 2 skills."
     ]
   }
 ]

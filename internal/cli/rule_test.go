@@ -91,17 +91,17 @@ func TestRule_Explain(t *testing.T) {
 	// 2. Multiple rules
 	{
 		var stdout, stderr bytes.Buffer
-		err := cli.Execute([]string{"rule", "explain", "anti-cheating", "atomic-change-units"}, &stdout, &stderr, "dev")
+		err := cli.Execute([]string{"rule", "explain", "anti-cheating", "planner-reviewability", "review-severity-semantics", "track-b-action-differential-verification", "out-of-tree-baseline-mirror"}, &stdout, &stderr, "dev")
 		if err != nil {
 			t.Fatalf("explain multiple rules failed: %v", err)
 		}
 
 		var rules []knowledge.Rule
 		if err := json.Unmarshal(stdout.Bytes(), &rules); err != nil {
-			t.Fatalf("failed to decode JSON response: %v", err)
+			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
 		}
-		if len(rules) != 2 {
-			t.Fatalf("expected 2 rules, got %d", len(rules))
+		if len(rules) != 5 {
+			t.Fatalf("expected 5 rules, got %d", len(rules))
 		}
 	}
 

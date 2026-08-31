@@ -67,11 +67,15 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"flow", "build"},
 		{"flow", "review"},
 		{"flow", "commit"},
+		{"flow", "session-handoff"},
+		{"flow", "session-handoff", "--step", "1"},
+		{"flow", "session-handoff", "--step", "2"},
 		{"artifact", "agents-md"},
 		{"artifact", "build-plan"},
 		{"artifact", "review-plan"},
 		{"artifact", "review-findings"},
 		{"artifact", "scout-survey"},
+		{"artifact", "review-resolution"},
 		{"rule", "list"},
 		{"rule", "explain", "anti-cheating"},
 		{"rule", "explain", "atomic-change-units"},
@@ -84,6 +88,11 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "event-driven-transport-coordination"},
 		{"rule", "explain", "interface-stability-contract-testing"},
 		{"rule", "explain", "scout-recon-read-only"},
+		{"rule", "explain", "session-handoff-audit"},
+		{"rule", "explain", "planner-reviewability"},
+		{"rule", "explain", "review-severity-semantics"},
+		{"rule", "explain", "track-b-action-differential-verification"},
+		{"rule", "explain", "out-of-tree-baseline-mirror"},
 	}
 
 	for _, cmd := range jsonCommands {
@@ -210,13 +219,14 @@ func TestCLI_PlanGateAndTDDBaseline(t *testing.T) {
 		t.Fatalf("expected one tdd-reproduction rule, got %d", len(rules))
 	}
 	for _, expected := range []string{
-		"Builder must establish a Red (failing) reproduction test before any application-code changes.",
+		"Track A verification applies to local behavioral changes and bug fixes, requiring a Red (failing) reproduction test before modifying application code.",
 		"Planner verifies the reproduction failure is an assertion failure expressing the reported defect, not a compile, fixture, or timeout failure.",
 		"Planner records a baseline reference (revision ID or snapshot) and the complete frozen test dependency surface (test files, helpers, fixtures, mocks, golden files, generated inputs, and pre-existing dependencies the reproduction test depends on).",
 		"Builder must not alter any frozen path during the fix phase.",
 		"Planner compares all frozen paths to the baseline reference before accepting the fix handoff.",
 		"If the audit detects any diff in frozen paths, Planner stops acceptance and resolves or escalates; the original baseline reference is preserved as evidence.",
-		"Reviewer independently validates the final result once all tests are green.",
+		"Non-behavioral findings (documentation, lint, static policy, design) use static/specification evidence rather than artificial failing tests.",
+		"Reviewer independently validates final results using Track A green tests or verified static evidence.",
 	} {
 		if !slices.Contains(rules[0].Guidelines, expected) {
 			t.Errorf("expected tdd-reproduction guideline %q", expected)
@@ -723,6 +733,580 @@ func TestCLI_ScoutReconnaissance(t *testing.T) {
 	for _, expected := range expectedGuidelines {
 		if !slices.Contains(rules[0].Guidelines, expected) {
 			t.Errorf("expected scout-recon-read-only guideline %q", expected)
+		}
+	}
+}
+
+func TestCLI_SessionHandoffAuditAndStartupChecklist(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.1.0"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	// 1. Verify Planner role startup responsibilities & boundary
+	var planner knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "planner"), &planner); err != nil {
+		t.Fatalf("failed to decode planner role: %v", err)
+	}
+	for _, expected := range []string{
+		"On Planner startup or workflow initiation, inspect active same-workspace peer sessions through the active harness transport before other workflow actions.",
+		"Prioritize discovering and dispatching to existing dedicated Reviewer, Builder, or Scout peer sessions in the same workspace rather than spawning nested subagents.",
+	} {
+		if !slices.Contains(planner.Responsibilities, expected) {
+			t.Errorf("expected planner responsibility %q", expected)
+		}
+	}
+	if !slices.Contains(planner.Boundaries, "DO NOT skip active workspace peer-session discovery or spawn nested subagents when dedicated peer role sessions exist.") {
+		t.Error("expected planner boundary to enforce peer-session discovery and prioritize dedicated peer roles")
+	}
+
+	// 2. Verify session-handoff-audit rule
+	var rules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "session-handoff-audit"), &rules); err != nil {
+		t.Fatalf("failed to decode session-handoff-audit rule: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected 1 session-handoff-audit rule, got %d", len(rules))
+	}
+	rule := rules[0]
+	if rule.ID != "session-handoff-audit" || rule.Category != "protocol" {
+		t.Errorf("unexpected rule metadata: %+v", rule)
+	}
+	if rule.Title == "" || rule.Summary == "" || rule.Details == "" {
+		t.Errorf("expected non-empty rule title, summary, and details")
+	}
+
+	// Verify all 9 State & Topology Anchor fields in rule
+	anchorFields := []string{"target_roots", "tier_topology", "role_assignments", "baseline_revision", "dirty_status", "recent_milestones", "utc_plan_paths", "next_pickup", "evidence"}
+	for _, field := range anchorFields {
+		if !strings.Contains(rule.Details, field) {
+			t.Errorf("expected session-handoff-audit details to contain anchor field %q", field)
+		}
+	}
+
+	// Verify all 4 mandatory audit dimensions in rule
+	dimensions := []string{"Plan Understanding", "Progress & State Understanding", "Architectural & Governance Decisions", "Permissions & Path-Scoping Invariants"}
+	for _, dim := range dimensions {
+		if !strings.Contains(rule.Details, dim) {
+			t.Errorf("expected session-handoff-audit details to contain dimension %q", dim)
+		}
+		foundInGuideline := false
+		for _, g := range rule.Guidelines {
+			if strings.Contains(g, dim) {
+				foundInGuideline = true
+				break
+			}
+		}
+		if !foundInGuideline {
+			t.Errorf("expected session-handoff-audit guidelines to contain dimension %q", dim)
+		}
+	}
+
+	// Verify release cadence & peer dispatch in rule
+	for _, expectedPhrase := range []string{
+		"daily bugfix/patch commits roll on main without SemVer tag bumps",
+		"SemVer tags and release publication are reserved for consolidated milestones",
+		"inspect active same-workspace peer sessions through the active harness transport",
+		"prioritize dispatch to existing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents",
+	} {
+		found := strings.Contains(rule.Details, expectedPhrase)
+		if !found {
+			for _, g := range rule.Guidelines {
+				if strings.Contains(g, expectedPhrase) {
+					found = true
+					break
+				}
+			}
+		}
+		if !found {
+			t.Errorf("expected session-handoff-audit rule to contain phrase %q", expectedPhrase)
+		}
+	}
+
+	// 3. Verify init flow step 1 startup checklist
+	var initFlow knowledge.Flow
+	if err := json.Unmarshal(queryJSON("flow", "init"), &initFlow); err != nil {
+		t.Fatalf("failed to decode init flow: %v", err)
+	}
+	initStep1 := initFlow.Steps[0]
+	startupPrefix := "First inspect active same-workspace peer sessions through the active harness transport; prioritize discovery and dispatch to existing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents; then continue to repository scale assessment or anchor capture"
+	if !strings.HasPrefix(initStep1.Action, startupPrefix) {
+		t.Errorf("expected init step 1 action to start with startup checklist prefix %q, got: %s", startupPrefix, initStep1.Action)
+	}
+
+	// 4. Verify session-handoff flow
+	var handoffFlow knowledge.Flow
+	if err := json.Unmarshal(queryJSON("flow", "session-handoff"), &handoffFlow); err != nil {
+		t.Fatalf("failed to decode session-handoff flow: %v", err)
+	}
+	if len(handoffFlow.Steps) != 8 {
+		t.Fatalf("expected 8 steps in session-handoff flow, got %d", len(handoffFlow.Steps))
+	}
+	for _, step := range handoffFlow.Steps {
+		if step.Actor != knowledge.RolePlanner {
+			t.Errorf("step %d expected actor planner, got %q", step.Index, step.Actor)
+		}
+		for _, forbidden := range []string{"jj ", "git ", "git commit", "jj describe", "jj new", "sh ", "bash ", "herdr", "pane:", "cli:", "mcp"} {
+			if strings.Contains(step.Action, forbidden) {
+				t.Errorf("step %d action violates VCS/transport-neutral invariant by containing raw command or transport token %q: %s", step.Index, forbidden, step.Action)
+			}
+		}
+	}
+
+	if !strings.HasPrefix(handoffFlow.Steps[0].Action, startupPrefix) {
+		t.Errorf("expected session-handoff step 1 action to start with startup checklist prefix %q, got: %s", startupPrefix, handoffFlow.Steps[0].Action)
+	}
+
+	// Verify exact condition counts, triggers, and targets across all 8 steps
+	stepConditions := func(step knowledge.FlowStep) map[string]int {
+		m := make(map[string]int)
+		for _, c := range step.Conditions {
+			m[c.When] = c.Then
+		}
+		return m
+	}
+
+	// Step 1: exactly 2 conditions
+	s1 := handoffFlow.Steps[0]
+	if len(s1.Conditions) != 2 {
+		t.Errorf("expected step 1 to have exactly 2 conditions, got %d", len(s1.Conditions))
+	}
+	s1Cond := stepConditions(s1)
+	if s1Cond["ANCHOR_CAPTURED"] != 2 || s1Cond["ANCHOR_INVALID"] != 1 {
+		t.Errorf("unexpected step 1 conditions: %v", s1Cond)
+	}
+
+	// Step 2: exactly 2 conditions
+	s2 := handoffFlow.Steps[1]
+	if len(s2.Conditions) != 2 {
+		t.Errorf("expected step 2 to have exactly 2 conditions, got %d", len(s2.Conditions))
+	}
+	s2Cond := stepConditions(s2)
+	if s2Cond["GROUND_TRUTH_CONFIRMED"] != 3 || s2Cond["GROUND_TRUTH_CONFLICT"] != 1 {
+		t.Errorf("unexpected step 2 conditions: %v", s2Cond)
+	}
+
+	// Step 3: exactly 2 conditions
+	s3 := handoffFlow.Steps[2]
+	if len(s3.Conditions) != 2 {
+		t.Errorf("expected step 3 to have exactly 2 conditions, got %d", len(s3.Conditions))
+	}
+	s3Cond := stepConditions(s3)
+	if s3Cond["ROUND_1_COMPLETE"] != 4 || s3Cond["AUDIT_BLOCKED"] != 3 {
+		t.Errorf("unexpected step 3 conditions: %v", s3Cond)
+	}
+	if !strings.Contains(s3.Action, "Readiness Audit Round 1") {
+		t.Errorf("expected step 3 action to mention Readiness Audit Round 1")
+	}
+	for _, dim := range dimensions {
+		if !strings.Contains(s3.Action, dim) {
+			t.Errorf("expected step 3 action to explicitly name dimension %q", dim)
+		}
+	}
+
+	// Step 4: exactly 2 conditions
+	s4 := handoffFlow.Steps[3]
+	if len(s4.Conditions) != 2 {
+		t.Errorf("expected step 4 to have exactly 2 conditions, got %d", len(s4.Conditions))
+	}
+	s4Cond := stepConditions(s4)
+	if s4Cond["ROUND_2_COMPLETE"] != 5 || s4Cond["AUDIT_BLOCKED"] != 3 {
+		t.Errorf("unexpected step 4 conditions: %v", s4Cond)
+	}
+	if !strings.Contains(s4.Action, "Readiness Audit Round 2") {
+		t.Errorf("expected step 4 action to mention Readiness Audit Round 2")
+	}
+	for _, dim := range dimensions {
+		if !strings.Contains(s4.Action, dim) {
+			t.Errorf("expected step 4 action to explicitly name dimension %q", dim)
+		}
+	}
+
+	// Step 5: exactly 2 conditions
+	s5 := handoffFlow.Steps[4]
+	if len(s5.Conditions) != 2 {
+		t.Errorf("expected step 5 to have exactly 2 conditions, got %d", len(s5.Conditions))
+	}
+	s5Cond := stepConditions(s5)
+	if s5Cond["ROUND_3_COMPLETE"] != 6 || s5Cond["QUESTIONS_REMAIN"] != 4 {
+		t.Errorf("unexpected step 5 conditions: %v", s5Cond)
+	}
+	if !strings.Contains(s5.Action, "Readiness Audit Round 3") {
+		t.Errorf("expected step 5 action to mention Readiness Audit Round 3")
+	}
+	for _, dim := range dimensions {
+		if !strings.Contains(s5.Action, dim) {
+			t.Errorf("expected step 5 action to explicitly name dimension %q", dim)
+		}
+	}
+
+	// Step 6: exactly 2 conditions
+	s6 := handoffFlow.Steps[5]
+	if len(s6.Conditions) != 2 {
+		t.Errorf("expected step 6 to have exactly 2 conditions, got %d", len(s6.Conditions))
+	}
+	s6Cond := stepConditions(s6)
+	if s6Cond["TAKEOVER_PERMISSIONS_CLEAR"] != 7 || s6Cond["SCOPE_OR_BARRIER_VIOLATION"] != 3 {
+		t.Errorf("unexpected step 6 conditions: %v", s6Cond)
+	}
+
+	// Step 7: exactly 2 conditions
+	s7 := handoffFlow.Steps[6]
+	if len(s7.Conditions) != 2 {
+		t.Errorf("expected step 7 to have exactly 2 conditions, got %d", len(s7.Conditions))
+	}
+	s7Cond := stepConditions(s7)
+	if s7Cond["TAKEOVER_READY"] != 8 || s7Cond["READINESS_BLOCKED"] != 4 {
+		t.Errorf("unexpected step 7 conditions: %v", s7Cond)
+	}
+
+	// Step 8: exactly 0 conditions (terminal)
+	s8 := handoffFlow.Steps[7]
+	if len(s8.Conditions) != 0 {
+		t.Errorf("expected step 8 to be terminal with 0 conditions, got %d", len(s8.Conditions))
+	}
+
+	// Test single step queries for session-handoff
+	var step1Query knowledge.FlowStep
+	if err := json.Unmarshal(queryJSON("flow", "session-handoff", "--step", "1"), &step1Query); err != nil {
+		t.Fatalf("failed to decode session-handoff step 1: %v", err)
+	}
+	if step1Query.Index != 1 || step1Query.Actor != knowledge.RolePlanner {
+		t.Errorf("unexpected session-handoff step 1 query: %+v", step1Query)
+	}
+
+	// 5. Verify documentation synchronization across README.md and SKILL.md
+	for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+		content, err := os.ReadFile(docPath)
+		if err != nil {
+			t.Fatalf("failed to read doc file %q: %v", docPath, err)
+		}
+		docStr := string(content)
+		for _, required := range []string{
+			"session-handoff",
+			"session-handoff-audit",
+			"active workspace peer-session discovery",
+			"dedicated Reviewer, Builder, or Scout peer sessions",
+			"active harness transport",
+			"nested subagent",
+		} {
+			if !strings.Contains(docStr, required) {
+				t.Errorf("expected doc file %q to contain %q", docPath, required)
+			}
+		}
+	}
+}
+
+func TestCLI_AIReviewerSpecThreeTierIntegration(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.1.0"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	// 1. Pillar 1: Planner reviewability & coverage
+	{
+		var rules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "planner-reviewability"), &rules); err != nil {
+			t.Fatalf("failed to decode planner-reviewability rule: %v", err)
+		}
+		if len(rules) != 1 {
+			t.Fatalf("expected 1 planner-reviewability rule, got %d", len(rules))
+		}
+		r := rules[0]
+		for _, signal := range []string{"coupling", "cross-cutting", "mixed concerns", "verification heterogeneity"} {
+			if !strings.Contains(r.Details, signal) {
+				t.Errorf("expected planner-reviewability details to contain signal %q", signal)
+			}
+		}
+		if !strings.Contains(r.Details, "Review Plan") {
+			t.Error("expected planner-reviewability to mention Review Plan verification path")
+		}
+		// Falsifiable check: rejects rigid >400 LOC threshold while preserving signals and coverage
+		if !strings.Contains(r.Summary, "no >400 LOC hard limit") {
+			t.Errorf("expected planner-reviewability summary to reject >400 LOC limit, got: %s", r.Summary)
+		}
+		if !strings.Contains(r.Details, "not an arbitrary or rigid line-count threshold like >400 LOC") {
+			t.Errorf("expected planner-reviewability details to reject rigid line count, got: %s", r.Details)
+		}
+		foundNoRigidThreshold := false
+		for _, g := range r.Guidelines {
+			if strings.Contains(g, "rather than a rigid line-count threshold") {
+				foundNoRigidThreshold = true
+			}
+			if strings.Contains(g, "must not exceed") && strings.Contains(g, "LOC") {
+				t.Errorf("falsifiable violation: guideline must not impose hard LOC limit: %s", g)
+			}
+		}
+		if !foundNoRigidThreshold {
+			t.Error("expected planner-reviewability guidelines to explicitly reject a rigid line-count threshold")
+		}
+	}
+
+	// 2. Pillar 2: Severity semantics
+	{
+		var rules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "review-severity-semantics"), &rules); err != nil {
+			t.Fatalf("failed to decode review-severity-semantics rule: %v", err)
+		}
+		if len(rules) != 1 {
+			t.Fatalf("expected 1 review-severity-semantics rule, got %d", len(rules))
+		}
+		r := rules[0]
+		for _, sev := range []string{"Blocker", "Major", "Minor", "Other"} {
+			if !strings.Contains(r.Details, sev) {
+				t.Errorf("expected review-severity-semantics details to contain severity %q", sev)
+			}
+		}
+		// Negative check: Critical is excluded
+		if strings.Contains(r.Summary, "Critical") {
+			t.Error("expected review-severity-semantics summary to exclude Critical")
+		}
+		for _, g := range r.Guidelines {
+			if strings.Contains(g, "Critical") && !strings.Contains(g, "strictly excluded") {
+				t.Errorf("expected Critical to be marked strictly excluded in guidelines, got: %s", g)
+			}
+		}
+	}
+
+	// 3. Pillar 3: Track A local behavioral verification
+	{
+		var rules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "tdd-reproduction"), &rules); err != nil {
+			t.Fatalf("failed to decode tdd-reproduction rule: %v", err)
+		}
+		if len(rules) != 1 {
+			t.Fatalf("expected 1 tdd-reproduction rule, got %d", len(rules))
+		}
+		r := rules[0]
+		if !strings.Contains(r.Title, "Track A") {
+			t.Errorf("expected tdd-reproduction title to include Track A, got: %s", r.Title)
+		}
+		if !strings.Contains(r.Details, "static/specification evidence") {
+			t.Error("expected tdd-reproduction to mention static/specification evidence for non-behavioral findings")
+		}
+	}
+
+	// 4. Pillar 4: Track B action differential verification
+	{
+		var rules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "track-b-action-differential-verification"), &rules); err != nil {
+			t.Fatalf("failed to decode track-b-action-differential-verification rule: %v", err)
+		}
+		if len(rules) != 1 {
+			t.Fatalf("expected 1 track-b-action-differential-verification rule, got %d", len(rules))
+		}
+		r := rules[0]
+		for _, required := range []string{"action", "boundary", "baseline_identity", "environment", "metrics", "sampling", "criteria", "median", "p95", "variance"} {
+			if !strings.Contains(r.Details, required) {
+				t.Errorf("expected track-b rule details to contain %q", required)
+			}
+		}
+		if !strings.Contains(r.Details, "unexplained persistent differential") {
+			t.Error("expected track-b rule to require investigation of unexplained persistent differential")
+		}
+	}
+
+	// 5. Pillar 5: Out-of-tree baseline mirror
+	{
+		var rules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "out-of-tree-baseline-mirror"), &rules); err != nil {
+			t.Fatalf("failed to decode out-of-tree-baseline-mirror rule: %v", err)
+		}
+		if len(rules) != 1 {
+			t.Fatalf("expected 1 out-of-tree-baseline-mirror rule, got %d", len(rules))
+		}
+		r := rules[0]
+		for _, required := range []string{
+			"persistent",
+			"reconstructible",
+			"BASELINE_STALE",
+			"ACCEPTED",
+			"PUBLISHED",
+			"repository_identity",
+			"baseline_identity",
+			"creation",
+			"synchronization",
+			"advancement",
+			"retirement",
+			"post-seal equivalence",
+			"forbidden on REVIEW_PASS",
+			"commit success",
+			"publication",
+		} {
+			if !strings.Contains(r.Details, required) {
+				t.Errorf("expected out-of-tree-baseline-mirror details to contain %q", required)
+			}
+		}
+
+		foundAdvancementCondition := false
+		for _, g := range r.Guidelines {
+			if strings.Contains(g, "post-seal equivalence") && strings.Contains(g, "strictly forbidden on REVIEW_PASS, commit success, or publication") {
+				foundAdvancementCondition = true
+			}
+		}
+		if !foundAdvancementCondition {
+			t.Error("expected out-of-tree-baseline-mirror guideline to assert post-seal equivalence and forbidden advancement triggers")
+		}
+	}
+
+	// 6. Pillar 6: Structured artifacts & resolution
+	{
+		var planArtifact knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "review-plan"), &planArtifact); err != nil {
+			t.Fatalf("failed to decode review-plan artifact: %v", err)
+		}
+		foundTrackB := false
+		for _, s := range planArtifact.Sections {
+			if s.Name == "Track B Definition" {
+				foundTrackB = true
+				for _, reqField := range []string{"action", "boundary", "baseline_identity", "environment", "metrics", "sampling", "criteria"} {
+					if !strings.Contains(s.Description, reqField) {
+						t.Errorf("expected Track B section in review-plan to mention field %q", reqField)
+					}
+				}
+			}
+		}
+		if !foundTrackB {
+			t.Error("expected review-plan to include Track B Definition section")
+		}
+
+		var resolution knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "review-resolution"), &resolution); err != nil {
+			t.Fatalf("failed to decode review-resolution artifact: %v", err)
+		}
+		if resolution.Name != "review-resolution" || resolution.Owner != knowledge.RolePlanner || resolution.Type != "document" {
+			t.Errorf("unexpected review-resolution metadata: %+v", resolution)
+		}
+		if resolution.Path != "plan/{timestamp}/{slug}.resolution.md" {
+			t.Errorf("expected resolution path 'plan/{timestamp}/{slug}.resolution.md', got %q", resolution.Path)
+		}
+		if resolution.PathVariables["timestamp"] == "" || resolution.PathVariables["slug"] == "" {
+			t.Errorf("expected path_variables timestamp and slug in review-resolution, got %+v", resolution.PathVariables)
+		}
+		if len(resolution.Visibility) != 3 || resolution.Visibility[0] != knowledge.RolePlanner || resolution.Visibility[1] != knowledge.RoleBuilder || resolution.Visibility[2] != knowledge.RoleReviewer {
+			t.Errorf("expected resolution visibility [planner builder reviewer], got %v", resolution.Visibility)
+		}
+		for _, reqPhrase := range []string{"sanitization", "review-plan criteria", "hidden test fixtures", "private inspection methods"} {
+			if !strings.Contains(resolution.Description, reqPhrase) {
+				t.Errorf("expected resolution description to contain %q, got: %s", reqPhrase, resolution.Description)
+			}
+		}
+
+		expectedSections := []string{"Outcome", "Resolved Findings", "Deviations & Rationales", "Residual Risks", "Verification Evidence"}
+		for i, sec := range expectedSections {
+			if resolution.Sections[i].Name != sec {
+				t.Errorf("expected section %d to be %q, got %q", i, sec, resolution.Sections[i].Name)
+			}
+		}
+
+		var findings knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "review-findings"), &findings); err != nil {
+			t.Fatalf("failed to decode review-findings artifact: %v", err)
+		}
+		fieldMap := make(map[string]knowledge.ArtifactField)
+		for _, f := range findings.Fields {
+			fieldMap[f.Name] = f
+		}
+		if !fieldMap["evidence_mode"].Required || !fieldMap["evidence"].Required {
+			t.Error("expected evidence_mode and evidence to be required in review-findings")
+		}
+		if fieldMap["reproduction_scenario"].Required {
+			t.Error("expected reproduction_scenario to be conditional/optional in review-findings")
+		}
+	}
+
+	// 7. Roles & Flows assertions
+	{
+		var planner knowledge.RoleDefinition
+		if err := json.Unmarshal(queryJSON("role", "planner"), &planner); err != nil {
+			t.Fatalf("failed to decode planner role: %v", err)
+		}
+		foundReviewability := false
+		for _, resp := range planner.Responsibilities {
+			if strings.Contains(resp, "reviewable implementation units") {
+				foundReviewability = true
+				break
+			}
+		}
+		if !foundReviewability {
+			t.Error("expected planner responsibility for reviewable implementation units")
+		}
+
+		var reviewer knowledge.RoleDefinition
+		if err := json.Unmarshal(queryJSON("role", "reviewer"), &reviewer); err != nil {
+			t.Fatalf("failed to decode reviewer role: %v", err)
+		}
+		foundCoverage := false
+		for _, resp := range reviewer.Responsibilities {
+			if strings.Contains(resp, "verification coverage") {
+				foundCoverage = true
+				break
+			}
+		}
+		if !foundCoverage {
+			t.Error("expected reviewer responsibility for verification coverage audit")
+		}
+
+		var planFlow knowledge.Flow
+		if err := json.Unmarshal(queryJSON("flow", "plan"), &planFlow); err != nil {
+			t.Fatalf("failed to decode plan flow: %v", err)
+		}
+		for _, step := range planFlow.Steps {
+			for _, forbidden := range []string{"jj ", "git ", "git commit", "jj describe", "jj new", "sh -c", "bash ", "herdr", "pane:", "cli:", "mcp"} {
+				if strings.Contains(step.Action, forbidden) {
+					t.Errorf("plan flow step %d violates command neutrality: %s", step.Index, step.Action)
+				}
+			}
+		}
+
+		var reviewFlow knowledge.Flow
+		if err := json.Unmarshal(queryJSON("flow", "review"), &reviewFlow); err != nil {
+			t.Fatalf("failed to decode review flow: %v", err)
+		}
+		for _, step := range reviewFlow.Steps {
+			for _, forbidden := range []string{"jj ", "git ", "git commit", "jj describe", "jj new", "sh -c", "bash ", "herdr", "pane:", "cli:", "mcp"} {
+				if strings.Contains(step.Action, forbidden) {
+					t.Errorf("review flow step %d violates command neutrality: %s", step.Index, step.Action)
+				}
+			}
+		}
+	}
+
+	// 8. Independent Documentation Assertions
+	for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+		content, err := os.ReadFile(docPath)
+		if err != nil {
+			t.Fatalf("failed to read doc file %q: %v", docPath, err)
+		}
+		docStr := string(content)
+		for _, required := range []string{
+			"planner-reviewability",
+			"review-severity-semantics",
+			"track-b-action-differential-verification",
+			"out-of-tree-baseline-mirror",
+			"review-resolution",
+			"Track A",
+			"Track B",
+			"Blocker",
+			"Major",
+			"Minor",
+			"Other",
+		} {
+			if !strings.Contains(docStr, required) {
+				t.Errorf("expected doc file %q to contain six-pillar term %q", docPath, required)
+			}
 		}
 	}
 }

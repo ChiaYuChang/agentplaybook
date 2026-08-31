@@ -14,9 +14,9 @@ Instead of stuffing massive, static role prompts into every agent turn—wasting
 - **Read-Only Collaboration Manual**: Zero side-effects on your target repository. No orchestrator runtime daemon, no external state store.
 - **5 Orthogonal Knowledge Domains**:
   - `role`: Durable participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`, `scout`).
-  - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `build`, `review`, `commit`).
-  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `review-findings`, `scout-survey`).
-  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `atomic-change-units`, `tdd-reproduction`, `agents-md-single-writer`, `commit-authority-separation`, `interface-stability-contract-testing`).
+  - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `build`, `review`, `commit`, `session-handoff`).
+  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `review-findings`, `scout-survey`, `review-resolution`).
+  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `atomic-change-units`, `tdd-reproduction`, `agents-md-single-writer`, `commit-authority-separation`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`).
   - `config`: Supported languages, prefix templates, and transport settings.
 - **Progressive Disclosure UX**: Bare discovery commands output concise catalogs (Exit 0); specific queries return clean, indented JSON.
 - **Built for AI Agents**: Automatic self-caching runner script, compatible with [skills.sh](https://skills.sh) across 17+ agent harnesses.
@@ -119,15 +119,19 @@ Scout findings use the transient `scout-survey` message artifact. It records the
 Model capacity routing is advisory rather than mandatory: the default recommendation is `Scout >= Reviewer >= Planner >= Builder`, with allocation scaled by task domain, scope, uncertainty, and risk.
 
 ### 3. Inspecting Flows & Step SOPs
-The `init` flow has 9 steps and an optional Scout reconnaissance branch. Step 1 routes `SCOUT_RECON_REQUIRED` to Step 2, where Scout returns a `scout-survey`; `DIRECT_SURVEY` routes directly to Step 3, where Planner validates evidence or surveys the repository before drafting `AGENTS.md`. Reviewer and Builder inquiry convergence then proceeds through Steps 4-8, and Planner finalizes the artifact in Step 9.
+The `init` flow has 9 steps and an optional Scout reconnaissance branch. Step 1 begins with active workspace peer-session discovery through the active harness transport, prioritizing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents, then routes `SCOUT_RECON_REQUIRED` to Step 2, where Scout returns a `scout-survey`; `DIRECT_SURVEY` routes directly to Step 3, where Planner validates evidence or surveys the repository before drafting `AGENTS.md`. Reviewer and Builder inquiry convergence then proceeds through Steps 4-8, and Planner finalizes the artifact in Step 9.
+
+The `session-handoff` flow defines an 8-step protocol for session transition, anchor capture, and takeover readiness verification. Step 1 performs active workspace peer-session discovery through the active harness transport and prioritizes dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents, then captures the State & Topology Anchor. Step 2 revalidates anchor state against live repository ground truth. Steps 3-5 execute 3 structured readiness audit rounds across all four mandatory dimensions (Plan Understanding, Progress & State Understanding, Architectural & Governance Decisions, and Permissions & Path-Scoping Invariants). Step 6 enforces tool root path-scoping and blind barrier invariants, Step 7 validates Plan-Review Gate independence and release cadence, and Step 8 emits the validated takeover state. The manual provides read-only guidance with no runtime transport mutation.
 
 ```bash
 # Full flow definition
 agentplaybook flow init
+agentplaybook flow session-handoff
 agentplaybook flow commit
 
 # Isolated single step query
 agentplaybook flow build --step 2
+agentplaybook flow session-handoff --step 1
 agentplaybook flow commit --step 5
 ```
 
@@ -147,7 +151,16 @@ agentplaybook rule list
 # Explain specific rule IDs
 agentplaybook rule explain atomic-change-units
 agentplaybook rule explain agents-md-single-writer commit-authority-separation
+agentplaybook rule explain session-handoff-audit
 ```
+
+### Session Handoff & Takeover Audit Protocol
+The `session-handoff-audit` rule formalizes session transitions across 3 core handover elements:
+1. **State & Topology Anchor**: Captures `target_roots`, `tier_topology`, `role_assignments`, `baseline_revision`, `dirty_status`, `recent_milestones`, `utc_plan_paths`, `next_pickup`, and `evidence`. Anchor state serves as orienting context and must be revalidated against live repository ground truth.
+2. **>= 3 Readiness-Audit Rounds**: Every round verifies Plan Understanding, Progress & State Understanding, Architectural & Governance Decisions, and Permissions & Path-Scoping Invariants.
+3. **Path-Scoping Enforcement**: Tool roots are strictly scoped to authorized directories before takeover completion or task dispatch, maintaining the Builder blind barrier.
+
+On Planner startup or workflow initiation, Planner performs active workspace peer-session discovery through the active harness transport and prioritizes dispatch to existing dedicated Reviewer, Builder, or Scout peer sessions over spawning nested subagents. Release cadence is strictly defined: daily bugfix/patch commits roll on `main` without SemVer tag bumps; SemVer tags and release publication are reserved for consolidated milestones and remain explicitly authorized. Flow definitions provide read-only reference guidance with no runtime transport mutation.
 
 ### Interface Stability & Contract Testing
 Build plans and implementation diffs must preserve stable component interfaces through explicit boundary declarations and meaningful contract tests:
@@ -158,6 +171,30 @@ Build plans and implementation diffs must preserve stable component interfaces t
 - A contract test must fail under at least one plausible violating implementation; Reviewer assesses falsifiability through targeted variation where feasible.
 - Unexpected cross-boundary dependencies require Planner escalation; Builder must not unilaterally expand scope.
 - Contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings; contract tests are required when boundary behavior is added, changed, or insufficiently protected.
+
+### AI Reviewer Spec & 3-Tier Verification Governance
+
+AgentPlaybook formalizes six review and verification pillars within its conceptual Tier 3 orchestration manual:
+
+1. **Planner Reviewability & Verification Coverage (`planner-reviewability`)**:
+   Planner owns the reviewability of implementation units. Work decomposition uses domain signals (structural coupling, cross-cutting scope, mixed concerns, verification heterogeneity) rather than an arbitrary or rigid line-count threshold like `>400 LOC`. Every material invariant, boundary condition, and acceptance criterion in the Build Plan must receive a corresponding, independently verifiable path in the Review Plan.
+2. **Formal Severity Classification (`review-severity-semantics`)**:
+   Review findings are classified strictly into four formal severity levels:
+   - `Blocker`: Severe defect or boundary violation. An unresolved Blocker strictly prohibits `REVIEW_PASS`, requiring implementation resolution or explicit Planner arbitration.
+   - `Major`: Significant defect or contract gap. Requires implementation resolution before advancing, unless Planner explicitly records a documented waiver with rationale.
+   - `Minor`: Advisory suggestion or non-blocking improvement.
+   - `Other`: General observation, architectural discussion, or alternative approach.
+   The ambiguous term `Critical` is strictly excluded from severity classification.
+3. **Track A Local Behavioral Verification (`tdd-reproduction`)**:
+   Governs local behavioral defect fixes through single-function, local-logic test reproduction (`RED -> GREEN`). Non-behavioral review findings (such as documentation, linting, static policies, naming, or design comments) use verified static or specification evidence without requiring artificial failing test harnesses.
+4. **Track B Action-Differential Verification (`track-b-action-differential-verification`)**:
+   Optional verification track spanning complete action boundaries between Unit and E2E for two distinct purposes: performance-quality characterization and supply-chain/security boundary audit. Planning defines the action, boundary, `baseline_identity`, environment, metrics, sampling, and criteria. Measurements employ interleaved distribution sampling evaluating median, p95, and variance. Any unexplained persistent differential between candidate and baseline identity requires formal investigation before review approval.
+5. **Out-of-Tree Baseline Mirror Governance (`out-of-tree-baseline-mirror`)**:
+   Planner maintains an out-of-tree, persistent, reconstructible baseline mirror representing pinned baseline identity B0. Reviewer performs read-only baseline identity assertions. If candidate base revision drifts from B0, verification fails closed with `BASELINE_STALE`. Mirror advancement occurs strictly upon local revision sealing (`ACCEPTED`-only, post-seal), maintaining the invariant that `ACCEPTED != PUBLISHED`.
+6. **Structured Review Artifacts & Resolution (`review-resolution`)**:
+   - `review-plan`: extended with an optional `Track B Definition` section.
+   - `review-findings`: requires `evidence_mode` and concrete `evidence`, making `reproduction_scenario` conditional for behavioral findings only.
+   - `review-resolution`: Planner-owned document persisted at `plan/{timestamp}/{slug}.resolution.md`, synthesized and sanitized by Planner before shared visibility across Planner, Builder, and Reviewer. Contains five required sections: `Outcome`, `Resolved Findings`, `Deviations & Rationales`, `Residual Risks`, and `Verification Evidence`. Shared resolution artifacts strictly exclude confidential review criteria, hidden test fixtures, and private inspection techniques.
 
 ---
 

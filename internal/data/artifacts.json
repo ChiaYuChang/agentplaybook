@@ -123,6 +123,11 @@
         "name": "Review Verification Commands",
         "required": true,
         "description": "Commands Reviewer executes to independently inspect diffs and test suites."
+      },
+      {
+        "name": "Track B Definition",
+        "required": false,
+        "description": "Optional specification of complete action boundary defining exact fields: action, boundary, baseline_identity, environment, metrics, sampling, and criteria for performance-quality or supply-chain differential verification."
       }
     ]
   },
@@ -150,7 +155,17 @@
       {
         "name": "severity",
         "required": true,
-        "description": "Severity level (e.g. Blocker, Critical, Major, Minor)."
+        "description": "Severity level: Blocker, Major, Minor, or Other."
+      },
+      {
+        "name": "evidence_mode",
+        "required": true,
+        "description": "Mode of verification evidence: behavioral (Track A reproduction) or static (specification reference, lint report, design audit, or Track B differential summary)."
+      },
+      {
+        "name": "evidence",
+        "required": true,
+        "description": "Concrete observable verification evidence such as test assertion failure output, static rule violation, or differential measurement."
       },
       {
         "name": "description",
@@ -164,8 +179,52 @@
       },
       {
         "name": "reproduction_scenario",
+        "required": false,
+        "description": "Steps or input conditions needed for Builder to write a reproduction test (required for behavioral findings, omitted for non-behavioral findings)."
+      }
+    ]
+  },
+  {
+    "name": "review-resolution",
+    "title": "Review Resolution",
+    "description": "Planner-owned post-review synthesis capturing review outcomes, resolved findings, deviations, residual risks, and verification evidence. Visible to Planner, Builder, and Reviewer only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
+    "owner": "planner",
+    "visibility": [
+      "planner",
+      "builder",
+      "reviewer"
+    ],
+    "path": "plan/{timestamp}/{slug}.resolution.md",
+    "path_variables": {
+      "timestamp": "UTC ISO timestamp formatted as YYYYMMDDTHHMMSSZ",
+      "slug": "Descriptive kebab-case task identifier"
+    },
+    "type": "document",
+    "sections": [
+      {
+        "name": "Outcome",
         "required": true,
-        "description": "Steps or input conditions needed for Builder to write a reproduction test."
+        "description": "Final review disposition: APPROVED, WAIVED, or REVISED."
+      },
+      {
+        "name": "Resolved Findings",
+        "required": true,
+        "description": "Structured disposition and verification references for all reported review findings."
+      },
+      {
+        "name": "Deviations & Rationales",
+        "required": true,
+        "description": "Documented waivers, plan amendments, and architectural deviation rationales."
+      },
+      {
+        "name": "Residual Risks",
+        "required": true,
+        "description": "Identified non-blocking risks, technical debt, or follow-up milestones."
+      },
+      {
+        "name": "Verification Evidence",
+        "required": true,
+        "description": "Sanitized summary of green Track A tests, verified static evidence, and Track B measurements."
       }
     ]
   },
