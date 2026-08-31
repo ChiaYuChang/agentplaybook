@@ -6,7 +6,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "First inspect active same-workspace peer sessions through the active harness transport; prioritize discovery and dispatch to existing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents; then continue to repository scale assessment or anchor capture: assess repository scale and complexity to determine if Scout reconnaissance is required, or proceed to direct survey.",
+        "action": "First inspect active same-workspace peer sessions through the active harness transport; prioritize discovery and dispatch to existing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents; then continue to repository scale assessment or anchor capture, resolve active Tier 2 VCS capability, and determine if Scout reconnaissance is required, or proceed to direct survey.",
         "conditions": [
           {
             "when": "SCOUT_RECON_REQUIRED",
@@ -26,7 +26,7 @@
       {
         "index": 3,
         "actor": "planner",
-        "action": "Validate scout-survey evidence against repository ground truth (or perform direct repository survey) and draft the initial AGENTS.md artifact."
+        "action": "Validate scout-survey evidence against repository ground truth and active Tier 2 VCS capability (or perform direct repository survey) and draft the initial AGENTS.md artifact."
       },
       {
         "index": 4,
@@ -72,22 +72,22 @@
   },
   {
     "name": "plan",
-    "description": "Author, review, and lock task-specific build and review plans through the Plan-Review Gate.",
+    "description": "Author, review, and lock task-specific build and review plans through the Plan-Review Gate with Counterfactual Decomposition Challenge.",
     "steps": [
       {
         "index": 1,
         "actor": "planner",
-        "action": "Author the build-plan (ensuring reviewable implementation units) and review-plan (mapping verification paths to every material Build Plan invariant and optionally proposing Track B definitions) for the task."
+        "action": "Assess feature scope and complexity to branch between Hierarchical Blueprint and Single Plan; author task build-plan (or blueprint-plan) and review-plan with verification paths for every material invariant and optional Track B definitions."
       },
       {
         "index": 2,
         "actor": "planner",
-        "action": "Submit build-plan and review-plan artifacts to Reviewer for gate review."
+        "action": "Submit draft plan artifacts to Reviewer for gate review."
       },
       {
         "index": 3,
         "actor": "reviewer",
-        "action": "Inspect build-plan and review-plan artifacts for clarity, feasibility, scope boundaries, verification coverage of all material invariants, and optional Track B definitions.",
+        "action": "Inspect plan artifacts for scope coherence, execute Counterfactual Decomposition Challenge (SPLIT_ATTEMPT and SPLIT_REJECTED_BECAUSE), and verify independent verification paths.",
         "conditions": [
           {
             "when": "PLAN_REVIEW_REJECT",
@@ -102,7 +102,7 @@
       {
         "index": 4,
         "actor": "planner",
-        "action": "Revise build-plan and review-plan artifacts based on Reviewer feedback and Track B requirements.",
+        "action": "Revise plan artifacts based on Reviewer feedback, structural decomposition rationale, and Track B requirements.",
         "conditions": [
           {
             "when": "PLANS_REVISED",
@@ -113,7 +113,145 @@
       {
         "index": 5,
         "actor": "planner",
-        "action": "Finalize approved plans and prepare for blind handover."
+        "action": "Finalize approved plan artifacts and route to build flow (for single plan) or blueprint flow (for hierarchical blueprint)."
+      }
+    ]
+  },
+  {
+    "name": "blueprint",
+    "description": "Execute hierarchical multi-stage feature development through blueprint gating, JIT sub-plan pairs, Planner-mediated remediation, and feature composition verification.",
+    "steps": [
+      {
+        "index": 1,
+        "actor": "planner",
+        "action": "Author the blueprint-plan artifact (<slug>.blueprint.md) defining high-level goals, shared interface contracts, invariant boundaries, and ordered sub-plan sequence."
+      },
+      {
+        "index": 2,
+        "actor": "reviewer",
+        "action": "Execute Blueprint Gate on <slug>.blueprint.md, validating architectural coherence, interface stability, and sub-plan boundary definitions.",
+        "conditions": [
+          {
+            "when": "BLUEPRINT_PASS",
+            "then": 3
+          },
+          {
+            "when": "BLUEPRINT_REJECT",
+            "then": 1
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "actor": "planner",
+        "action": "Author JIT sub-plan pair: sub-build-plan (sub/<slug>.build.md) and sub-review-plan (sub/<slug>.review.md) for the current sub-plan unit."
+      },
+      {
+        "index": 4,
+        "actor": "reviewer",
+        "action": "Execute Sub-Plan Gate on current sub-plan pair, evaluating verification coverage, boundaries, and Track B definitions.",
+        "conditions": [
+          {
+            "when": "SUBPLAN_PLAN_PASS",
+            "then": 5
+          },
+          {
+            "when": "SUBPLAN_PLAN_REJECT",
+            "then": 3
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "actor": "builder",
+        "action": "Implement approved sub-build-plan strictly within declared file boundaries, execute local tests, and report verified diff and logs to Planner."
+      },
+      {
+        "index": 6,
+        "actor": "reviewer",
+        "action": "When Track B is selected, assert the pinned baseline identity tuple (repository_identity, baseline_identity) before evaluating differential measurements and emit BASELINE_STALE on drift; independently inspect code diff against sub-review-plan and report structured findings to Planner.",
+        "conditions": [
+          {
+            "when": "BASELINE_STALE",
+            "then": 2
+          },
+          {
+            "when": "SUBPLAN_REVIEW_FINDINGS",
+            "then": 7
+          },
+          {
+            "when": "SUBPLAN_REVIEW_SATISFIED",
+            "then": 8
+          },
+          {
+            "when": "BLUEPRINT_REVIEW_REQUIRED",
+            "then": 2
+          }
+        ]
+      },
+      {
+        "index": 7,
+        "actor": "planner",
+        "action": "Mediate and sanitize review findings into actionable remediation instructions for Builder, strictly withholding review-plan artifacts.",
+        "conditions": [
+          {
+            "when": "REMEDIATION_DISPATCHED",
+            "then": 5
+          }
+        ]
+      },
+      {
+        "index": 8,
+        "actor": "planner",
+        "action": "Synthesize sanitized sub-review-resolution artifact (sub/<slug>.resolution.md) recording resolved findings, waivers, deviations, and verified evidence."
+      },
+      {
+        "index": 9,
+        "actor": "reviewer",
+        "action": "Verify sub-review-resolution artifact against sub-review-plan and determine sub-plan completion status.",
+        "conditions": [
+          {
+            "when": "SUBPLAN_REVIEW_PASS_MORE_SUBPLANS",
+            "then": 3
+          },
+          {
+            "when": "SUBPLAN_REVIEW_PASS_ALL_COMPLETED",
+            "then": 10
+          },
+          {
+            "when": "RESOLUTION_REJECTED",
+            "then": 8
+          }
+        ]
+      },
+      {
+        "index": 10,
+        "actor": "planner",
+        "action": "Synthesize master composition review-resolution artifact (<slug>.resolution.md) summarizing global outcomes and cross-plan evidence."
+      },
+      {
+        "index": 11,
+        "actor": "reviewer",
+        "action": "Execute Feature Composition Gate across all completed sub-plans, shared contracts, and regression suites.",
+        "conditions": [
+          {
+            "when": "FEATURE_REVIEW_PASS",
+            "then": 12
+          },
+          {
+            "when": "FEATURE_REVIEW_REJECT",
+            "then": 3
+          },
+          {
+            "when": "DEPENDENT_EVIDENCE_STALE",
+            "then": 2
+          }
+        ]
+      },
+      {
+        "index": 12,
+        "actor": "planner",
+        "action": "Trigger Governed Milestone Acceptance and advance to the commit flow."
       }
     ]
   },
@@ -170,19 +308,23 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Forward Builder's code diff to Reviewer for verification against the review-plan artifact."
+        "action": "Forward verified diff from build flow to Reviewer for code review, strictly withholding the review-plan artifact."
       },
       {
         "index": 2,
         "actor": "reviewer",
-        "action": "Inspect code diff against the review-plan artifact for scope compliance, correctness, test adequacy, Track B differentials, and classify findings into formal severities (Blocker, Major, Minor, Other) with evidence mode (unresolved Blocker blocks REVIEW_PASS; resolved or arbitrated Blocker and resolved or waived Major may pass; Minor and Other do not block).",
+        "action": "When Track B is selected, assert the pinned baseline identity tuple (repository_identity, baseline_identity) before evaluating differential measurements and emit BASELINE_STALE on drift; inspect code diff against the review-plan artifact for scope compliance, correctness, test adequacy, Track B differentials, and classify findings into formal severities (Blocker, Major, Minor, Other) with evidence mode (unresolved Blocker blocks REVIEW_PASS; resolved or arbitrated Blocker and resolved or waived Major may pass; Minor and Other do not block).",
         "conditions": [
+          {
+            "when": "BASELINE_STALE",
+            "then": 8
+          },
           {
             "when": "REVIEW_PASS",
             "then": 6
           },
           {
-            "when": "REVIEW_ISSUES",
+            "when": "FINDINGS_REPORTED",
             "then": 3
           }
         ]
@@ -190,7 +332,7 @@
       {
         "index": 3,
         "actor": "planner",
-        "action": "Forward actionable review-findings to Builder with severity and evidence mode, strictly withholding the review-plan artifact."
+        "action": "Mediate and sanitize review-findings to Builder with severity and evidence mode, strictly withholding the review-plan artifact."
       },
       {
         "index": 4,
@@ -255,12 +397,12 @@
   },
   {
     "name": "commit",
-    "description": "Stabilize candidate identity, update living operational memory, perform security scans, and seal revisions under VCS governance upon human authorization.",
+    "description": "Stabilize candidate identity, enforce Finalization Equivalence, update living operational memory, perform security scans, and seal revisions under VCS governance upon human authorization.",
     "steps": [
       {
         "index": 1,
         "actor": "planner",
-        "action": "Confirm independent review approval (REVIEW_PASS) and establish candidate baseline."
+        "action": "Confirm independent review approval (REVIEW_PASS or FEATURE_REVIEW_PASS) and establish candidate baseline."
       },
       {
         "index": 2,
@@ -295,7 +437,7 @@
       {
         "index": 6,
         "actor": "planner",
-        "action": "Stabilize candidate snapshot identity, verify candidate equivalence, and execute fail-closed secret scan via active security gate mechanism (non-zero exit code halts pipeline).",
+        "action": "Stabilize candidate snapshot identity, verify Finalization Equivalence (tree(Final) == tree(Verified)), and execute fail-closed secret scan via active security gate mechanism (non-zero exit code halts pipeline).",
         "conditions": [
           {
             "when": "SCAN_CLEAN",
@@ -310,7 +452,7 @@
       {
         "index": 7,
         "actor": "planner",
-        "action": "Present finalized candidate diff and Conventional Commit message, awaiting explicit human commit authorization.",
+        "action": "Present finalized candidate diff and Conventional Commit message, awaiting explicit human milestone acceptance authorization.",
         "conditions": [
           {
             "when": "AUTHORIZATION_GRANTED",
@@ -325,7 +467,7 @@
       {
         "index": 8,
         "actor": "planner",
-        "action": "Verify unchanged candidate identity and seal revision locally under Planner VCS governance via active VCS mechanism capability.",
+        "action": "Verify unchanged candidate identity and seal milestone revision locally as ACCEPTED under Planner VCS governance via active VCS mechanism capability.",
         "conditions": [
           {
             "when": "PUBLICATION_AUTHORIZED",

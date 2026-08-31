@@ -14,9 +14,9 @@ Instead of stuffing massive, static role prompts into every agent turn—wasting
 - **Read-Only Collaboration Manual**: Zero side-effects on your target repository. No orchestrator runtime daemon, no external state store.
 - **5 Orthogonal Knowledge Domains**:
   - `role`: Durable participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`, `scout`).
-  - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `build`, `review`, `commit`, `session-handoff`).
-  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `review-findings`, `scout-survey`, `review-resolution`).
-  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `atomic-change-units`, `tdd-reproduction`, `agents-md-single-writer`, `commit-authority-separation`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`).
+  - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `blueprint`, `build`, `review`, `commit`, `session-handoff`).
+  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`).
+  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`).
   - `config`: Supported languages, prefix templates, and transport settings.
 - **Progressive Disclosure UX**: Bare discovery commands output concise catalogs (Exit 0); specific queries return clean, indented JSON.
 - **Built for AI Agents**: Automatic self-caching runner script, compatible with [skills.sh](https://skills.sh) across 17+ agent harnesses.
@@ -119,17 +119,22 @@ Scout findings use the transient `scout-survey` message artifact. It records the
 Model capacity routing is advisory rather than mandatory: the default recommendation is `Scout >= Reviewer >= Planner >= Builder`, with allocation scaled by task domain, scope, uncertainty, and risk.
 
 ### 3. Inspecting Flows & Step SOPs
-The `init` flow has 9 steps and an optional Scout reconnaissance branch. Step 1 begins with active workspace peer-session discovery through the active harness transport, prioritizing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents, then routes `SCOUT_RECON_REQUIRED` to Step 2, where Scout returns a `scout-survey`; `DIRECT_SURVEY` routes directly to Step 3, where Planner validates evidence or surveys the repository before drafting `AGENTS.md`. Reviewer and Builder inquiry convergence then proceeds through Steps 4-8, and Planner finalizes the artifact in Step 9.
+The `init` flow has 9 steps and an optional Scout reconnaissance branch. Step 1 begins with active workspace peer-session discovery through the active harness transport, prioritizing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents, resolves active Tier 2 VCS capability, then routes `SCOUT_RECON_REQUIRED` to Step 2, where Scout returns a `scout-survey`; `DIRECT_SURVEY` routes directly to Step 3, where Planner validates evidence or surveys the repository before drafting `AGENTS.md`. Reviewer and Builder inquiry convergence then proceeds through Steps 4-8, and Planner finalizes the artifact in Step 9.
+
+The `blueprint` flow defines a 12-step deterministic hierarchical feature lifecycle: Planner authors `<slug>.blueprint.md` (Step 1), Reviewer executes the Blueprint Gate (Step 2), Planner authors JIT sub-plan pairs `sub/<slug>.build.md` and `sub/<slug>.review.md` (Step 3), Reviewer executes the Sub-Plan Gate (Step 4), Builder implements the sub-build plan (Step 5), Reviewer inspects diffs and reports findings (Step 6), Planner mediates and sanitizes findings (Step 7), Planner synthesizes `sub/<slug>.resolution.md` (Step 8), Reviewer verifies sub-resolution (Step 9), Planner synthesizes master composition `<slug>.resolution.md` (Step 10), Reviewer executes the Feature Composition Gate (Step 11), and Planner triggers Governed Milestone Acceptance (Step 12).
 
 The `session-handoff` flow defines an 8-step protocol for session transition, anchor capture, and takeover readiness verification. Step 1 performs active workspace peer-session discovery through the active harness transport and prioritizes dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents, then captures the State & Topology Anchor. Step 2 revalidates anchor state against live repository ground truth. Steps 3-5 execute 3 structured readiness audit rounds across all four mandatory dimensions (Plan Understanding, Progress & State Understanding, Architectural & Governance Decisions, and Permissions & Path-Scoping Invariants). Step 6 enforces tool root path-scoping and blind barrier invariants, Step 7 validates Plan-Review Gate independence and release cadence, and Step 8 emits the validated takeover state. The manual provides read-only guidance with no runtime transport mutation.
 
 ```bash
 # Full flow definition
 agentplaybook flow init
+agentplaybook flow plan
+agentplaybook flow blueprint
 agentplaybook flow session-handoff
 agentplaybook flow commit
 
 # Isolated single step query
+agentplaybook flow blueprint --step 2
 agentplaybook flow build --step 2
 agentplaybook flow session-handoff --step 1
 agentplaybook flow commit --step 5
@@ -139,8 +144,13 @@ agentplaybook flow commit --step 5
 ```bash
 agentplaybook artifact agents-md
 agentplaybook artifact build-plan
+agentplaybook artifact blueprint-plan
+agentplaybook artifact sub-build-plan
+agentplaybook artifact sub-review-plan
+agentplaybook artifact sub-review-resolution
 agentplaybook artifact review-findings
 agentplaybook artifact scout-survey
+agentplaybook artifact review-resolution
 ```
 
 ### 5. Inspecting Behavioral Rules
@@ -149,10 +159,26 @@ agentplaybook artifact scout-survey
 agentplaybook rule list
 
 # Explain specific rule IDs
-agentplaybook rule explain atomic-change-units
-agentplaybook rule explain agents-md-single-writer commit-authority-separation
-agentplaybook rule explain session-handoff-audit
+agentplaybook rule explain coherent-plan-units anti-rubber-stamp-plan-gate
+agentplaybook rule explain evidence-proportional-persistence acceptance-publication-authority
+agentplaybook rule explain agents-md-single-writer session-handoff-audit
 ```
+
+### Hierarchical Blueprint & Governance Architecture
+AgentPlaybook v0.3.0 establishes hierarchical blueprinting and two-tier gating for complex feature engineering:
+
+1. **Coherent Plan Units (`coherent-plan-units`)**:
+   One plan owns exactly one root intent. Internal steps decompose execution sequence rather than acceptance atomicity. Decomposition uses domain-driven signals: coupling, cross-cutting scope, mixed concerns, and verification heterogeneity. Multi-stage features branch into hierarchical blueprint plans with JIT sub-plans.
+2. **Anti-Rubber-Stamp Plan Gate (`anti-rubber-stamp-plan-gate`)**:
+   Reviewer actively executes the Counterfactual Decomposition Challenge on proposed plans (`SPLIT_ATTEMPT` + `SPLIT_REJECTED_BECAUSE`). Plans exhibiting unreviewable coupling or missing verification paths receive short-circuit structural rejection.
+3. **Evidence-Proportional Persistence (`evidence-proportional-persistence`)**:
+   `plan.md` and `review.md` are mandatory execution contracts; sanitized resolution documents (`sub-review-resolution` and `review-resolution`) capture durable outcomes and verified evidence at gate convergence; `AGENTS.md` is updated strictly when durable cross-task invariants, toolchain gotchas, or project rules emerge.
+4. **Milestone Acceptance & Finalization Equivalence (`acceptance-publication-authority`)**:
+   Distinguishes `WORKING != ACCEPTED != PUBLISHED`. Milestone acceptance seals reviewed revisions locally as `ACCEPTED` under Planner VCS governance, strictly upholding Finalization Equivalence ($\text{tree}(\text{Final}) == \text{tree}(\text{Verified})$) with zero unstaged drift. Remote publication (`PUBLISHED`) requires explicit separate human authorization.
+5. **Two-Tier Gating & Composition Review**:
+   - `Blueprint Gate`: Reviewer validates architectural coherence, public contracts, and sub-plan boundary definitions before implementation.
+   - `Sub-Plan Gate`: Reviewer validates JIT sub-build and sub-review plan pairs for verification coverage.
+   - `Feature Composition Gate`: Reviewer evaluates global composition across all completed sub-plans, shared contracts, and regression suites before milestone acceptance.
 
 ### Session Handoff & Takeover Audit Protocol
 The `session-handoff-audit` rule formalizes session transitions across 3 core handover elements:

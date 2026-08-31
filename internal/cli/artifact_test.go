@@ -20,7 +20,18 @@ func TestArtifact_BareDiscovery(t *testing.T) {
 	}
 
 	out := stdout.String()
-	for _, expected := range []string{"agents-md", "build-plan", "review-plan", "review-findings", "scout-survey", "review-resolution"} {
+	for _, expected := range []string{
+		"agents-md",
+		"build-plan",
+		"review-plan",
+		"blueprint-plan",
+		"sub-build-plan",
+		"sub-review-plan",
+		"sub-review-resolution",
+		"review-findings",
+		"scout-survey",
+		"review-resolution",
+	} {
 		if !strings.Contains(out, expected) {
 			t.Errorf("expected artifact %q in discovery output, got: %s", expected, out)
 		}
@@ -35,9 +46,13 @@ func TestArtifact_BareDiscovery(t *testing.T) {
 		{"agents-md", "planner", "document", "Living operational memory"},
 		{"build-plan", "planner", "document", "Task-specific implementation plan"},
 		{"review-plan", "planner", "document", "Reviewer-only verification plan"},
+		{"blueprint-plan", "planner", "document", "Hierarchical architecture plan"},
+		{"sub-build-plan", "planner", "document", "Task-specific implementation plan for an individual sub-plan unit"},
+		{"sub-review-plan", "planner", "document", "Reviewer-only verification plan used for independent validation during sub-plan"},
+		{"sub-review-resolution", "planner", "document", "Planner-owned post-review synthesis for an individual sub-plan"},
 		{"review-findings", "reviewer", "message", "Structured findings reported by Reviewer"},
-		{"scout-survey", "scout", "message", "Transient message artifact containing read-only architectural topography"},
 		{"review-resolution", "planner", "document", "Planner-owned post-review synthesis"},
+		{"scout-survey", "scout", "message", "Transient message artifact containing read-only architectural topography"},
 	}
 	for _, expected := range expectedRows {
 		found := false
@@ -133,7 +148,96 @@ func TestArtifact_Query(t *testing.T) {
 		}
 	}
 
-	// 4. Message artifact (review-findings)
+	// 4. Blueprint artifact (blueprint-plan)
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"artifact", "blueprint-plan"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("querying blueprint-plan failed: %v", err)
+		}
+
+		var a knowledge.Artifact
+		if err := json.Unmarshal(stdout.Bytes(), &a); err != nil {
+			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
+		}
+		if a.Name != "blueprint-plan" || a.Owner != knowledge.RolePlanner || a.Type != "document" {
+			t.Errorf("unexpected blueprint-plan metadata: %+v", a)
+		}
+		if a.Path != "plan/{timestamp}/{slug}.blueprint.md" {
+			t.Errorf("expected blueprint path 'plan/{timestamp}/{slug}.blueprint.md', got %q", a.Path)
+		}
+		if len(a.Sections) != 4 {
+			t.Errorf("expected 4 sections for blueprint-plan, got %d", len(a.Sections))
+		}
+	}
+
+	// 5. Sub-build plan artifact (sub-build-plan)
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"artifact", "sub-build-plan"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("querying sub-build-plan failed: %v", err)
+		}
+
+		var a knowledge.Artifact
+		if err := json.Unmarshal(stdout.Bytes(), &a); err != nil {
+			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
+		}
+		if a.Name != "sub-build-plan" || a.Owner != knowledge.RolePlanner || a.Type != "document" {
+			t.Errorf("unexpected sub-build-plan metadata: %+v", a)
+		}
+		if a.Path != "plan/{timestamp}/sub/{slug}.build.md" {
+			t.Errorf("expected sub-build-plan path 'plan/{timestamp}/sub/{slug}.build.md', got %q", a.Path)
+		}
+	}
+
+	// 6. Sub-review plan artifact (sub-review-plan)
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"artifact", "sub-review-plan"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("querying sub-review-plan failed: %v", err)
+		}
+
+		var a knowledge.Artifact
+		if err := json.Unmarshal(stdout.Bytes(), &a); err != nil {
+			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
+		}
+		if a.Name != "sub-review-plan" || a.Owner != knowledge.RolePlanner || a.Type != "document" {
+			t.Errorf("unexpected sub-review-plan metadata: %+v", a)
+		}
+		if a.Path != "plan/{timestamp}/sub/{slug}.review.md" {
+			t.Errorf("expected sub-review-plan path 'plan/{timestamp}/sub/{slug}.review.md', got %q", a.Path)
+		}
+		if len(a.Visibility) != 2 || a.Visibility[0] != knowledge.RolePlanner || a.Visibility[1] != knowledge.RoleReviewer {
+			t.Errorf("expected sub-review-plan visibility [planner reviewer], got %v", a.Visibility)
+		}
+	}
+
+	// 7. Sub-review resolution artifact (sub-review-resolution)
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"artifact", "sub-review-resolution"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("querying sub-review-resolution failed: %v", err)
+		}
+
+		var a knowledge.Artifact
+		if err := json.Unmarshal(stdout.Bytes(), &a); err != nil {
+			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
+		}
+		if a.Name != "sub-review-resolution" || a.Owner != knowledge.RolePlanner || a.Type != "document" {
+			t.Errorf("unexpected sub-review-resolution metadata: %+v", a)
+		}
+		if a.Path != "plan/{timestamp}/sub/{slug}.resolution.md" {
+			t.Errorf("expected sub-review-resolution path 'plan/{timestamp}/sub/{slug}.resolution.md', got %q", a.Path)
+		}
+		if len(a.Sections) != 5 {
+			t.Errorf("expected 5 sections in sub-review-resolution, got %d", len(a.Sections))
+		}
+	}
+
+	// 8. Message artifact (review-findings)
 	{
 		var stdout, stderr bytes.Buffer
 		err := cli.Execute([]string{"artifact", "review-findings"}, &stdout, &stderr, "dev")
@@ -147,6 +251,9 @@ func TestArtifact_Query(t *testing.T) {
 		}
 		if a.Name != "review-findings" {
 			t.Errorf("expected artifact name 'review-findings', got %q", a.Name)
+		}
+		if len(a.Visibility) != 2 || a.Visibility[0] != knowledge.RolePlanner || a.Visibility[1] != knowledge.RoleReviewer {
+			t.Errorf("expected review-findings visibility strictly [planner reviewer], got %v", a.Visibility)
 		}
 		if len(a.Fields) == 0 {
 			t.Error("expected non-empty fields for review-findings")
@@ -170,7 +277,7 @@ func TestArtifact_Query(t *testing.T) {
 		}
 	}
 
-	// 5. Document artifact (review-resolution)
+	// 9. Document artifact (review-resolution)
 	{
 		var stdout, stderr bytes.Buffer
 		err := cli.Execute([]string{"artifact", "review-resolution"}, &stdout, &stderr, "dev")

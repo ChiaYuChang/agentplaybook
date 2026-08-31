@@ -20,7 +20,7 @@ func TestFlow_BareDiscovery(t *testing.T) {
 	}
 
 	out := stdout.String()
-	for _, expected := range []string{"init", "plan", "build", "review", "commit", "session-handoff"} {
+	for _, expected := range []string{"init", "plan", "blueprint", "build", "review", "commit", "session-handoff"} {
 		if !strings.Contains(out, expected) {
 			t.Errorf("expected flow %q in discovery output, got: %s", expected, out)
 		}
@@ -77,15 +77,45 @@ func TestFlow_QueryFull(t *testing.T) {
 		if len(f.Steps) != 5 {
 			t.Fatalf("expected 5 steps in plan flow, got %d", len(f.Steps))
 		}
-		if !strings.Contains(f.Steps[0].Action, "reviewable implementation units") {
-			t.Errorf("expected plan step 1 action to mention reviewable implementation units, got: %s", f.Steps[0].Action)
+		if !strings.Contains(f.Steps[0].Action, "Hierarchical Blueprint") {
+			t.Errorf("expected plan step 1 action to mention Hierarchical Blueprint, got: %s", f.Steps[0].Action)
 		}
-		if !strings.Contains(f.Steps[2].Action, "Track B definitions") {
-			t.Errorf("expected plan step 3 action to mention Track B definitions, got: %s", f.Steps[2].Action)
+		if !strings.Contains(f.Steps[2].Action, "Counterfactual Decomposition Challenge") {
+			t.Errorf("expected plan step 3 action to mention Counterfactual Decomposition Challenge, got: %s", f.Steps[2].Action)
 		}
 	}
 
-	// 3. review flow (severities, Track A/B, and review-resolution synthesis)
+	// 3. blueprint flow (12 steps)
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"flow", "blueprint"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("querying flow blueprint failed: %v", err)
+		}
+
+		var f knowledge.Flow
+		if err := json.Unmarshal(stdout.Bytes(), &f); err != nil {
+			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
+		}
+		if len(f.Steps) != 12 {
+			t.Fatalf("expected 12 steps in blueprint flow, got %d", len(f.Steps))
+		}
+		if f.Steps[0].Actor != knowledge.RolePlanner || f.Steps[1].Actor != knowledge.RoleReviewer {
+			t.Errorf("unexpected actors in blueprint steps 1-2: %s, %s", f.Steps[0].Actor, f.Steps[1].Actor)
+		}
+		if !strings.Contains(f.Steps[5].Action, "When Track B is selected, assert the pinned baseline identity") {
+			t.Errorf("expected blueprint step 6 action to mention Track B pinned baseline identity assertion, got: %s", f.Steps[5].Action)
+		}
+		bpStep6Conditions := make(map[string]int)
+		for _, c := range f.Steps[5].Conditions {
+			bpStep6Conditions[c.When] = c.Then
+		}
+		if bpStep6Conditions["BASELINE_STALE"] != 2 {
+			t.Errorf("expected blueprint step 6 BASELINE_STALE condition to point to step 2, got: %v", bpStep6Conditions)
+		}
+	}
+
+	// 4. review flow (severities, Track A/B, and review-resolution synthesis)
 	{
 		var stdout, stderr bytes.Buffer
 		err := cli.Execute([]string{"flow", "review"}, &stdout, &stderr, "dev")
@@ -100,7 +130,23 @@ func TestFlow_QueryFull(t *testing.T) {
 		if len(f.Steps) != 8 {
 			t.Fatalf("expected 8 steps in review flow, got %d", len(f.Steps))
 		}
+		if f.Steps[0].Actor != knowledge.RolePlanner || len(f.Steps[0].Conditions) != 0 {
+			t.Errorf("expected review step 1 to be planner handoff with 0 conditions, got actor %q, conditions: %v", f.Steps[0].Actor, f.Steps[0].Conditions)
+		}
+		if f.Steps[1].Actor != knowledge.RoleReviewer {
+			t.Errorf("expected review step 2 actor to be reviewer, got %q", f.Steps[1].Actor)
+		}
 		step2Action := f.Steps[1].Action
+		if !strings.Contains(step2Action, "When Track B is selected, assert the pinned baseline identity") {
+			t.Errorf("expected review step 2 action to mention Track B pinned baseline identity assertion, got: %s", step2Action)
+		}
+		reviewStep2Conditions := make(map[string]int)
+		for _, c := range f.Steps[1].Conditions {
+			reviewStep2Conditions[c.When] = c.Then
+		}
+		if reviewStep2Conditions["BASELINE_STALE"] != 8 || reviewStep2Conditions["REVIEW_PASS"] != 6 || reviewStep2Conditions["FINDINGS_REPORTED"] != 3 {
+			t.Errorf("expected review step 2 conditions [BASELINE_STALE: 8, REVIEW_PASS: 6, FINDINGS_REPORTED: 3], got: %v", reviewStep2Conditions)
+		}
 		if !strings.Contains(step2Action, "formal severities (Blocker, Major, Minor, Other)") {
 			t.Errorf("expected review step 2 to classify formal severities, got: %s", step2Action)
 		}

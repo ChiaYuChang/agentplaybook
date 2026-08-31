@@ -44,7 +44,7 @@ Do not query every knowledge domain on every turn. Query only the specific domai
    ```
 
 3. **Artifact Contracts**:
-   Before authoring, reviewing, or exchanging persistent plans, summaries, or structured findings:
+   Before authoring, reviewing, or exchanging persistent plans, summaries, or structured findings (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`):
    ```sh
    sh "<skill-dir>/scripts/run-agentplaybook.sh" artifact <artifact-name>
    ```
@@ -127,6 +127,39 @@ AgentPlaybook defines six conceptual review and verification pillars:
    - `review-plan`: optional `Track B Definition` section.
    - `review-findings`: required `evidence_mode` and concrete `evidence`, conditional `reproduction_scenario`.
    - `review-resolution`: Planner-owned post-review synthesis at `plan/{timestamp}/{slug}.resolution.md`, sanitized before shared visibility, with five required sections: `Outcome`, `Resolved Findings`, `Deviations & Rationales`, `Residual Risks`, and `Verification Evidence`. Strictly excludes confidential review criteria, hidden fixtures, or private methods.
+
+## Hierarchical Blueprint & Governance Architecture
+
+AgentPlaybook v0.3.0 establishes hierarchical blueprinting and two-tier gating for complex feature engineering:
+
+1. **Coherent Plan Units (`coherent-plan-units`)**:
+   One plan owns exactly one root intent. Internal steps decompose execution sequence rather than acceptance atomicity. Decomposition uses domain-driven signals: coupling, cross-cutting scope, mixed concerns, and verification heterogeneity. Multi-stage features branch into hierarchical blueprint plans with JIT sub-plans.
+2. **Anti-Rubber-Stamp Plan Gate (`anti-rubber-stamp-plan-gate`)**:
+   Reviewer actively executes the Counterfactual Decomposition Challenge on proposed plans (`SPLIT_ATTEMPT` + `SPLIT_REJECTED_BECAUSE`). Plans exhibiting unreviewable coupling or missing verification paths receive short-circuit structural rejection.
+3. **Evidence-Proportional Persistence (`evidence-proportional-persistence`)**:
+   `plan.md` and `review.md` are mandatory execution contracts; sanitized resolution documents (`sub-review-resolution` and `review-resolution`) capture durable outcomes and verified evidence at gate convergence; `AGENTS.md` is updated strictly when durable cross-task invariants, toolchain gotchas, or project rules emerge.
+4. **Milestone Acceptance & Finalization Equivalence (`acceptance-publication-authority`)**:
+   Distinguishes `WORKING != ACCEPTED != PUBLISHED`. Milestone acceptance seals reviewed revisions locally as `ACCEPTED` under Planner VCS governance, strictly upholding Finalization Equivalence ($\text{tree}(\text{Final}) == \text{tree}(\text{Verified})$) with zero unstaged drift. Remote publication (`PUBLISHED`) requires explicit separate human authorization.
+5. **Two-Tier Gating & Composition Review**:
+   - `Blueprint Gate`: Reviewer validates architectural coherence, public contracts, and sub-plan boundary definitions before implementation.
+   - `Sub-Plan Gate`: Reviewer validates JIT sub-build and sub-review plan pairs for verification coverage.
+   - `Feature Composition Gate`: Reviewer evaluates global composition across all completed sub-plans, shared contracts, and regression suites before milestone acceptance.
+
+## Deterministic Hierarchical Blueprint Flow (`flow blueprint`)
+
+The `blueprint` flow defines a 12-step deterministic lifecycle:
+1. Planner authors hierarchical architecture plan (`<slug>.blueprint.md`).
+2. Reviewer executes Blueprint Gate (`BLUEPRINT_PASS` -> 3; `BLUEPRINT_REJECT` -> 1).
+3. Planner authors JIT sub-plan pairs `sub/<slug>.build.md` and `sub/<slug>.review.md`.
+4. Reviewer executes Sub-Plan Gate (`SUBPLAN_PLAN_PASS` -> 5; `SUBPLAN_PLAN_REJECT` -> 3).
+5. Builder implements sub-build plan and executes self-tests.
+6. Reviewer inspects diffs and reports findings (`SUBPLAN_REVIEW_FINDINGS` -> 7; `SUBPLAN_REVIEW_SATISFIED` -> 8; `BLUEPRINT_REVIEW_REQUIRED` -> 2).
+7. Planner mediates and sanitizes findings (`REMEDIATION_DISPATCHED` -> 5).
+8. Planner synthesizes sanitized sub-resolution (`sub/<slug>.resolution.md`).
+9. Reviewer verifies sub-resolution (`SUBPLAN_REVIEW_PASS_MORE_SUBPLANS` -> 3; `SUBPLAN_REVIEW_PASS_ALL_COMPLETED` -> 10; `RESOLUTION_REJECTED` -> 8).
+10. Planner synthesizes master feature composition resolution (`<slug>.resolution.md`).
+11. Reviewer executes Feature Composition Gate (`FEATURE_REVIEW_PASS` -> 12; `FEATURE_REVIEW_REJECT` -> 3; `DEPENDENT_EVIDENCE_STALE` -> 2).
+12. Planner triggers Governed Milestone Acceptance.
 
 ## Ephemeral Communication Buffers
 

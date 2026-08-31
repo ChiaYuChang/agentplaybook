@@ -2,11 +2,12 @@
 
 ## Architectural Topology & Jurisdictions
 
-- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook`). Roles: `planner`, `reviewer`, `builder`, `scout`. Flows: `init`, `plan`, `build`, `review`, `commit`. Memory: living `AGENTS.md`.
+- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook` v0.3.0). Roles: `planner`, `reviewer`, `builder`, `scout`. Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`. Memory: living `AGENTS.md`.
 - **External Interfaces**: Go CLI (`agentplaybook`) discovery commands (`role`, `flow`, `artifact`, `rule`) with JSON output.
-- **Artifact Governance**: `build-plan`/`review-plan` define task work and evidence; optional Track B lives in `review-plan`; `review-findings` carries severity and concrete evidence; Planner-owned `review-resolution` stores task-specific outcomes.
+- **Artifact Governance**: Hierarchical structure with `blueprint-plan` (`<slug>.blueprint.md`), `sub-build-plan` (`sub/<slug>.build.md`), `sub-review-plan` (`sub/<slug>.review.md`), `sub-review-resolution` (`sub/<slug>.resolution.md`), and top-level `review-resolution` (`<slug>.resolution.md`).
+- **Blind Barrier & Scout Isolation**: `review-findings` strictly restricted to `["planner", "reviewer"]`; Builder receives only Planner-sanitized remediation instructions. Scout strictly excluded from all task in-flight artifacts (`build-plan`, `review-plan`, `blueprint-plan`, `sub-*`, `review-findings`).
 - **Jurisdictional Boundaries (strict separation of concerns)**:
-  - `AgentPlaybook`: Conceptual, evidence-based governance. Strictly VCS-neutral; no raw shell scripts or command syntax.
+  - `AgentPlaybook`: Conceptual, evidence-based governance. Strictly VCS-neutral; no raw shell scripts or command syntax in catalog data.
   - VCS Mechanism: Low-level mechanics, headless guards (`--no-pager`), workspace management delegated to active VCS skill (Jujutsu / `agentjj` or Git).
   - Policy Overlay: Commit candidate stabilization, TOCTOU defense, secret scanning delegated to active commit policy overlay (`agentcommit`).
 
@@ -18,42 +19,40 @@
 - **Inter-Agent Messaging**: Efficiency-first. Drop pleasantries, social framing, human prose. Transmit compact, structured technical payloads with exact symbols/paths.
 - **Commit & Publication Separation**: Human commit auth = local seal only. Remote push requires separate explicit user auth.
 - **Fail-Closed Intent Recovery**: On `AUTHORIZATION_DENIED`, return to Step 2 awaiting renewed user intent. Autonomous re-drafting forbidden.
-- **Conventional Commits**: Messages follow Conventional Commits specification (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`).
+- **Conventional Commits**: Messages follow Conventional Commits specification (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`). Concise header without plan slug or `00_` prefix.
 - **No Background Auto-Update**: Updates user-initiated only. Runner never polls, downloads, or mutates repository in background without explicit invocation.
-- **Reviewability & Evidence**: Planner decomposes units by coupling, cross-cutting scope, mixed concerns, and verification heterogeneity; no rigid line-count threshold. Every material Build Plan criterion maps to an independent Review Plan verification path.
+- **Coherent Plan Units & Anti-Rubber-Stamp Gate**: Sub-plans authored Just-In-Time (JIT) from high-level Blueprint plans. Single change request decomposed into coherent sub-plans by architectural layers, bounded contexts, or independent invariants. Reviewer must independently challenge excessive consolidation.
 - **Finding Severity**: Exactly `Blocker`, `Major`, `Minor`, `Other`. Unresolved Blocker blocks `REVIEW_PASS`; Major requires resolution or documented Planner waiver; Minor/Other non-blocking.
-- **Verification Tracks**: Track A covers local behavioral RED/GREEN. Non-behavioral findings use static/specification evidence. Optional Track B covers complete action differentials with baseline identity and distribution evidence.
+- **Verification Tracks**: Track A covers local behavioral RED/GREEN. Non-behavioral findings use static/specification evidence. Optional Track B covers complete action differentials with pinned baseline identity tuple `(repository_identity, baseline_identity)` and fails closed (`BASELINE_STALE`) on baseline drift.
 
 ## Builder Precautions & Gotchas
 
-- **CLI Role Discovery Sole Truth**: Tracked `roles/*.md` removed in v0.2.0. Query roles via `agentplaybook role <name>` backed by `internal/data/roles.json`.
-- **Step Sequence Validation**: `validate.go` requires linear steps to sequence to `Index+1`. Conditional branches (e.g. `DIRECT_SURVEY -> 3`, `PUBLICATION_AUTHORIZED -> 9`) require explicit condition targets.
+- **CLI Role Discovery Sole Truth**: Query roles via `agentplaybook role <name>` backed by `internal/data/roles.json`.
+- **Step Sequence Validation**: `validate.go` requires linear steps to sequence to `Index+1`. Conditional branches require explicit condition targets.
 - **Go Embed Data Invalidation**: `internal/data/*.json` embedded via `embed.go`. Syntax errors invalidate full CLI test suite.
 - **`rtk git diff` Path Scope**: Include `--no-ext-diff` before `--` to prevent path filters being parsed as revisions.
 - **`flow commit` Non-Mutating Command**: `agentplaybook flow commit` queryable workflow metadata only; coordinator flow, not mutating binary CLI command.
 - **`AGENTPLAYBOOK_DEV=1` Cache Race**: Concurrent CLI queries with `AGENTPLAYBOOK_DEV=1` trigger build race on cache (`text file busy`). Run development queries sequentially.
-- **Stateless Replaceability**: Builder stateless/disposable. Bloated or rate-limited sessions replaced from approved `<slug>.plan.md` without compaction token overhead.
-- **Runner Progress & Smart Update**: `run-agentplaybook.sh` emits progress to stderr (clean stdout). Smart `--update` checks `checksums.txt` vs `.archive_hash` to avoid archive re-download when already up-to-date. `build_local` explicitly invalidates `.archive_hash`.
+- **Stateless Replaceability**: Builder stateless/disposable. Bloated or rate-limited sessions replaced from approved build plans without compaction token overhead.
 - **Artifact Data Shape**: Message artifacts use `ArtifactField`; document artifacts use `ArtifactSection`. JSON syntax or missing embedded rule/artifact references invalidate the CLI test suite.
 - **Non-Behavioral Review Evidence**: Docs, schema, and contract-rule findings use static/specification evidence and must not create artificial RED test harnesses.
-- **Dev Query Sequencing**: `AGENTPLAYBOOK_DEV=1` CLI queries share a build cache; concurrent invocations can produce `text file busy`. Run query sequences sequentially.
 
 ## Reviewer Precautions & Checklist
 
 - **Single Source of Truth**: `internal/data/*.json` canonical CLI truth. Sync flow, artifact, role, rule, docs contracts; cover via matrix tests.
-- **VCS-Neutral Language**: Flow step actions and descriptions must remain conceptual/evidence-based; zero embedded `jj`/`git` commands.
+- **VCS-Neutral Language**: Flow step actions and descriptions must remain conceptual/evidence-based; zero embedded `jj`/`git` commands in catalog data.
 - **Public-Only Guidance**: `AGENTS.md` contains public operational guidance only. Exclude private review criteria, hidden test fixtures, inspection techniques.
 - **Contract Test Falsifiability**: Boundary contract tests assert observable behavior and must fail on plausible violating implementation; distinct from TDD reproductions.
-- **Plan Coverage**: Audit every material Build Plan invariant against an independent Review Plan verification path; inspect optional Track B fields and severity disposition semantics.
-- **Resolution Hygiene**: Shared `review-resolution` is Planner-sanitized and actionable-only; exclude review-plan criteria, hidden fixtures, and private inspection methods. Keep task-specific findings out of `AGENTS.md`.
-- **Scout Survey Evidence & Confidentiality**: Verify `scout-survey` provenance, evidence paths, uncertainty markers. Keep Scout read-only; never grant access to private review artifacts.
+- **Plan Coverage**: Audit every material Build Plan invariant against an independent Review Plan verification path; inspect optional Track B fields, baseline identity, and severity disposition semantics.
+- **Resolution Hygiene**: Shared `review-resolution` and `sub-review-resolution` are Planner-sanitized and actionable-only; exclude review-plan criteria, hidden fixtures, and private inspection methods. Keep task-specific findings out of `AGENTS.md`.
+- **Scout Survey Evidence & Confidentiality**: Verify `scout-survey` provenance, evidence paths, uncertainty markers. Keep Scout read-only; never grant access to private review artifacts or in-flight task plans.
 - **Language Purity & Telegraphic Audit**: During Step 5 commit checks, audit `AGENTS.md` for secret leaks, unauthorized non-ASCII text lacking inline rationale, and conversational fluff.
 - **Post-Commit Compaction Self-Evaluation**: After completing commit flow, self-evaluate context window; execute compaction when usage > 50% or review clutter accumulates on high-tier model.
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-08-31T15:57:59Z @ fe9ffdd1`
-- **Dirty Status**: Modified 11 integration files for AI Reviewer Spec six-pillar governance; prior session-handoff changes preserved. `AGENTS.md` updated by Planner during commit flow.
-- **Milestone**: AI Reviewer Spec 3-Tier Integration - `REVIEW_PASS`.
-- **Next Pickup Item**: Complete Governed Commit Flow Step 5 (Reviewer visibility gate), Step 6 (candidate stabilization and secret scan), Step 7 (human commit authorization), and Step 8 (local revision sealing).
-- **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `git status` or `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.
+- **Observed-At**: `2026-09-01T04:07:33Z @ e7087d03`
+- **Dirty Status**: Modified 11 implementation/test/doc files for v0.3.0 Hierarchical Blueprint & Sub-Plan Governance Architecture; `AGENTS.md` and resolution artifact synthesized by Planner.
+- **Milestone**: AgentPlaybook v0.3.0 Blueprint Governance - `REVIEW_PASS` (`ACCEPTED`).
+- **Next Pickup Item**: Execute commit flow via Jujutsu (`jj describe` / `jj commit`), update working copy, and complete milestone finalization.
+- **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

@@ -14,14 +14,14 @@
   },
   {
     "id": "mandatory-alignment",
-    "title": "Mandatory Implementation Alignment (>= 3 Rounds)",
+    "title": "Mandatory Implementation Alignment Protocol",
     "category": "protocol",
-    "summary": "Builder must conduct at least 3 structured rounds of verification with Planner before editing any application code.",
-    "details": "When receiving an approved build plan, Builder must not immediately edit code. Builder and Planner must complete at least 3 distinct inquiry rounds to ensure shared understanding of goals, boundaries, and failure modes.",
+    "summary": "Builder must conduct structured alignment with Planner covering intent, boundaries, and failure modes before editing any application code.",
+    "details": "When receiving an approved build plan or sub-build plan, Builder must not immediately edit code. Builder and Planner conduct coverage-based inquiry covering root intent, exact file boundaries, failure modes, and verification commands without rigid ceremonial round requirements.",
     "guidelines": [
-      "Round 1 (Goal & Intent): Clarify root intent, affected system behaviors, and core logic.",
-      "Round 2 (Scope & Boundaries): Confirm exact in-scope files allowed for edits and out-of-scope files strictly forbidden from modification.",
-      "Round 3 (Edge Cases & Checks): Confirm boundary conditions, failure scenarios, and self-testing verification commands.",
+      "Goal & Intent: Clarify root intent, affected system behaviors, and core logic.",
+      "Scope & Boundaries: Confirm exact in-scope files allowed for edits and out-of-scope files strictly forbidden from modification.",
+      "Edge Cases & Checks: Confirm boundary conditions, failure scenarios, and self-testing verification commands.",
       "Builder may only proceed to code implementation once Planner confirms ALIGNMENT_COMPLETE."
     ]
   },
@@ -56,18 +56,43 @@
     ]
   },
   {
-    "id": "atomic-change-units",
-    "title": "Atomic Implementation Units & Commit Mapping",
+    "id": "coherent-plan-units",
+    "title": "Coherent Plan Units & Granularity Governance",
     "category": "protocol",
-    "summary": "Each approved implementation unit produces a tested Builder diff and a single Planner-owned atomic Conventional Commit.",
-    "details": "To ensure reviewability and maintain traceable history, Builder owns implementation craft by delivering a minimal working copy diff with reproduction and green unit tests. Planner owns VCS governance by inspecting that diff against declared boundaries, creating and sealing the atomic Conventional Commit through the configured VCS backend, and advancing history.",
+    "summary": "One plan owns exactly one root intent; internal steps decompose execution, not acceptance; dependency ordering != atomicity; heuristic sizing signals (coupling, cross-cutting scope, mixed concerns, verification heterogeneity).",
+    "details": "A coherent plan unit owns exactly one root intent. Internal implementation steps decompose the execution sequence but do not fragment acceptance or reviewability. Dependency ordering must not be conflated with atomicity: coupled changes belong in the same coherent unit. Decomposition decisions are guided by domain-driven sizing signals: coupling, cross-cutting scope, mixed concerns, and verification heterogeneity. Large multi-stage features that exceed single-plan coherence branch into hierarchical blueprints with JIT sub-plans.",
     "guidelines": [
-      "Each top-level checklist item in the build-plan defines an atomic implementation unit intended to form a single commit.",
-      "Nested sub-items define the exact scope, implementation tasks, and corresponding tests for that commit.",
-      "Builder delivers the verified working copy diff; Planner creates and seals the corresponding atomic Conventional Commit.",
-      "Planner's commit messages follow Conventional Commits format with scope and bulleted details.",
-      "Feature tests must land alongside the feature implementation within the same atomic unit.",
-      "If implementation discoveries require splitting, merging, or materially altering an approved unit, update and realign the plan before proceeding."
+      "Each plan artifact owns exactly one root intent and defines a coherent unit of review and acceptance.",
+      "Internal implementation steps order the execution flow but do not represent independent acceptance gates.",
+      "Coupled changes sharing semantic invariants must remain within the same coherent plan unit rather than artificial micro-commits.",
+      "Plan decomposition evaluates coupling, cross-cutting scope, mixed concerns, and verification heterogeneity.",
+      "Multi-stage features exceeding single-plan coherence branch into hierarchical blueprint plans with JIT sub-plans."
+    ]
+  },
+  {
+    "id": "anti-rubber-stamp-plan-gate",
+    "title": "Anti-Rubber-Stamp Plan Gate & Counterfactual Decomposition Challenge",
+    "category": "protocol",
+    "summary": "Mandates Reviewer to execute the Counterfactual Decomposition Challenge (SPLIT_ATTEMPT + SPLIT_REJECTED_BECAUSE) before approving plans; enforces short-circuit structural rejection on unreviewable plans.",
+    "details": "To prevent passive approvals and rubber-stamping at the Plan Gate, Reviewer must actively execute the Counterfactual Decomposition Challenge on proposed plans. For every non-trivial plan, Reviewer attempts a counterfactual split (SPLIT_ATTEMPT) and documents the structural justification for retaining or rejecting the split (SPLIT_REJECTED_BECAUSE). If a plan exhibits excessive scope, unreviewable coupling, or missing verification paths, Reviewer executes a short-circuit structural rejection without attempting line-by-line review.",
+    "guidelines": [
+      "Reviewer must execute the Counterfactual Decomposition Challenge on draft build plans and blueprints during the Plan Gate.",
+      "Reviewer records SPLIT_ATTEMPT and SPLIT_REJECTED_BECAUSE rationale in the review evaluation.",
+      "Reviewer short-circuits with structural rejection if a plan mixes orthogonal concerns or lacks independent verification paths.",
+      "Plan approval requires explicit justification of why the proposed unit granularity is optimal."
+    ]
+  },
+  {
+    "id": "evidence-proportional-persistence",
+    "title": "Evidence-Proportional Persistence & Operational Memory Governance",
+    "category": "operational",
+    "summary": "plan.md and review.md are mandatory contracts; sanitized resolutions required at gate convergence; AGENTS.md updated only when novel durable cross-task invariants arise.",
+    "details": "Operational memory is governed by proportional persistence: task-specific build and review plans are mandatory transient execution contracts; sanitized resolution documents (sub-review-resolution and review-resolution) capture durable task outcomes and evidence at gate convergence; AGENTS.md living memory is updated strictly when durable cross-task architectural invariants, toolchain gotchas, or project-level rules emerge. Task-specific execution noise and intermediate dialogues are pruned.",
+    "guidelines": [
+      "Task build plans and review plans are mandatory execution contracts housed under plan/{timestamp}/.",
+      "Sanitized resolution documents are required upon gate convergence to record findings, waivers, and verified evidence.",
+      "Planner updates AGENTS.md living memory only when novel durable cross-task invariants, toolchain gotchas, or project rules arise.",
+      "Ephemeral communication buffers and transient review dialogues must not be persisted into living memory."
     ]
   },
   {
@@ -112,15 +137,16 @@
     ]
   },
   {
-    "id": "commit-authority-separation",
-    "title": "Commit and Publication Authority Separation",
+    "id": "acceptance-publication-authority",
+    "title": "Milestone Acceptance, Finalization Equivalence, and Publication Authority",
     "category": "protocol",
-    "summary": "Commit authorization is distinct from publication authorization, and commit denial halts progression until user intent is renewed.",
-    "details": "To ensure human control and prevent unintended remote mutations, local commit authorization and remote publication authorization are strictly separated. Human commit authorization permits local sealing only. Publishing to a remote repository requires explicit, distinct publication authorization. If commit authorization is denied, Planner must return to Step 2 awaiting explicit user intent, never autonomously re-drafting.",
+    "summary": "Distinguishes WORKING != ACCEPTED != PUBLISHED; establishes Finalization Equivalence (tree(Final) == tree(Verified)); explicit human authorization required for acceptance and publication.",
+    "details": "To preserve repository integrity and human authority, the revision lifecycle strictly separates three states: WORKING, ACCEPTED, and PUBLISHED. Local milestone acceptance seals reviewed changes into an ACCEPTED revision under Planner VCS governance, strictly upholding Finalization Equivalence (tree(Final) == tree(Verified)) with zero unstaged drift. Publishing to remote repositories (PUBLISHED) requires separate explicit human authorization. If human authorization is denied (AUTHORIZATION_DENIED), Planner returns to Step 2 awaiting renewed user intent without autonomous re-drafting.",
     "guidelines": [
-      "Commit authorization permits local revision sealing only; it does not grant authority to publish to remote repositories.",
-      "Publishing to remote repositories requires separate and explicit human publication authorization.",
-      "If commit authorization is denied (AUTHORIZATION_DENIED), Planner must return to Step 2 awaiting renewed user intent; autonomous re-drafting is strictly forbidden.",
+      "The revision lifecycle strictly distinguishes WORKING, ACCEPTED, and PUBLISHED states.",
+      "Milestone acceptance seals candidate revisions locally and enforces Finalization Equivalence (tree(Final) == tree(Verified)).",
+      "Publishing to remote repositories requires explicit, separate human publication authorization.",
+      "If authorization is denied (AUTHORIZATION_DENIED), Planner returns to Step 2 awaiting renewed user intent; autonomous re-drafting is strictly forbidden.",
       "Candidate revision identity must be stabilized and verified unchanged before sealing locally under Planner VCS governance."
     ]
   },

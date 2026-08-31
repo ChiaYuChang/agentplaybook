@@ -39,10 +39,10 @@ func TestLoad_Success(t *testing.T) {
 
 	// 3. Verify Flows
 	flows := k.Flows()
-	if len(flows) != 6 {
-		t.Fatalf("expected 6 flows, got %d", len(flows))
+	if len(flows) != 7 {
+		t.Fatalf("expected 7 flows, got %d", len(flows))
 	}
-	for _, expected := range []string{"init", "plan", "build", "review", "commit", "session-handoff"} {
+	for _, expected := range []string{"init", "plan", "blueprint", "build", "review", "commit", "session-handoff"} {
 		f, ok := k.Flow(expected)
 		if !ok {
 			t.Errorf("expected flow %q to exist", expected)
@@ -97,10 +97,66 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("expected non-existent flow to return false")
 	}
 
-	// Regression check: review flow has 8 steps and step 7 redirects to step 8
+	// Verify blueprint flow has 12 steps and deterministic routing
+	blueprintFlow, ok := k.Flow("blueprint")
+	if !ok {
+		t.Fatalf("expected blueprint flow to exist")
+	}
+	if len(blueprintFlow.Steps) != 12 {
+		t.Fatalf("expected 12 steps in blueprint flow, got %d", len(blueprintFlow.Steps))
+	}
+	bpStep2, _ := k.FlowStep("blueprint", 2)
+	bpStep2Conditions := make(map[string]int)
+	for _, c := range bpStep2.Conditions {
+		bpStep2Conditions[c.When] = c.Then
+	}
+	if bpStep2Conditions["BLUEPRINT_PASS"] != 3 || bpStep2Conditions["BLUEPRINT_REJECT"] != 1 {
+		t.Errorf("unexpected blueprint step 2 conditions: %v", bpStep2Conditions)
+	}
+	bpStep6, _ := k.FlowStep("blueprint", 6)
+	bpStep6Conditions := make(map[string]int)
+	for _, c := range bpStep6.Conditions {
+		bpStep6Conditions[c.When] = c.Then
+	}
+	if bpStep6Conditions["SUBPLAN_REVIEW_FINDINGS"] != 7 || bpStep6Conditions["SUBPLAN_REVIEW_SATISFIED"] != 8 || bpStep6Conditions["BLUEPRINT_REVIEW_REQUIRED"] != 2 || bpStep6Conditions["BASELINE_STALE"] != 2 {
+		t.Errorf("unexpected blueprint step 6 conditions: %v", bpStep6Conditions)
+	}
+	bpStep9, _ := k.FlowStep("blueprint", 9)
+	bpStep9Conditions := make(map[string]int)
+	for _, c := range bpStep9.Conditions {
+		bpStep9Conditions[c.When] = c.Then
+	}
+	if bpStep9Conditions["SUBPLAN_REVIEW_PASS_MORE_SUBPLANS"] != 3 || bpStep9Conditions["SUBPLAN_REVIEW_PASS_ALL_COMPLETED"] != 10 || bpStep9Conditions["RESOLUTION_REJECTED"] != 8 {
+		t.Errorf("unexpected blueprint step 9 conditions: %v", bpStep9Conditions)
+	}
+	bpStep11, _ := k.FlowStep("blueprint", 11)
+	bpStep11Conditions := make(map[string]int)
+	for _, c := range bpStep11.Conditions {
+		bpStep11Conditions[c.When] = c.Then
+	}
+	if bpStep11Conditions["FEATURE_REVIEW_PASS"] != 12 || bpStep11Conditions["FEATURE_REVIEW_REJECT"] != 3 || bpStep11Conditions["DEPENDENT_EVIDENCE_STALE"] != 2 {
+		t.Errorf("unexpected blueprint step 11 conditions: %v", bpStep11Conditions)
+	}
+
+	// Regression check: review flow has 8 steps, step 1 is planner handoff, and step 2 has BASELINE_STALE condition
 	reviewFlow, _ := k.Flow("review")
 	if len(reviewFlow.Steps) != 8 {
 		t.Errorf("expected 8 steps in review flow, got %d", len(reviewFlow.Steps))
+	}
+	reviewStep1, _ := k.FlowStep("review", 1)
+	if reviewStep1.Actor != knowledge.RolePlanner || len(reviewStep1.Conditions) != 0 {
+		t.Errorf("expected review step 1 to be planner handoff with 0 conditions, got actor %q, conditions: %v", reviewStep1.Actor, reviewStep1.Conditions)
+	}
+	reviewStep2, _ := k.FlowStep("review", 2)
+	if reviewStep2.Actor != knowledge.RoleReviewer {
+		t.Errorf("expected review step 2 to be reviewer, got %q", reviewStep2.Actor)
+	}
+	reviewStep2Conditions := make(map[string]int)
+	for _, c := range reviewStep2.Conditions {
+		reviewStep2Conditions[c.When] = c.Then
+	}
+	if reviewStep2Conditions["BASELINE_STALE"] != 8 || reviewStep2Conditions["REVIEW_PASS"] != 6 || reviewStep2Conditions["FINDINGS_REPORTED"] != 3 {
+		t.Errorf("expected review step 2 conditions [BASELINE_STALE: 8, REVIEW_PASS: 6, FINDINGS_REPORTED: 3], got: %v", reviewStep2Conditions)
 	}
 	step7, _ := k.FlowStep("review", 7)
 	foundPlanUpdate := false
@@ -144,10 +200,21 @@ func TestLoad_Success(t *testing.T) {
 
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
-	if len(artifacts) != 6 {
-		t.Fatalf("expected 6 artifacts, got %d", len(artifacts))
+	if len(artifacts) != 10 {
+		t.Fatalf("expected 10 artifacts, got %d", len(artifacts))
 	}
-	for _, expected := range []string{"agents-md", "build-plan", "review-plan", "review-findings", "scout-survey", "review-resolution"} {
+	for _, expected := range []string{
+		"agents-md",
+		"build-plan",
+		"review-plan",
+		"blueprint-plan",
+		"sub-build-plan",
+		"sub-review-plan",
+		"sub-review-resolution",
+		"review-findings",
+		"review-resolution",
+		"scout-survey",
+	} {
 		a, ok := k.Artifact(expected)
 		if !ok {
 			t.Errorf("expected artifact %q to exist", expected)
@@ -163,8 +230,8 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("expected build-plan visibility to have 3 roles, got %v", buildPlan.Visibility)
 	}
 	reviewFindings, _ := k.Artifact("review-findings")
-	if len(reviewFindings.Visibility) != 2 {
-		t.Errorf("expected review-findings visibility to have 2 roles, got %v", reviewFindings.Visibility)
+	if len(reviewFindings.Visibility) != 2 || reviewFindings.Visibility[0] != knowledge.RolePlanner || reviewFindings.Visibility[1] != knowledge.RoleReviewer {
+		t.Errorf("expected review-findings visibility strictly [planner reviewer], got %v", reviewFindings.Visibility)
 	}
 	scoutSurvey, _ := k.Artifact("scout-survey")
 	if scoutSurvey.Owner != knowledge.RoleScout || scoutSurvey.Type != "message" {
@@ -186,16 +253,18 @@ func TestLoad_Success(t *testing.T) {
 
 	// 5. Verify Rules
 	rules := k.Rules()
-	if len(rules) < 14 {
-		t.Fatalf("expected at least 14 rules, got %d", len(rules))
+	if len(rules) < 18 {
+		t.Fatalf("expected at least 18 rules, got %d", len(rules))
 	}
 	for _, expected := range []string{
 		"anti-cheating",
 		"mandatory-alignment",
 		"tdd-reproduction",
-		"atomic-change-units",
+		"coherent-plan-units",
+		"anti-rubber-stamp-plan-gate",
+		"evidence-proportional-persistence",
 		"agents-md-single-writer",
-		"commit-authority-separation",
+		"acceptance-publication-authority",
 		"role-context-lifecycle",
 		"session-handoff-audit",
 		"planner-reviewability",

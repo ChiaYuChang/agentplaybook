@@ -132,13 +132,188 @@
     ]
   },
   {
+    "name": "blueprint-plan",
+    "title": "Blueprint Plan",
+    "description": "Hierarchical architecture plan defining public goals, shared interface contracts, invariant boundaries, and ordered sub-plan sequence for multi-stage features.",
+    "owner": "planner",
+    "visibility": [
+      "planner",
+      "reviewer",
+      "builder"
+    ],
+    "path": "plan/{timestamp}/{slug}.blueprint.md",
+    "path_variables": {
+      "timestamp": "UTC ISO timestamp formatted as YYYYMMDDTHHMMSSZ",
+      "slug": "Descriptive kebab-case task identifier"
+    },
+    "type": "document",
+    "sections": [
+      {
+        "name": "Goal & Root Intent",
+        "required": true,
+        "description": "Core purpose, user problem, and high-level architectural goal of the overall feature."
+      },
+      {
+        "name": "Shared Contracts & Invariants",
+        "required": true,
+        "description": "Public APIs, schemas, shared contracts, and non-functional invariants spanning all sub-plans."
+      },
+      {
+        "name": "Sub-Plan Sequence",
+        "required": true,
+        "description": "Ordered list of JIT sub-plans, dependencies, boundaries, and completion criteria."
+      },
+      {
+        "name": "Composition Acceptance Criteria",
+        "required": true,
+        "description": "Global verification conditions and feature-level acceptance criteria evaluated at composition review."
+      }
+    ]
+  },
+  {
+    "name": "sub-build-plan",
+    "title": "Sub-Build Plan",
+    "description": "Task-specific implementation plan for an individual sub-plan unit dispatched to Builder upon passing the Sub-Plan Gate.",
+    "owner": "planner",
+    "visibility": [
+      "planner",
+      "reviewer",
+      "builder"
+    ],
+    "path": "plan/{timestamp}/sub/{slug}.build.md",
+    "path_variables": {
+      "timestamp": "UTC ISO timestamp formatted as YYYYMMDDTHHMMSSZ",
+      "slug": "Descriptive kebab-case task identifier"
+    },
+    "type": "document",
+    "sections": [
+      {
+        "name": "Goal & Scope Boundary",
+        "required": true,
+        "description": "Specific sub-plan objective within the overarching blueprint and exact file boundaries."
+      },
+      {
+        "name": "In-Scope Files",
+        "required": true,
+        "description": "Exact files and modules Builder is authorized to modify or create for this sub-plan."
+      },
+      {
+        "name": "Out-of-Scope Files",
+        "required": true,
+        "description": "Areas, files, or subsystems that must not be altered during this sub-plan execution."
+      },
+      {
+        "name": "Implementation Steps",
+        "required": true,
+        "description": "Ordered minimal code modifications required to complete the sub-plan."
+      },
+      {
+        "name": "Acceptance Criteria",
+        "required": true,
+        "description": "Concrete observable conditions determining successful sub-plan completion."
+      },
+      {
+        "name": "Local Verification Commands",
+        "required": true,
+        "description": "Exact test commands Builder must execute and pass locally before handoff."
+      }
+    ]
+  },
+  {
+    "name": "sub-review-plan",
+    "title": "Sub-Review Plan",
+    "description": "Reviewer-only verification plan used for independent validation during sub-plan code review.",
+    "owner": "planner",
+    "visibility": [
+      "planner",
+      "reviewer"
+    ],
+    "path": "plan/{timestamp}/sub/{slug}.review.md",
+    "path_variables": {
+      "timestamp": "UTC ISO timestamp formatted as YYYYMMDDTHHMMSSZ",
+      "slug": "Descriptive kebab-case task identifier"
+    },
+    "type": "document",
+    "sections": [
+      {
+        "name": "Verification Scope",
+        "required": true,
+        "description": "Sub-plan files, boundaries, and acceptance criteria to be validated against."
+      },
+      {
+        "name": "Invariants & Boundaries",
+        "required": true,
+        "description": "Architectural rules, contract stability, and anti-cheating invariants to uphold."
+      },
+      {
+        "name": "Edge Cases & Failure Scenarios",
+        "required": true,
+        "description": "Boundary conditions, invalid inputs, concurrency issues, or error states to test."
+      },
+      {
+        "name": "Review Verification Commands",
+        "required": true,
+        "description": "Commands Reviewer executes to independently inspect sub-plan diffs and test suites."
+      },
+      {
+        "name": "Track B Definition",
+        "required": false,
+        "description": "Optional specification of complete action boundary defining exact fields: action, boundary, baseline_identity, environment, metrics, sampling, and criteria for performance-quality or supply-chain differential verification."
+      }
+    ]
+  },
+  {
+    "name": "sub-review-resolution",
+    "title": "Sub-Review Resolution",
+    "description": "Planner-owned post-review synthesis for an individual sub-plan capturing review outcomes, resolved findings, deviations, residual risks, and verification evidence. Visible to Planner, Builder, and Reviewer only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
+    "owner": "planner",
+    "visibility": [
+      "planner",
+      "reviewer",
+      "builder"
+    ],
+    "path": "plan/{timestamp}/sub/{slug}.resolution.md",
+    "path_variables": {
+      "timestamp": "UTC ISO timestamp formatted as YYYYMMDDTHHMMSSZ",
+      "slug": "Descriptive kebab-case task identifier"
+    },
+    "type": "document",
+    "sections": [
+      {
+        "name": "Outcome",
+        "required": true,
+        "description": "Sub-plan review disposition: APPROVED, WAIVED, or REVISED."
+      },
+      {
+        "name": "Resolved Findings",
+        "required": true,
+        "description": "Structured disposition and verification references for all reported sub-plan review findings."
+      },
+      {
+        "name": "Deviations & Rationales",
+        "required": true,
+        "description": "Documented waivers, sub-plan amendments, and architectural deviation rationales."
+      },
+      {
+        "name": "Residual Risks",
+        "required": true,
+        "description": "Identified sub-plan risks, technical debt, or follow-up notes."
+      },
+      {
+        "name": "Verification Evidence",
+        "required": true,
+        "description": "Sanitized summary of green Track A tests, verified static evidence, and Track B measurements for this sub-plan."
+      }
+    ]
+  },
+  {
     "name": "review-findings",
     "title": "Review Findings",
     "description": "Structured findings reported by Reviewer to Planner upon identifying review issues.",
     "owner": "reviewer",
     "visibility": [
       "planner",
-      "builder"
+      "reviewer"
     ],
     "type": "message",
     "fields": [
@@ -187,7 +362,7 @@
   {
     "name": "review-resolution",
     "title": "Review Resolution",
-    "description": "Planner-owned post-review synthesis capturing review outcomes, resolved findings, deviations, residual risks, and verification evidence. Visible to Planner, Builder, and Reviewer only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
+    "description": "Planner-owned post-review synthesis capturing master composition review outcomes, resolved findings, deviations, residual risks, and verification evidence across all completed sub-plans. Visible to Planner, Builder, and Reviewer only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
     "owner": "planner",
     "visibility": [
       "planner",

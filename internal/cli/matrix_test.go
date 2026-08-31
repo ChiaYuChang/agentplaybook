@@ -64,6 +64,9 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"flow", "init", "--step", "1"},
 		{"flow", "init", "--step", "2"},
 		{"flow", "plan"},
+		{"flow", "blueprint"},
+		{"flow", "blueprint", "--step", "1"},
+		{"flow", "blueprint", "--step", "2"},
 		{"flow", "build"},
 		{"flow", "review"},
 		{"flow", "commit"},
@@ -73,17 +76,23 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"artifact", "agents-md"},
 		{"artifact", "build-plan"},
 		{"artifact", "review-plan"},
+		{"artifact", "blueprint-plan"},
+		{"artifact", "sub-build-plan"},
+		{"artifact", "sub-review-plan"},
+		{"artifact", "sub-review-resolution"},
 		{"artifact", "review-findings"},
 		{"artifact", "scout-survey"},
 		{"artifact", "review-resolution"},
 		{"rule", "list"},
 		{"rule", "explain", "anti-cheating"},
-		{"rule", "explain", "atomic-change-units"},
+		{"rule", "explain", "coherent-plan-units"},
+		{"rule", "explain", "anti-rubber-stamp-plan-gate"},
+		{"rule", "explain", "evidence-proportional-persistence"},
 		{"rule", "explain", "mandatory-alignment"},
 		{"rule", "explain", "tdd-reproduction"},
 		{"rule", "explain", "repo-context-storage"},
 		{"rule", "explain", "agents-md-single-writer"},
-		{"rule", "explain", "commit-authority-separation"},
+		{"rule", "explain", "acceptance-publication-authority"},
 		{"rule", "explain", "ephemeral-communication-buffers"},
 		{"rule", "explain", "event-driven-transport-coordination"},
 		{"rule", "explain", "interface-stability-contract-testing"},
@@ -372,22 +381,23 @@ func TestCLI_LivingAgentsAndCommitFlow(t *testing.T) {
 		}
 	}
 
-	// 4. Verify commit-authority-separation rule
+	// 4. Verify acceptance-publication-authority rule
 	var authorityRules []knowledge.Rule
-	if err := json.Unmarshal(queryJSON("rule", "explain", "commit-authority-separation"), &authorityRules); err != nil {
-		t.Fatalf("failed to decode commit-authority-separation rule: %v", err)
+	if err := json.Unmarshal(queryJSON("rule", "explain", "acceptance-publication-authority"), &authorityRules); err != nil {
+		t.Fatalf("failed to decode acceptance-publication-authority rule: %v", err)
 	}
 	if len(authorityRules) != 1 {
-		t.Fatalf("expected 1 commit-authority-separation rule, got %d", len(authorityRules))
+		t.Fatalf("expected 1 acceptance-publication-authority rule, got %d", len(authorityRules))
 	}
 	authorityGuidelines := authorityRules[0].Guidelines
 	for _, expected := range []string{
-		"Commit authorization permits local revision sealing only; it does not grant authority to publish to remote repositories.",
-		"Publishing to remote repositories requires separate and explicit human publication authorization.",
-		"If commit authorization is denied (AUTHORIZATION_DENIED), Planner must return to Step 2 awaiting renewed user intent; autonomous re-drafting is strictly forbidden.",
+		"The revision lifecycle strictly distinguishes WORKING, ACCEPTED, and PUBLISHED states.",
+		"Milestone acceptance seals candidate revisions locally and enforces Finalization Equivalence (tree(Final) == tree(Verified)).",
+		"Publishing to remote repositories requires explicit, separate human publication authorization.",
+		"If authorization is denied (AUTHORIZATION_DENIED), Planner returns to Step 2 awaiting renewed user intent; autonomous re-drafting is strictly forbidden.",
 	} {
 		if !slices.Contains(authorityGuidelines, expected) {
-			t.Errorf("expected commit-authority-separation guideline %q", expected)
+			t.Errorf("expected acceptance-publication-authority guideline %q", expected)
 		}
 	}
 }
@@ -1215,6 +1225,12 @@ func TestCLI_AIReviewerSpecThreeTierIntegration(t *testing.T) {
 		if err := json.Unmarshal(queryJSON("artifact", "review-findings"), &findings); err != nil {
 			t.Fatalf("failed to decode review-findings artifact: %v", err)
 		}
+		if len(findings.Visibility) != 2 || findings.Visibility[0] != knowledge.RolePlanner || findings.Visibility[1] != knowledge.RoleReviewer {
+			t.Errorf("expected review-findings visibility strictly [planner reviewer], got %v", findings.Visibility)
+		}
+		if slices.Contains(findings.Visibility, knowledge.RoleBuilder) || slices.Contains(findings.Visibility, knowledge.RoleScout) {
+			t.Errorf("review-findings must strictly exclude builder and scout, got: %v", findings.Visibility)
+		}
 		fieldMap := make(map[string]knowledge.ArtifactField)
 		for _, f := range findings.Fields {
 			fieldMap[f.Name] = f
@@ -1306,6 +1322,254 @@ func TestCLI_AIReviewerSpecThreeTierIntegration(t *testing.T) {
 		} {
 			if !strings.Contains(docStr, required) {
 				t.Errorf("expected doc file %q to contain six-pillar term %q", docPath, required)
+			}
+		}
+	}
+}
+
+func TestCLI_V030_BlueprintAndGovernance(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.3.0"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	// 1. Artifacts & Scout Isolation
+	{
+		for _, artName := range []string{
+			"blueprint-plan",
+			"sub-build-plan",
+			"sub-review-plan",
+			"sub-review-resolution",
+			"review-resolution",
+			"build-plan",
+			"review-plan",
+		} {
+			var a knowledge.Artifact
+			if err := json.Unmarshal(queryJSON("artifact", artName), &a); err != nil {
+				t.Fatalf("failed to decode %s: %v", artName, err)
+			}
+			if slices.Contains(a.Visibility, knowledge.RoleScout) {
+				t.Errorf("scout must be strictly excluded from in-flight task artifact %q", artName)
+			}
+		}
+
+		var bp knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "blueprint-plan"), &bp); err != nil {
+			t.Fatalf("failed to decode blueprint-plan: %v", err)
+		}
+		if bp.Path != "plan/{timestamp}/{slug}.blueprint.md" {
+			t.Errorf("unexpected blueprint-plan path: %s", bp.Path)
+		}
+
+		var rf knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "review-findings"), &rf); err != nil {
+			t.Fatalf("failed to decode review-findings: %v", err)
+		}
+		if len(rf.Visibility) != 2 || rf.Visibility[0] != knowledge.RolePlanner || rf.Visibility[1] != knowledge.RoleReviewer {
+			t.Errorf("expected review-findings visibility strictly [planner reviewer], got %v", rf.Visibility)
+		}
+		if slices.Contains(rf.Visibility, knowledge.RoleBuilder) || slices.Contains(rf.Visibility, knowledge.RoleScout) {
+			t.Errorf("review-findings must strictly exclude builder and scout, got: %v", rf.Visibility)
+		}
+	}
+
+	// 2. Rules Evolution & Legacy Pruning
+	{
+		// Assert legacy rules are removed
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute([]string{"rule", "explain", "atomic-change-units"}, &stdout, &stderr, "dev"); err == nil {
+			t.Error("expected error querying removed rule atomic-change-units, got nil")
+		}
+		stdout.Reset()
+		stderr.Reset()
+		if err := cli.Execute([]string{"rule", "explain", "commit-authority-separation"}, &stdout, &stderr, "dev"); err == nil {
+			t.Error("expected error querying removed rule commit-authority-separation, got nil")
+		}
+
+		// Assert coherent-plan-units
+		var coherentRules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "coherent-plan-units"), &coherentRules); err != nil {
+			t.Fatalf("failed to decode coherent-plan-units rule: %v", err)
+		}
+		if len(coherentRules) != 1 {
+			t.Fatalf("expected 1 coherent-plan-units rule, got %d", len(coherentRules))
+		}
+		for _, term := range []string{"root intent", "coupling", "cross-cutting", "mixed concerns", "verification heterogeneity"} {
+			if !strings.Contains(coherentRules[0].Details, term) {
+				t.Errorf("expected coherent-plan-units to contain %q", term)
+			}
+		}
+
+		// Assert anti-rubber-stamp-plan-gate
+		var antiStampRules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "anti-rubber-stamp-plan-gate"), &antiStampRules); err != nil {
+			t.Fatalf("failed to decode anti-rubber-stamp-plan-gate rule: %v", err)
+		}
+		if len(antiStampRules) != 1 {
+			t.Fatalf("expected 1 anti-rubber-stamp-plan-gate rule, got %d", len(antiStampRules))
+		}
+		for _, term := range []string{"SPLIT_ATTEMPT", "SPLIT_REJECTED_BECAUSE", "Counterfactual Decomposition Challenge"} {
+			if !strings.Contains(antiStampRules[0].Details, term) {
+				t.Errorf("expected anti-rubber-stamp-plan-gate to contain %q", term)
+			}
+		}
+
+		// Assert evidence-proportional-persistence
+		var persistenceRules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "evidence-proportional-persistence"), &persistenceRules); err != nil {
+			t.Fatalf("failed to decode evidence-proportional-persistence rule: %v", err)
+		}
+		if len(persistenceRules) != 1 {
+			t.Fatalf("expected 1 evidence-proportional-persistence rule, got %d", len(persistenceRules))
+		}
+		for _, term := range []string{"proportional persistence", "sub-review-resolution", "review-resolution", "AGENTS.md"} {
+			if !strings.Contains(persistenceRules[0].Details, term) {
+				t.Errorf("expected evidence-proportional-persistence to contain %q", term)
+			}
+		}
+
+		// Assert acceptance-publication-authority
+		var acceptanceRules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "acceptance-publication-authority"), &acceptanceRules); err != nil {
+			t.Fatalf("failed to decode acceptance-publication-authority rule: %v", err)
+		}
+		if len(acceptanceRules) != 1 {
+			t.Fatalf("expected 1 acceptance-publication-authority rule, got %d", len(acceptanceRules))
+		}
+		for _, term := range []string{"WORKING", "ACCEPTED", "PUBLISHED", "Finalization Equivalence", "AUTHORIZATION_DENIED"} {
+			if !strings.Contains(acceptanceRules[0].Details, term) {
+				t.Errorf("expected acceptance-publication-authority to contain %q", term)
+			}
+		}
+	}
+
+	// 3. Blueprint Flow & Two-Tier Gating
+	{
+		var bpFlow knowledge.Flow
+		if err := json.Unmarshal(queryJSON("flow", "blueprint"), &bpFlow); err != nil {
+			t.Fatalf("failed to decode blueprint flow: %v", err)
+		}
+		if len(bpFlow.Steps) != 12 {
+			t.Fatalf("expected 12 steps in blueprint flow, got %d", len(bpFlow.Steps))
+		}
+
+		// Assert Blueprint Gate (step 2)
+		if bpFlow.Steps[1].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[1].Action, "Blueprint Gate") {
+			t.Errorf("expected Step 2 to be Reviewer Blueprint Gate, got: %+v", bpFlow.Steps[1])
+		}
+
+		// Assert Sub-Plan Gate (step 4)
+		if bpFlow.Steps[3].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[3].Action, "Sub-Plan Gate") {
+			t.Errorf("expected Step 4 to be Reviewer Sub-Plan Gate, got: %+v", bpFlow.Steps[3])
+		}
+
+		// Assert Mediation (step 7)
+		if bpFlow.Steps[6].Actor != knowledge.RolePlanner || !strings.Contains(bpFlow.Steps[6].Action, "Mediate and sanitize") {
+			t.Errorf("expected Step 7 to be Planner Mediation, got: %+v", bpFlow.Steps[6])
+		}
+
+		// Assert Sub-Resolution Synthesis & Verification (steps 8 & 9)
+		if bpFlow.Steps[7].Actor != knowledge.RolePlanner || !strings.Contains(bpFlow.Steps[7].Action, "sub-review-resolution") {
+			t.Errorf("expected Step 8 to be Planner Sub-Resolution Synthesis, got: %+v", bpFlow.Steps[7])
+		}
+		if bpFlow.Steps[8].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[8].Action, "sub-review-resolution") {
+			t.Errorf("expected Step 9 to be Reviewer Sub-Resolution Verification, got: %+v", bpFlow.Steps[8])
+		}
+
+		// Assert Feature Composition Gate (step 11)
+		if bpFlow.Steps[10].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[10].Action, "Feature Composition Gate") {
+			t.Errorf("expected Step 11 to be Reviewer Feature Composition Gate, got: %+v", bpFlow.Steps[10])
+		}
+
+		// Assert BASELINE_STALE fail-closed routes and Track B action text
+		if !strings.Contains(bpFlow.Steps[5].Action, "When Track B is selected, assert the pinned baseline identity") {
+			t.Errorf("expected blueprint step 6 action to mention Track B pinned baseline identity, got: %s", bpFlow.Steps[5].Action)
+		}
+		bpStep6Conditions := make(map[string]int)
+		for _, c := range bpFlow.Steps[5].Conditions {
+			bpStep6Conditions[c.When] = c.Then
+		}
+		if bpStep6Conditions["BASELINE_STALE"] != 2 {
+			t.Errorf("expected blueprint step 6 BASELINE_STALE condition to point to step 2, got: %v", bpStep6Conditions)
+		}
+
+		var revFlow knowledge.Flow
+		if err := json.Unmarshal(queryJSON("flow", "review"), &revFlow); err != nil {
+			t.Fatalf("failed to decode review flow: %v", err)
+		}
+		if revFlow.Steps[0].Actor != knowledge.RolePlanner || len(revFlow.Steps[0].Conditions) != 0 {
+			t.Errorf("expected review step 1 to be planner handoff with 0 conditions, got actor %q, conditions: %v", revFlow.Steps[0].Actor, revFlow.Steps[0].Conditions)
+		}
+		if revFlow.Steps[1].Actor != knowledge.RoleReviewer {
+			t.Errorf("expected review step 2 actor to be reviewer, got %q", revFlow.Steps[1].Actor)
+		}
+		if !strings.Contains(revFlow.Steps[1].Action, "When Track B is selected, assert the pinned baseline identity") {
+			t.Errorf("expected review step 2 action to mention Track B pinned baseline identity, got: %s", revFlow.Steps[1].Action)
+		}
+		revStep2Conditions := make(map[string]int)
+		for _, c := range revFlow.Steps[1].Conditions {
+			revStep2Conditions[c.When] = c.Then
+		}
+		if revStep2Conditions["BASELINE_STALE"] != 8 || revStep2Conditions["REVIEW_PASS"] != 6 || revStep2Conditions["FINDINGS_REPORTED"] != 3 {
+			t.Errorf("expected review step 2 conditions [BASELINE_STALE: 8, REVIEW_PASS: 6, FINDINGS_REPORTED: 3], got: %v", revStep2Conditions)
+		}
+	}
+
+	// 4. Obsolete Script Removal
+	{
+		if _, err := os.Stat("../../scripts/run-workflow.sh"); !os.IsNotExist(err) {
+			t.Errorf("expected scripts/run-workflow.sh to be deleted, but it still exists (err: %v)", err)
+		}
+	}
+
+	// 5. Tier 3 Data Layer VCS Neutrality
+	{
+		for _, flowName := range []string{"init", "plan", "blueprint", "build", "review", "commit", "session-handoff"} {
+			var f knowledge.Flow
+			if err := json.Unmarshal(queryJSON("flow", flowName), &f); err != nil {
+				t.Fatalf("failed to decode flow %s: %v", flowName, err)
+			}
+			for _, step := range f.Steps {
+				for _, forbidden := range []string{"jj ", "git ", "git commit", "jj describe", "jj new", "sh -c", "bash ", "herdr", "pane:", "cli:", "mcp"} {
+					if strings.Contains(step.Action, forbidden) {
+						t.Errorf("flow %s step %d violates command neutrality: %s", flowName, step.Index, step.Action)
+					}
+				}
+			}
+		}
+	}
+
+	// 6. Independent Documentation Synchronization
+	{
+		for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+			content, err := os.ReadFile(docPath)
+			if err != nil {
+				t.Fatalf("failed to read doc file %q: %v", docPath, err)
+			}
+			docStr := string(content)
+			for _, required := range []string{
+				"blueprint-plan",
+				"sub-build-plan",
+				"sub-review-plan",
+				"sub-review-resolution",
+				"coherent-plan-units",
+				"anti-rubber-stamp-plan-gate",
+				"evidence-proportional-persistence",
+				"acceptance-publication-authority",
+				"Blueprint Gate",
+				"Sub-Plan Gate",
+				"Feature Composition Gate",
+				"Finalization Equivalence",
+			} {
+				if !strings.Contains(docStr, required) {
+					t.Errorf("expected doc file %q to contain v0.3.0 term %q", docPath, required)
+				}
 			}
 		}
 	}
