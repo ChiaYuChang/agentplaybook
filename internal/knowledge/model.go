@@ -17,16 +17,19 @@ type CommunicationConfig struct {
 type Role string
 
 const (
-	RolePlanner  Role = "planner"
-	RoleBuilder  Role = "builder"
-	RoleReviewer Role = "reviewer"
-	RoleScout    Role = "scout"
+	RolePlanner   Role = "planner"
+	RoleBuilder   Role = "builder"
+	RoleReviewer  Role = "reviewer"
+	RoleScout     Role = "scout"
+	RoleNavigator Role = "navigator"
+	RoleUser      Role = "user"
 )
 
 // RoleDefinition defines the identity and boundaries of a participant role.
 type RoleDefinition struct {
 	Name             Role              `json:"name"`
 	Title            string            `json:"title"`
+	Category         string            `json:"category"`
 	Description      string            `json:"description"`
 	Responsibilities []string          `json:"responsibilities"`
 	Boundaries       []string          `json:"boundaries"`

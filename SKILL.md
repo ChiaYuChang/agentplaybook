@@ -64,6 +64,17 @@ The `scout-survey` artifact contains seven required fields: `id`, `provenance`, 
 
 Model capacity routing is advisory: the default recommendation is `Scout >= Reviewer >= Planner >= Builder`, with model allocation scaled by task domain, scope, uncertainty, and risk.
 
+## Navigator Role & Comprehension Companion
+
+The `navigator` companion role (`category: "companion"`) accompanies the human operator in co-reading and exploring the codebase, generating visual call graphs (Mermaid), and translating complex multi-file diffs into human-friendly change digests while maintaining read-only isolation, admission controls, and transport silence toward engineering pipelines.
+
+```sh
+sh "<skill-dir>/scripts/run-agentplaybook.sh" role navigator
+# Selectors: --description, --responsibility, --boundary, --communication
+```
+
+Navigator operates under a strict star topology communicating only with the user and Planner. On detecting user change intent, Navigator executes a fixed handoff: *"Please send this requirement directly to Planner"*.
+
 ## Repository Initialization Reconnaissance
 
 The `init` flow has nine steps with an optional Scout branch:
@@ -126,7 +137,25 @@ AgentPlaybook defines six conceptual review and verification pillars:
 6. **Structured Review Artifacts & Resolution (`review-resolution`)**:
    - `review-plan`: optional `Track B Definition` section.
    - `review-findings`: required `evidence_mode` and concrete `evidence`, conditional `reproduction_scenario`.
-   - `review-resolution`: Planner-owned post-review synthesis at `plan/{timestamp}/{slug}.resolution.md`, sanitized before shared visibility, with five required sections: `Outcome`, `Resolved Findings`, `Deviations & Rationales`, `Residual Risks`, and `Verification Evidence`. Strictly excludes confidential review criteria, hidden fixtures, or private methods.
+   - `review-resolution`: Planner-owned post-review synthesis at `plan/{timestamp}/{slug}.resolution.md`, sanitized before shared visibility across Planner, Builder, Reviewer, and Navigator, with five required sections: `Outcome`, `Resolved Findings`, `Deviations & Rationales`, `Residual Risks`, and `Verification Evidence`. Strictly excludes confidential review criteria, hidden fixtures, or private methods.
+
+## Navigator Companion Role & Zero Side-Effect Governance
+
+AgentPlaybook v0.3.1 introduces the `navigator` companion role and four zero side-effect governance rules:
+
+1. **Navigator Read-Only Companion & Fixed Handoff (`navigator-read-only-companion`)**:
+   Navigator operates as a read-only comprehension companion to the human user. On detecting user intent for code changes or workflow dispatch, Navigator executes a fixed handoff: *"Please send this requirement directly to Planner"*, rather than relaying instructions or drafting plans.
+2. **Companion Query Zero Side-Effect (`companion-query-zero-side-effect`)**:
+   Inquiries from Navigator to Planner are informational only and strictly non-actionable. Companion inquiries never trigger tasks, plans, subagents, or repository mutations. Planner possesses zero response obligation (complete permission to ignore or drop queries without failing any workflow gate).
+3. **Planner Source-Restricted Response & Provenance (`planner-source-restricted-response`)**:
+   When Planner elects to answer a companion query, responses are strictly restricted to facts independently derivable from Navigator's public allowlist (source code, `AGENTS.md`, `sub-review-resolution`, `review-resolution`). Quoting or inferring from confidential review plans or findings is prohibited. Every factual response requires mandatory provenance citation: `[Source: <path> | Observed: <rev> @ <timestamp>]`.
+4. **Target-State Gated Inquiry & Admission Control (`target-state-gated-inquiry`)**:
+   Companion inquiries to Planner are gated by recipient lifecycle status: dispatch is permitted only when Planner is in eligible states (`idle` or `done`). Non-eligible states (`running`, `busy`, `waiting_for_input`) strictly prohibit dispatch; inquiries arriving during non-eligible states are discarded immediately without queueing or retry. Navigator enforces admission control: maximum 1 in-flight inquiry, payload under 500 characters, and fallback to static artifacts.
+
+### Operator Guidelines for Navigator & Companion Roles
+- **Comprehension & Exploration**: Ask Navigator for call graphs, architecture explanations, or diff digests at any time.
+- **Feature Requests & Code Modifications**: Send requirements directly to Planner. If sent to Navigator, expect the fixed handoff: *"Please send this requirement directly to Planner"*.
+- **Pipeline Silence**: Navigator queries are lightweight and zero side-effect, respecting Planner's active workflow state (`idle`/`done`) and admission controls.
 
 ## Hierarchical Blueprint & Governance Architecture
 

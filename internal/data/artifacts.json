@@ -7,7 +7,8 @@
     "visibility": [
       "planner",
       "builder",
-      "reviewer"
+      "reviewer",
+      "navigator"
     ],
     "path": "AGENTS.md",
     "type": "document",
@@ -265,12 +266,13 @@
   {
     "name": "sub-review-resolution",
     "title": "Sub-Review Resolution",
-    "description": "Planner-owned post-review synthesis for an individual sub-plan capturing review outcomes, resolved findings, deviations, residual risks, and verification evidence. Visible to Planner, Builder, and Reviewer only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
+    "description": "Planner-owned post-review synthesis for an individual sub-plan capturing review outcomes, resolved findings, deviations, residual risks, and verification evidence. Visible to Planner, Builder, Reviewer, and Navigator only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
     "owner": "planner",
     "visibility": [
       "planner",
       "reviewer",
-      "builder"
+      "builder",
+      "navigator"
     ],
     "path": "plan/{timestamp}/sub/{slug}.resolution.md",
     "path_variables": {
@@ -362,12 +364,13 @@
   {
     "name": "review-resolution",
     "title": "Review Resolution",
-    "description": "Planner-owned post-review synthesis capturing master composition review outcomes, resolved findings, deviations, residual risks, and verification evidence across all completed sub-plans. Visible to Planner, Builder, and Reviewer only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
+    "description": "Planner-owned post-review synthesis capturing master composition review outcomes, resolved findings, deviations, residual risks, and verification evidence across all completed sub-plans. Visible to Planner, Builder, Reviewer, and Navigator only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
     "owner": "planner",
     "visibility": [
       "planner",
       "builder",
-      "reviewer"
+      "reviewer",
+      "navigator"
     ],
     "path": "plan/{timestamp}/{slug}.resolution.md",
     "path_variables": {

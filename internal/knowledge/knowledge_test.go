@@ -24,10 +24,10 @@ func TestLoad_Success(t *testing.T) {
 
 	// 2. Verify Roles
 	roles := k.Roles()
-	if len(roles) != 4 {
-		t.Fatalf("expected 4 roles, got %d", len(roles))
+	if len(roles) != 5 {
+		t.Fatalf("expected 5 roles, got %d", len(roles))
 	}
-	for _, expected := range []string{"planner", "builder", "reviewer", "scout"} {
+	for _, expected := range []string{"planner", "builder", "reviewer", "scout", "navigator"} {
 		r, ok := k.Role(expected)
 		if !ok {
 			t.Errorf("expected role %q to exist", expected)
@@ -35,6 +35,37 @@ func TestLoad_Success(t *testing.T) {
 		if string(r.Name) != expected {
 			t.Errorf("expected role name %q, got %q", expected, r.Name)
 		}
+	}
+
+	// Verify navigator role metadata
+	nav, ok := k.Role("navigator")
+	if !ok {
+		t.Fatalf("expected navigator role to exist")
+	}
+	if nav.Category != "companion" {
+		t.Errorf("expected navigator category 'companion', got %q", nav.Category)
+	}
+	if len(nav.Communication.Targets) != 2 || nav.Communication.Targets[0] != knowledge.RoleUser || nav.Communication.Targets[1] != knowledge.RolePlanner {
+		t.Errorf("expected navigator communication targets [user planner], got %v", nav.Communication.Targets)
+	}
+
+	// Verify planner communication targets include navigator
+	planner, ok := k.Role("planner")
+	if !ok {
+		t.Fatalf("expected planner role to exist")
+	}
+	if planner.Category != "core" {
+		t.Errorf("expected planner category 'core', got %q", planner.Category)
+	}
+	foundNavTarget := false
+	for _, target := range planner.Communication.Targets {
+		if target == knowledge.RoleNavigator {
+			foundNavTarget = true
+			break
+		}
+	}
+	if !foundNavTarget {
+		t.Errorf("expected planner communication targets to include navigator, got %v", planner.Communication.Targets)
 	}
 
 	// 3. Verify Flows
@@ -250,11 +281,14 @@ func TestLoad_Success(t *testing.T) {
 	if len(reviewResolution.Sections) != 5 {
 		t.Errorf("expected review-resolution to have 5 sections, got %d", len(reviewResolution.Sections))
 	}
+	if len(reviewResolution.Visibility) != 4 {
+		t.Errorf("expected review-resolution visibility to include 4 roles, got %v", reviewResolution.Visibility)
+	}
 
 	// 5. Verify Rules
 	rules := k.Rules()
-	if len(rules) < 18 {
-		t.Fatalf("expected at least 18 rules, got %d", len(rules))
+	if len(rules) < 22 {
+		t.Fatalf("expected at least 22 rules, got %d", len(rules))
 	}
 	for _, expected := range []string{
 		"anti-cheating",
@@ -271,6 +305,10 @@ func TestLoad_Success(t *testing.T) {
 		"review-severity-semantics",
 		"track-b-action-differential-verification",
 		"out-of-tree-baseline-mirror",
+		"navigator-read-only-companion",
+		"companion-query-zero-side-effect",
+		"planner-source-restricted-response",
+		"target-state-gated-inquiry",
 	} {
 		r, ok := k.Rule(expected)
 		if !ok {
@@ -296,4 +334,282 @@ func TestValidate_Errors(t *testing.T) {
 	if err := knowledge.Validate(&invalid); err == nil {
 		t.Error("expected error when languages is empty")
 	}
+}
+
+func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
+	t.Parallel()
+
+	k, err := knowledge.Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	// 1. Invalid role category
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		roles[0].Category = "invalid_category"
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error for invalid role category")
+		}
+	}
+
+	// 2. User role registered as internal role
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		roles = append(roles, knowledge.RoleDefinition{
+			Name:             knowledge.RoleUser,
+			Title:            "User",
+			Category:         "core",
+			Description:      "Human user",
+			Responsibilities: []string{"Direct project"},
+			Boundaries:       []string{"Do not edit internals directly"},
+		})
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when RoleUser is registered as an internal role")
+		}
+	}
+
+	// 3. Builder targeting user directly
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleBuilder {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleUser}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Builder targets user directly")
+		}
+	}
+
+	// 4. Builder targeting reviewer or multiple roles
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleBuilder {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RolePlanner, knowledge.RoleReviewer}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Builder targets roles other than strictly planner")
+		}
+	}
+
+	// 5. Reviewer / Scout targeting unauthorized roles
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleScout {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleNavigator}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Scout targets Navigator")
+		}
+	}
+
+	// 6. Planner omitting navigator target
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RolePlanner {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder, knowledge.RoleReviewer, knowledge.RoleScout}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Planner omits navigator from communication targets")
+		}
+	}
+
+	// 7. Planner targeting external user directly
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RolePlanner {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder, knowledge.RoleReviewer, knowledge.RoleScout, knowledge.RoleUser}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Planner targets external user directly")
+		}
+	}
+
+	// 8. Navigator omitting user or planner
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleNavigator {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RolePlanner}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Navigator omits user from communication targets")
+		}
+	}
+
+	// 8. Navigator targeting builder (violating star topology)
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleNavigator {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleUser, knowledge.RolePlanner, knowledge.RoleBuilder}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Navigator targets Builder directly")
+		}
+	}
+
+	// 9. Navigator duplicate communication targets
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleNavigator {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleUser, knowledge.RolePlanner, knowledge.RolePlanner}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Navigator has duplicate communication targets")
+		}
+	}
+
+	// 10. Planner duplicate communication targets
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RolePlanner {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder, knowledge.RoleReviewer, knowledge.RoleScout, knowledge.RoleNavigator, knowledge.RoleNavigator}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Planner has duplicate communication targets")
+		}
+	}
+
+	// 11. Navigator as artifact owner
+	{
+		invalid := *k
+		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
+		artifacts = append(artifacts, knowledge.Artifact{
+			Name:        "navigator-notes",
+			Title:       "Navigator Notes",
+			Description: "Notes by navigator",
+			Owner:       knowledge.RoleNavigator,
+			Visibility:  []knowledge.Role{knowledge.RolePlanner},
+			Type:        "document",
+			Sections:    []knowledge.ArtifactSection{{Name: "Notes", Required: true, Description: "Notes content"}},
+		})
+		setArtifacts(&invalid, artifacts)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Navigator is an artifact owner")
+		}
+	}
+
+	// 10. Navigator in in-flight artifact visibility
+	{
+		invalid := *k
+		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
+		for i, a := range artifacts {
+			if a.Name == "build-plan" {
+				artifacts[i].Visibility = append(artifacts[i].Visibility, knowledge.RoleNavigator)
+			}
+		}
+		setArtifacts(&invalid, artifacts)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Navigator is in build-plan visibility")
+		}
+	}
+
+	// 11. Navigator in non-allowlisted artifact visibility
+	{
+		invalid := *k
+		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
+		artifacts = append(artifacts, knowledge.Artifact{
+			Name:        "unsettled-notes",
+			Title:       "Unsettled Notes",
+			Description: "Custom non-allowlisted document",
+			Owner:       knowledge.RolePlanner,
+			Visibility:  []knowledge.Role{knowledge.RolePlanner, knowledge.RoleNavigator},
+			Type:        "document",
+			Sections:    []knowledge.ArtifactSection{{Name: "Content", Required: true, Description: "Content"}},
+		})
+		setArtifacts(&invalid, artifacts)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Navigator is in non-allowlisted artifact visibility")
+		}
+	}
+
+	// 12. Navigator as flow actor
+	{
+		invalid := *k
+		flows := append([]knowledge.Flow(nil), k.Flows()...)
+		flows = append(flows, knowledge.Flow{
+			Name:        "navigator-flow",
+			Description: "Invalid flow with navigator actor",
+			Steps: []knowledge.FlowStep{
+				{
+					Index:  1,
+					Actor:  knowledge.RoleNavigator,
+					Action: "Do something",
+				},
+			},
+		})
+		setFlows(&invalid, flows)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Navigator is a flow actor")
+		}
+	}
+
+	// 13. User as artifact owner or flow actor
+	{
+		invalid := *k
+		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
+		artifacts = append(artifacts, knowledge.Artifact{
+			Name:        "user-artifact",
+			Title:       "User Artifact",
+			Description: "Artifact owned by user",
+			Owner:       knowledge.RoleUser,
+			Visibility:  []knowledge.Role{knowledge.RolePlanner},
+			Type:        "document",
+			Sections:    []knowledge.ArtifactSection{{Name: "Content", Required: true, Description: "Content"}},
+		})
+		setArtifacts(&invalid, artifacts)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when User is an artifact owner")
+		}
+	}
+}
+
+func setRoles(k *knowledge.Knowledge, roles []knowledge.RoleDefinition) {
+	k.SetRolesForTest(roles)
+}
+
+func setArtifacts(k *knowledge.Knowledge, artifacts []knowledge.Artifact) {
+	k.SetArtifactsForTest(artifacts)
+}
+
+func setFlows(k *knowledge.Knowledge, flows []knowledge.Flow) {
+	k.SetFlowsForTest(flows)
 }

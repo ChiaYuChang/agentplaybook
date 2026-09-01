@@ -286,5 +286,55 @@
       "Out-of-tree baseline mirrors must support concurrent evaluation without polluting candidate working directories.",
       "Tier 3 rules define baseline governance conceptually, delegating concrete workspace, clone, and VCS mechanics to Tier 2 skills."
     ]
+  },
+  {
+    "id": "navigator-read-only-companion",
+    "title": "Navigator Read-Only Companion & Fixed Handoff Protocol",
+    "category": "protocol",
+    "summary": "Governs companion role scope, read-only boundaries, and fixed handoff behavior ('Please send this requirement directly to Planner').",
+    "details": "Navigator operates as a read-only comprehension companion to the human operator, providing architectural clarity, Mermaid diagrams, and change digests without modifying code or entering the orchestration loop. When user expresses intent to modify code, add features, or trigger workflows, Navigator must execute a fixed handoff ('Please send this requirement directly to Planner') rather than relaying instructions or drafting plans.",
+    "guidelines": [
+      "Navigator performs strictly read-only codebase navigation and visual mapping; modifying, creating, or deleting repository files is strictly prohibited.",
+      "Navigator must never edit AGENTS.md directly, preserving the Single-Writer Principle.",
+      "On detecting human intent for code changes or workflow initiation, Navigator must execute the fixed handoff: 'Please send this requirement directly to Planner'.",
+      "Navigator is strictly isolated from Builder, Reviewer, and Scout, communicating only with human user and Planner under strict star topology."
+    ]
+  },
+  {
+    "id": "companion-query-zero-side-effect",
+    "title": "Companion Query Zero Side-Effect & Non-Action Invariant",
+    "category": "protocol",
+    "summary": "Mandates Planner's non-action / zero side-effect invariant on companion queries (prohibiting autonomous task dispatch, plan authoring, or repository mutations); explicitly establishes zero response obligation for Planner.",
+    "details": "Inquiries from Navigator to Planner are informational only and strictly non-actionable. Planner must never interpret a companion inquiry as a task request, plan initiation trigger, or mandate for repository mutation. Planner holds zero response obligation towards Navigator inquiries, possessing complete permission to ignore or drop queries without failing any gate or flow.",
+    "guidelines": [
+      "Companion inquiries to Planner must never trigger task dispatch, plan authoring, subagent spawning, or repository mutations.",
+      "Planner holds zero response obligation on companion inquiries and retains complete permission to ignore or drop queries without blocking any workflow gate.",
+      "Companion inquiries cannot alter active workflow states, gate transitions, or commit pipelines."
+    ]
+  },
+  {
+    "id": "planner-source-restricted-response",
+    "title": "Planner Source-Restricted Response & Provenance Invariant",
+    "category": "security",
+    "summary": "Constrains Planner responses to facts independently derivable from Navigator's public allowlist (prohibiting inference from review plans/findings/fixtures); enforces mandatory provenance citation: [Source: <path> | Observed: <rev> @ <timestamp>].",
+    "details": "When Planner elects to answer a Navigator inquiry, responses must be strictly restricted to facts independently derivable from Navigator's public allowlist (source files, AGENTS.md, review-resolution, sub-review-resolution). Planner is strictly prohibited from quoting, paraphrasing, confirming, or inferring from confidential review plans, review findings, or test fixtures. Every factual response must include mandatory provenance citation: [Source: <path> | Observed: <rev> @ <timestamp>].",
+    "guidelines": [
+      "Planner responses to Navigator must contain only facts independently verifiable from Navigator's public allowlist (source code and public milestone resolutions).",
+      "Planner is strictly prohibited from disclosing or inferring information from confidential review plans, sub-review plans, review findings, or private fixtures.",
+      "Every factual response from Planner to Navigator must include mandatory provenance citation: [Source: <path> | Observed: <rev> @ <timestamp>]."
+    ]
+  },
+  {
+    "id": "target-state-gated-inquiry",
+    "title": "Target-State Gated Inquiry & Companion Admission Control",
+    "category": "protocol",
+    "summary": "Enforces transport lifecycle-status checks (eligible = idle OR done, non-eligible = running/busy/waiting_for_input prohibits dispatch); recipient discard on non-eligible arrival, no retry/queue, admission control (max 1 in-flight, payload <500 chars, static fallback).",
+    "details": "To preserve pipeline tranquility, companion inquiries to Planner are strictly gated by target lifecycle status. Eligible recipient states are strictly 'idle' or 'done' (where 'done' denotes a quiescent, completed session awaiting prompt). Non-eligible states (e.g. 'running', 'busy', 'waiting_for_input') strictly prohibit dispatch. If an inquiry arrives while recipient is non-eligible, it must be discarded immediately without queueing or retrying. Navigator enforces admission control: maximum 1 in-flight inquiry, payload length under 500 characters, and immediate fallback to static artifacts when unanswered.",
+    "guidelines": [
+      "Companion inquiries may only be dispatched when target lifecycle status is strictly 'idle' or 'done'.",
+      "Non-eligible target states ('running', 'busy', 'waiting_for_input') prohibit inquiry dispatch; inquiries arriving during non-eligible states must be discarded without queueing or retry.",
+      "Navigator enforces admission controls: maximum 1 in-flight inquiry, payload strictly under 500 characters, and static artifact fallback.",
+      "Tier 3 rules define target-state gating conceptually, delegating lifecycle status inspection to active harness transport capabilities."
+    ]
   }
 ]

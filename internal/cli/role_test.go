@@ -20,9 +20,52 @@ func TestRole_BareDiscovery(t *testing.T) {
 	}
 
 	out := stdout.String()
-	for _, expected := range []string{"planner", "builder", "reviewer", "scout"} {
+	for _, expected := range []string{"planner", "builder", "reviewer", "scout", "navigator"} {
 		if !strings.Contains(out, expected) {
 			t.Errorf("expected role %q in discovery output, got: %s", expected, out)
+		}
+	}
+}
+
+func TestRole_Navigator(t *testing.T) {
+	t.Parallel()
+
+	var stdout, stderr bytes.Buffer
+	err := cli.Execute([]string{"role", "navigator"}, &stdout, &stderr, "dev")
+	if err != nil {
+		t.Fatalf("querying role navigator failed: %v", err)
+	}
+
+	var r knowledge.RoleDefinition
+	if err := json.Unmarshal(stdout.Bytes(), &r); err != nil {
+		t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
+	}
+
+	if r.Name != "navigator" {
+		t.Errorf("expected role name 'navigator', got %q", r.Name)
+	}
+	if r.Category != "companion" {
+		t.Errorf("expected category 'companion', got %q", r.Category)
+	}
+	if len(r.Responsibilities) == 0 {
+		t.Error("expected non-empty responsibilities")
+	}
+	if len(r.Boundaries) == 0 {
+		t.Error("expected non-empty boundaries")
+	}
+	if len(r.Communication.Targets) != 2 || r.Communication.Targets[0] != knowledge.RoleUser || r.Communication.Targets[1] != knowledge.RolePlanner {
+		t.Errorf("expected navigator communication targets [user planner], got %v", r.Communication.Targets)
+	}
+
+	// Test selectors
+	for _, flag := range []string{"--responsibility", "--boundary", "--communication"} {
+		stdout.Reset()
+		stderr.Reset()
+		if err := cli.Execute([]string{"role", "navigator", flag}, &stdout, &stderr, "dev"); err != nil {
+			t.Fatalf("querying role navigator %s failed: %v", flag, err)
+		}
+		if !json.Valid(stdout.Bytes()) {
+			t.Errorf("expected valid JSON for flag %s, got: %s", flag, stdout.String())
 		}
 	}
 }

@@ -53,12 +53,16 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"role", "builder"},
 		{"role", "reviewer"},
 		{"role", "scout"},
+		{"role", "navigator"},
 		{"role", "builder", "--responsibility"},
 		{"role", "builder", "--boundary"},
 		{"role", "builder", "--communication"},
 		{"role", "scout", "--responsibility"},
 		{"role", "scout", "--boundary"},
 		{"role", "scout", "--communication"},
+		{"role", "navigator", "--responsibility"},
+		{"role", "navigator", "--boundary"},
+		{"role", "navigator", "--communication"},
 		{"role", "planner", "--communication"},
 		{"flow", "init"},
 		{"flow", "init", "--step", "1"},
@@ -102,6 +106,10 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "review-severity-semantics"},
 		{"rule", "explain", "track-b-action-differential-verification"},
 		{"rule", "explain", "out-of-tree-baseline-mirror"},
+		{"rule", "explain", "navigator-read-only-companion"},
+		{"rule", "explain", "companion-query-zero-side-effect"},
+		{"rule", "explain", "planner-source-restricted-response"},
+		{"rule", "explain", "target-state-gated-inquiry"},
 	}
 
 	for _, cmd := range jsonCommands {
@@ -435,7 +443,7 @@ func TestCLI_AgentsLanguageConciseness(t *testing.T) {
 
 	telegraphicMessageContract := "Communicate using telegraphic Caveman mode for all inter-agent messages (including [Planner], [Reviewer], [Builder], [Scout], or [<role>] prefixed exchanges): omit conversational filler, pleasantries, and polite framing in favor of compact, structured technical fragments."
 	ephemeralCavemanMandate := "Inter-agent communication requires telegraphic (caveman) compression for all exchanges (including [Planner], [Reviewer], [Builder], [Scout], or [<role>] prefixed messages): drop conversational filler, pleasantries, and polite framing; communicate in compact, structured technical fragments to minimize transport token consumption."
-	for _, roleName := range []string{"planner", "builder", "reviewer", "scout"} {
+	for _, roleName := range []string{"planner", "builder", "reviewer", "scout", "navigator"} {
 		var role knowledge.RoleDefinition
 		if err := json.Unmarshal(queryJSON("role", roleName), &role); err != nil {
 			t.Fatalf("failed to decode %s role: %v", roleName, err)
@@ -1205,8 +1213,8 @@ func TestCLI_AIReviewerSpecThreeTierIntegration(t *testing.T) {
 		if resolution.PathVariables["timestamp"] == "" || resolution.PathVariables["slug"] == "" {
 			t.Errorf("expected path_variables timestamp and slug in review-resolution, got %+v", resolution.PathVariables)
 		}
-		if len(resolution.Visibility) != 3 || resolution.Visibility[0] != knowledge.RolePlanner || resolution.Visibility[1] != knowledge.RoleBuilder || resolution.Visibility[2] != knowledge.RoleReviewer {
-			t.Errorf("expected resolution visibility [planner builder reviewer], got %v", resolution.Visibility)
+		if len(resolution.Visibility) != 4 || resolution.Visibility[0] != knowledge.RolePlanner || resolution.Visibility[1] != knowledge.RoleBuilder || resolution.Visibility[2] != knowledge.RoleReviewer || resolution.Visibility[3] != knowledge.RoleNavigator {
+			t.Errorf("expected resolution visibility [planner builder reviewer navigator], got %v", resolution.Visibility)
 		}
 		for _, reqPhrase := range []string{"sanitization", "review-plan criteria", "hidden test fixtures", "private inspection methods"} {
 			if !strings.Contains(resolution.Description, reqPhrase) {
@@ -1569,6 +1577,235 @@ func TestCLI_V030_BlueprintAndGovernance(t *testing.T) {
 			} {
 				if !strings.Contains(docStr, required) {
 					t.Errorf("expected doc file %q to contain v0.3.0 term %q", docPath, required)
+				}
+			}
+		}
+	}
+}
+
+func TestCLI_V031_NavigatorAndCompanionGovernance(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.3.1"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	// 1. Role Topology & Boundaries
+	{
+		var nav knowledge.RoleDefinition
+		if err := json.Unmarshal(queryJSON("role", "navigator"), &nav); err != nil {
+			t.Fatalf("failed to decode navigator role: %v", err)
+		}
+		if nav.Name != "navigator" || nav.Category != "companion" {
+			t.Errorf("unexpected navigator role name/category: %q / %q", nav.Name, nav.Category)
+		}
+		if nav.Title != "Codebase Navigator & Comprehension Companion" {
+			t.Errorf("unexpected navigator title: %q", nav.Title)
+		}
+		if len(nav.Communication.Targets) != 2 || nav.Communication.Targets[0] != knowledge.RoleUser || nav.Communication.Targets[1] != knowledge.RolePlanner {
+			t.Errorf("expected navigator communication targets strictly [user planner], got %v", nav.Communication.Targets)
+		}
+
+		// Verify navigator boundaries
+		for _, requiredBoundary := range []string{
+			"Strictly read-only; DO NOT modify, create, or delete repository files, test suites, or configuration.",
+			"DO NOT edit AGENTS.md directly; enforce the Single-Writer Principle.",
+			"Strictly prohibited from relaying instructions, authoring plans, or initiating task dispatches (fixed handoff: 'Please send this requirement directly to Planner').",
+			"Enforce strict star topology: communicate ONLY with user and planner; communication with Builder, Reviewer, or Scout is impossible and forbidden.",
+			"Gated strictly to eligible states (idle or done) before sending Planner inquiries; send-or-drop policy prohibits inquiry when Planner is in non-eligible states (running, busy, waiting_for_input).",
+			"Enforce admission controls: maximum 1 in-flight inquiry to Planner, payload strictly under 500 characters, fallback to static artifacts if unanswered.",
+			"Denylist absolute precedence: NEVER query, read, search for, or infer from confidential review plans, sub-review plans, review findings, or test criteria.",
+		} {
+			if !slices.Contains(nav.Boundaries, requiredBoundary) {
+				t.Errorf("expected navigator boundary %q", requiredBoundary)
+			}
+		}
+
+		// Verify other roles category and communication targets
+		var planner knowledge.RoleDefinition
+		if err := json.Unmarshal(queryJSON("role", "planner"), &planner); err != nil {
+			t.Fatalf("failed to decode planner role: %v", err)
+		}
+		if planner.Category != "core" {
+			t.Errorf("expected planner category core, got %q", planner.Category)
+		}
+		if !slices.Contains(planner.Communication.Targets, knowledge.RoleNavigator) {
+			t.Errorf("expected planner communication targets to include navigator, got %v", planner.Communication.Targets)
+		}
+
+		for _, coreRole := range []string{"builder", "reviewer", "scout"} {
+			var r knowledge.RoleDefinition
+			if err := json.Unmarshal(queryJSON("role", coreRole), &r); err != nil {
+				t.Fatalf("failed to decode %s role: %v", coreRole, err)
+			}
+			if r.Category != "core" {
+				t.Errorf("expected role %s category core, got %q", coreRole, r.Category)
+			}
+			if len(r.Communication.Targets) != 1 || r.Communication.Targets[0] != knowledge.RolePlanner {
+				t.Errorf("expected role %s communication targets strictly [planner], got %v", coreRole, r.Communication.Targets)
+			}
+		}
+	}
+
+	// 2. Governance Rules
+	{
+		// navigator-read-only-companion
+		var navRules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "navigator-read-only-companion"), &navRules); err != nil {
+			t.Fatalf("failed to decode navigator-read-only-companion rule: %v", err)
+		}
+		if len(navRules) != 1 {
+			t.Fatalf("expected 1 navigator-read-only-companion rule, got %d", len(navRules))
+		}
+		if !strings.Contains(navRules[0].Details, "Please send this requirement directly to Planner") {
+			t.Errorf("expected navigator-read-only-companion to contain fixed handoff phrase")
+		}
+
+		// companion-query-zero-side-effect
+		var zeroSideRules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "companion-query-zero-side-effect"), &zeroSideRules); err != nil {
+			t.Fatalf("failed to decode companion-query-zero-side-effect rule: %v", err)
+		}
+		if len(zeroSideRules) != 1 {
+			t.Fatalf("expected 1 companion-query-zero-side-effect rule, got %d", len(zeroSideRules))
+		}
+		for _, term := range []string{"zero response obligation", "non-actionable", "permission to ignore"} {
+			if !strings.Contains(zeroSideRules[0].Details, term) {
+				t.Errorf("expected companion-query-zero-side-effect details to contain %q", term)
+			}
+		}
+
+		// planner-source-restricted-response
+		var restrictedRules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "planner-source-restricted-response"), &restrictedRules); err != nil {
+			t.Fatalf("failed to decode planner-source-restricted-response rule: %v", err)
+		}
+		if len(restrictedRules) != 1 {
+			t.Fatalf("expected 1 planner-source-restricted-response rule, got %d", len(restrictedRules))
+		}
+		for _, term := range []string{"public allowlist", "[Source: <path> | Observed: <rev> @ <timestamp>]"} {
+			if !strings.Contains(restrictedRules[0].Details, term) {
+				t.Errorf("expected planner-source-restricted-response details to contain %q", term)
+			}
+		}
+
+		// target-state-gated-inquiry
+		var gatedRules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "target-state-gated-inquiry"), &gatedRules); err != nil {
+			t.Fatalf("failed to decode target-state-gated-inquiry rule: %v", err)
+		}
+		if len(gatedRules) != 1 {
+			t.Fatalf("expected 1 target-state-gated-inquiry rule, got %d", len(gatedRules))
+		}
+		for _, term := range []string{"idle", "done", "running", "busy", "waiting_for_input", "discarded", "500"} {
+			if !strings.Contains(gatedRules[0].Details, term) {
+				t.Errorf("expected target-state-gated-inquiry details to contain %q", term)
+			}
+		}
+	}
+
+	// 3. Artifact Visibility & Owner Invariants
+	{
+		// In-flight task plans strictly exclude navigator
+		for _, artName := range []string{
+			"build-plan",
+			"review-plan",
+			"blueprint-plan",
+			"sub-build-plan",
+			"sub-review-plan",
+			"review-findings",
+			"scout-survey",
+		} {
+			var a knowledge.Artifact
+			if err := json.Unmarshal(queryJSON("artifact", artName), &a); err != nil {
+				t.Fatalf("failed to decode %s: %v", artName, err)
+			}
+			if slices.Contains(a.Visibility, knowledge.RoleNavigator) {
+				t.Errorf("in-flight artifact %q must strictly exclude navigator from visibility", artName)
+			}
+		}
+
+		// Public milestone artifacts include navigator
+		for _, artName := range []string{
+			"agents-md",
+			"sub-review-resolution",
+			"review-resolution",
+		} {
+			var a knowledge.Artifact
+			if err := json.Unmarshal(queryJSON("artifact", artName), &a); err != nil {
+				t.Fatalf("failed to decode %s: %v", artName, err)
+			}
+			if !slices.Contains(a.Visibility, knowledge.RoleNavigator) {
+				t.Errorf("public milestone artifact %q must include navigator in visibility", artName)
+			}
+		}
+
+		// Navigator is never an owner of any artifact
+		for _, artName := range []string{
+			"agents-md",
+			"build-plan",
+			"review-plan",
+			"blueprint-plan",
+			"sub-build-plan",
+			"sub-review-plan",
+			"sub-review-resolution",
+			"review-findings",
+			"scout-survey",
+			"review-resolution",
+		} {
+			var a knowledge.Artifact
+			if err := json.Unmarshal(queryJSON("artifact", artName), &a); err != nil {
+				t.Fatalf("failed to decode %s: %v", artName, err)
+			}
+			if a.Owner == knowledge.RoleNavigator {
+				t.Errorf("navigator cannot own artifact %q", artName)
+			}
+		}
+	}
+
+	// 4. Flow Actor Invariants
+	{
+		for _, flowName := range []string{"init", "plan", "blueprint", "build", "review", "commit", "session-handoff"} {
+			var f knowledge.Flow
+			if err := json.Unmarshal(queryJSON("flow", flowName), &f); err != nil {
+				t.Fatalf("failed to decode flow %s: %v", flowName, err)
+			}
+			for _, step := range f.Steps {
+				if step.Actor == knowledge.RoleNavigator {
+					t.Errorf("flow %s step %d cannot have navigator as actor", flowName, step.Index)
+				}
+			}
+		}
+	}
+
+	// 5. Documentation & Versioning
+	{
+		for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+			content, err := os.ReadFile(docPath)
+			if err != nil {
+				t.Fatalf("failed to read doc file %q: %v", docPath, err)
+			}
+			docStr := string(content)
+			for _, required := range []string{
+				"navigator",
+				"companion",
+				"target-state-gated-inquiry",
+				"planner-source-restricted-response",
+				"companion-query-zero-side-effect",
+				"navigator-read-only-companion",
+				"Please send this requirement directly to Planner",
+				"zero response obligation",
+				"admission control",
+				"idle",
+				"done",
+			} {
+				if !strings.Contains(docStr, required) {
+					t.Errorf("expected doc file %q to contain v0.3.1 term %q", docPath, required)
 				}
 			}
 		}

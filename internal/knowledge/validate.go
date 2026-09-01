@@ -32,10 +32,17 @@ func Validate(k *Knowledge) error {
 			errs = append(errs, errors.New("role name cannot be empty"))
 			continue
 		}
+		if r.Name == RoleUser {
+			errs = append(errs, errors.New("user cannot be registered as an internal role"))
+		}
 		if roleNames[r.Name] {
 			errs = append(errs, fmt.Errorf("duplicate role name: %q", r.Name))
 		}
 		roleNames[r.Name] = true
+
+		if r.Category != "core" && r.Category != "companion" {
+			errs = append(errs, fmt.Errorf("role %q has invalid category %q (must be 'core' or 'companion')", r.Name, r.Category))
+		}
 
 		if r.Description == "" {
 			errs = append(errs, fmt.Errorf("role %q description cannot be empty", r.Name))
@@ -49,14 +56,59 @@ func Validate(k *Knowledge) error {
 	}
 
 	for _, r := range k.roleList {
+		targetSet := make(map[Role]bool, len(r.Communication.Targets))
 		for _, target := range r.Communication.Targets {
-			if !roleNames[target] {
+			if targetSet[target] {
+				errs = append(errs, fmt.Errorf("role %q has duplicate communication target %q", r.Name, target))
+			}
+			if target == RoleUser {
+				if r.Name != RoleNavigator {
+					errs = append(errs, fmt.Errorf("role %q cannot communicate with external user (permitted exclusively for companion role navigator)", r.Name))
+				}
+			} else if !roleNames[target] {
 				errs = append(errs, fmt.Errorf("role %q communication target %q does not exist", r.Name, target))
+			}
+			targetSet[target] = true
+		}
+
+		switch r.Name {
+		case RolePlanner:
+			if len(r.Communication.Targets) != 4 {
+				errs = append(errs, fmt.Errorf("planner communication targets must contain exactly 4 targets, got %d", len(r.Communication.Targets)))
+			}
+			for _, required := range []Role{RoleBuilder, RoleReviewer, RoleScout, RoleNavigator} {
+				if !targetSet[required] {
+					errs = append(errs, fmt.Errorf("planner communication targets must include %q", required))
+				}
+			}
+		case RoleNavigator:
+			if len(r.Communication.Targets) != 2 {
+				errs = append(errs, fmt.Errorf("navigator communication targets must contain exactly 2 targets ('user' and 'planner'), got %d", len(r.Communication.Targets)))
+			}
+			for _, required := range []Role{RoleUser, RolePlanner} {
+				if !targetSet[required] {
+					errs = append(errs, fmt.Errorf("navigator communication targets must include %q", required))
+				}
+			}
+			for target := range targetSet {
+				if target != RoleUser && target != RolePlanner {
+					errs = append(errs, fmt.Errorf("navigator communication target %q is not permitted (must be 'user' or 'planner')", target))
+				}
+			}
+		case RoleBuilder, RoleReviewer, RoleScout:
+			if len(r.Communication.Targets) != 1 || !targetSet[RolePlanner] {
+				errs = append(errs, fmt.Errorf("role %q communication targets must contain strictly 'planner'", r.Name))
 			}
 		}
 	}
 
 	// 3. Validate Artifacts
+	allowedNavigatorArtifacts := map[string]bool{
+		"agents-md":              true,
+		"sub-review-resolution": true,
+		"review-resolution":     true,
+	}
+
 	artifactNames := make(map[string]bool, len(k.artifactList))
 	for _, a := range k.artifactList {
 		if a.Name == "" {
@@ -68,15 +120,24 @@ func Validate(k *Knowledge) error {
 		}
 		artifactNames[a.Name] = true
 
-		if !roleNames[a.Owner] {
+		if a.Owner == RoleUser {
+			errs = append(errs, fmt.Errorf("artifact %q owner cannot be user", a.Name))
+		} else if a.Owner == RoleNavigator {
+			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role navigator", a.Name))
+		} else if !roleNames[a.Owner] {
 			errs = append(errs, fmt.Errorf("artifact %q owner %q does not exist", a.Name, a.Owner))
 		}
+
 		if len(a.Visibility) == 0 {
 			errs = append(errs, fmt.Errorf("artifact %q visibility cannot be empty", a.Name))
 		}
 		for _, v := range a.Visibility {
-			if !roleNames[v] {
+			if v == RoleUser {
+				errs = append(errs, fmt.Errorf("artifact %q visibility cannot include user", a.Name))
+			} else if !roleNames[v] {
 				errs = append(errs, fmt.Errorf("artifact %q visibility role %q does not exist", a.Name, v))
+			} else if v == RoleNavigator && !allowedNavigatorArtifacts[a.Name] {
+				errs = append(errs, fmt.Errorf("artifact %q is not in the settled allowlist and cannot include companion role navigator in visibility", a.Name))
 			}
 		}
 
@@ -122,7 +183,11 @@ func Validate(k *Knowledge) error {
 				maxIdx = s.Index
 			}
 
-			if !roleNames[s.Actor] {
+			if s.Actor == RoleUser {
+				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be user", f.Name, s.Index))
+			} else if s.Actor == RoleNavigator {
+				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be companion role navigator", f.Name, s.Index))
+			} else if !roleNames[s.Actor] {
 				errs = append(errs, fmt.Errorf("flow %q step %d actor %q does not exist", f.Name, s.Index, s.Actor))
 			}
 			if strings.TrimSpace(s.Action) == "" {
