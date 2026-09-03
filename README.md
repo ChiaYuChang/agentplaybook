@@ -13,10 +13,10 @@ Instead of stuffing massive, static role prompts into every agent turn—wasting
 
 - **Read-Only Collaboration Manual**: Zero side-effects on your target repository. No orchestrator runtime daemon, no external state store.
 - **5 Orthogonal Knowledge Domains**:
-  - `role`: Core and companion participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`, `scout`, `navigator`).
-  - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `blueprint`, `build`, `review`, `commit`, `session-handoff`).
-  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`).
-  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`, `navigator-read-only-companion`, `companion-query-zero-side-effect`, `planner-source-restricted-response`, `target-state-gated-inquiry`).
+  - `role`: Core and companion participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`, `scout`, `navigator`, `cartographer`).
+  - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `blueprint`, `build`, `review`, `commit`, `session-handoff`, `cartography`).
+  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`).
+  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`, `navigator-read-only-companion`, `companion-query-zero-side-effect`, `planner-source-restricted-response`, `target-state-gated-inquiry`, `cartographer-visual-architect-boundary`, `cartography-zero-context-pollution`, `cartography-taste-gate-advisory`, `cartography-asynchronous-decoupling`).
   - `config`: Supported languages, prefix templates, and transport settings.
 - **Progressive Disclosure UX**: Bare discovery commands output concise catalogs (Exit 0); specific queries return clean, indented JSON.
 - **Built for AI Agents**: Automatic self-caching runner script, compatible with [skills.sh](https://skills.sh) across 17+ agent harnesses.
@@ -128,7 +128,7 @@ agentplaybook role navigator --boundary
 agentplaybook role navigator --communication
 ```
 
-Navigator operates under a strict star topology communicating only with the user and Planner. On detecting user change intent, Navigator executes a fixed handoff: *"Please send this requirement directly to Planner"*.
+Navigator operates under a strict star topology communicating only with the user, Planner, and Cartographer. On detecting user change intent, Navigator executes a fixed handoff: *"Please send this requirement directly to Planner"*.
 
 ### 3. Inspecting Flows & Step SOPs
 The `init` flow has 9 steps and an optional Scout reconnaissance branch. Step 1 begins with active workspace peer-session discovery through the active harness transport, prioritizing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents, resolves active Tier 2 VCS capability, then routes `SCOUT_RECON_REQUIRED` to Step 2, where Scout returns a `scout-survey`; `DIRECT_SURVEY` routes directly to Step 3, where Planner validates evidence or surveys the repository before drafting `AGENTS.md`. Reviewer and Builder inquiry convergence then proceeds through Steps 4-8, and Planner finalizes the artifact in Step 9.
@@ -251,6 +251,29 @@ AgentPlaybook v0.3.1 introduces the `navigator` companion role and four zero sid
 - **Comprehension & Exploration**: Ask Navigator for call graphs, architecture explanations, or diff digests at any time.
 - **Feature Requests & Code Modifications**: Send requirements directly to Planner. If sent to Navigator, expect the fixed handoff: *"Please send this requirement directly to Planner"*.
 - **Pipeline Silence**: Navigator queries are lightweight and zero side-effect, respecting Planner's active workflow state (`idle`/`done`) and admission controls.
+
+### Cartographer Companion Role & Visual Architecture Governance
+
+The `cartographer` companion role (`category: "companion"`) is a specialized visual architect dedicated to transforming architectural semantics, system topology, and execution flows into publication-grade, self-contained HTML/inline SVG diagrams under the editorial design system, while guaranteeing zero context pollution and non-blocking asynchronous decoupling for engineering pipelines.
+
+> [Notice] Cartographer requires the diagram-design skill (https://github.com/cathrynlavery/diagram-design) for publication-grade diagram rendering.
+
+#### Core Cartography Rules & Protocols
+1. **Path-Scoping & Visual Boundaries (`cartographer-visual-architect-boundary`)**:
+   Cartographer operates strictly read-only on application source code and test suites. Write permissions are strictly confined to `docs/diagrams/<safe-name>.html`, rejecting directory traversal (`..`), backslashes, leading slashes, and external paths. Cartographer never edits `AGENTS.md` directly and is prohibited from authoring build plans or participating in review gates.
+2. **Taste Gate & Complexity Budget (`cartography-taste-gate-advisory`)**:
+   Before rendering, Cartographer exercises a **Taste Gate** assessment to evaluate visual suitability against strict complexity budgets (≤12 nodes for structural diagrams, ≤12 transitions for sequence flows). When markdown tables or structured prose provide superior clarity, Cartographer issues an advisory pushback (`ADVISORY_ISSUED`) directly to Step 5 without rendering markup.
+3. **Zero Context Pollution Invariant (`cartography-zero-context-pollution`)**:
+   Raw HTML and inline SVG diagram markup remain strictly contained within Cartographer's isolated session and are persisted directly to `docs/diagrams/<safe-name>.html`. Cross-session handoff to commissioners (Planner or Navigator) is strictly restricted to the lightweight `diagram-completion` message artifact (<100 tokens evaluated by deterministic subword estimator EstimateTokenCount, <=250 chars, <=60 words, single-sentence digest, zero inline markup), containing persistent file URI, single-sentence plain text summary digest, and node/edge statistics with zero raw markup.
+4. **Asynchronous Decoupling (`cartography-asynchronous-decoupling`)**:
+   Commissioners dispatch `diagram-brief` artifacts asynchronously in fire-and-forget mode. Synchronous waiting loops or sleep polling on Cartographer completion are strictly prohibited, ensuring active engineering pipelines are never blocked by diagram synthesis.
+
+#### Cartography Flow (`flow cartography`)
+1. Planner identifies visualization requirement and formulates `diagram-brief`.
+2. Planner dispatches `diagram-brief` message artifact to Cartographer.
+3. Cartographer evaluates visual suitability and complexity budget under Taste Gate criteria (`DIAGRAM_APPROVED` -> Step 4, `ADVISORY_ISSUED` -> Step 5).
+4. Cartographer calculates layout geometry, renders HTML/SVG, and performs conceptual visual validation.
+5. Cartographer persists diagram to `docs/diagrams/<safe-name>.html` (or records advisory proposal) and emits lightweight `diagram-completion` message artifact to commissioner.
 
 ---
 

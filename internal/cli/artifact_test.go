@@ -298,8 +298,8 @@ func TestArtifact_Query(t *testing.T) {
 		if a.PathVariables["timestamp"] == "" || a.PathVariables["slug"] == "" {
 			t.Errorf("expected path_variables timestamp and slug, got: %+v", a.PathVariables)
 		}
-		if len(a.Visibility) != 4 || a.Visibility[0] != knowledge.RolePlanner || a.Visibility[1] != knowledge.RoleBuilder || a.Visibility[2] != knowledge.RoleReviewer || a.Visibility[3] != knowledge.RoleNavigator {
-			t.Errorf("expected visibility [planner builder reviewer navigator], got %v", a.Visibility)
+		if len(a.Visibility) != 5 || a.Visibility[0] != knowledge.RolePlanner || a.Visibility[1] != knowledge.RoleBuilder || a.Visibility[2] != knowledge.RoleReviewer || a.Visibility[3] != knowledge.RoleNavigator || a.Visibility[4] != knowledge.RoleCartographer {
+			t.Errorf("expected visibility [planner builder reviewer navigator cartographer], got %v", a.Visibility)
 		}
 		for _, reqPhrase := range []string{
 			"sanitization",

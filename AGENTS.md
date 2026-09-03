@@ -2,16 +2,23 @@
 
 ## Architectural Topology & Jurisdictions
 
-- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook` v0.3.1). Roles: `planner`, `reviewer`, `builder`, `scout` (category: `core`), `navigator` (category: `companion`). Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`. Memory: living `AGENTS.md`.
+- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook` v0.3.2). Roles: `planner`, `reviewer`, `builder`, `scout` (category: `core`), `navigator`, `cartographer` (category: `companion`). Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`, `cartography`. Memory: living `AGENTS.md`.
 - **External Interfaces**: Go CLI (`agentplaybook`) discovery commands (`role`, `flow`, `artifact`, `rule`) with JSON output.
-- **Artifact Governance**: Hierarchical structure with `blueprint-plan` (`<slug>.blueprint.md`), `sub-build-plan` (`sub/<slug>.build.md`), `sub-review-plan` (`sub/<slug>.review.md`), `sub-review-resolution` (`sub/<slug>.resolution.md`), and top-level `review-resolution` (`<slug>.resolution.md`).
-- **Blind Barrier, Scout Isolation & Companion Allowlist**: `review-findings` strictly restricted to `["planner", "reviewer"]`; Builder receives only Planner-sanitized remediation instructions. Scout strictly excluded from all task in-flight artifacts (`build-plan`, `review-plan`, `blueprint-plan`, `sub-*`, `review-findings`). Navigator visibility strictly constrained by Settled-Artifact Allowlist (`agents-md`, `review-resolution`, `sub-review-resolution`); in-flight draft plans and review artifacts strictly exclude Navigator. Navigator is never an artifact owner or flow actor.
+- **Artifact Governance**: Hierarchical structure with `blueprint-plan` (`<slug>.blueprint.md`), `sub-build-plan` (`sub/<slug>.build.md`), `sub-review-plan` (`sub/<slug>.review.md`), `sub-review-resolution` (`sub/<slug>.resolution.md`), top-level `review-resolution` (`<slug>.resolution.md`), `diagram-brief`, and `diagram-completion`.
+- **Blind Barrier, Scout Isolation & Companion Allowlist**: `review-findings` strictly restricted to `["planner", "reviewer"]`; Builder receives only Planner-sanitized remediation instructions. Scout strictly excluded from all task in-flight artifacts (`build-plan`, `review-plan`, `blueprint-plan`, `sub-*`, `review-findings`). Navigator and Cartographer visibility strictly constrained by Settled-Artifact Allowlist (`agents-md`, `review-resolution`, `sub-review-resolution`); in-flight draft plans and review artifacts strictly exclude companions. Navigator is never an artifact owner or flow actor; Cartographer owns only `diagram-completion` and acts only in `cartography` flow.
 - **Navigator Companion Governance**:
-  - Star-Topology Isolation: Communicates strictly with `user` and `planner`. Direct communication with `builder`, `reviewer`, `scout` strictly forbidden.
+  - Star-Topology Isolation: Communicates strictly with `user`, `planner`, and `cartographer`. Direct communication with `builder`, `reviewer`, `scout` strictly forbidden.
   - Zero Instruction Relay: Returns fixed handoff (*"Please send this requirement directly to Planner"*) on change requests.
   - Planner Zero Side-Effect & Zero Response Obligation: Queries never trigger autonomous tasks, plan creation, or repository mutations. Planner possesses complete permission to ignore companion queries.
   - Planner Source-Restricted Response: Responses constrained to facts independently derivable from public allowlist with mandatory `[Source: <path> | Observed: <rev> @ <timestamp>]` provenance citation; denylist non-inference enforced.
   - Target-State Gated Inquiry: Queries gated strictly to eligible states (`idle` or `done`); non-eligible states prohibit dispatch; recipient discard on arrival, no retry/queue, admission limits (max 1 in-flight, <500 chars payload, fallback to static artifacts).
+- **Cartographer Companion Governance**:
+  - Specialized Visual Architect: Transforms architectural semantics, system topology, and execution flows into self-contained HTML/inline SVG diagrams under the editorial design system (`docs/diagrams/<safe-name>.html`).
+  - Zero Context Pollution: Isolates raw markup within Cartographer session; returns strictly the lightweight `diagram-completion` message artifact (<100 tokens evaluated by deterministic subword estimator EstimateTokenCount, <=250 chars, <=60 words, single-sentence digest, zero inline markup) containing persistent file URI, single-sentence plain text summary digest, and node/edge statistics.
+  - Taste Gate & Advisory Pushback: Enforces visual suitability and strict complexity budgets (<=12 nodes, <=12 transitions); issues advisory pushback (`ADVISORY_ISSUED`) recommending tables/prose when superior.
+  - Asynchronous Fire-and-Forget Decoupling: Commissioners dispatch `diagram-brief` asynchronously without blocking or active polling; pipeline flows never gate on cartography operations.
+  - Prerequisite Notice: Prompts operator upon startup/role assumption that the `diagram-design` skill (https://github.com/cathrynlavery/diagram-design) is required.
+  - Strict Star-Topology Isolation: Communicates strictly with `user`, `planner`, and `navigator`. Direct communication with `builder`, `reviewer`, `scout` strictly forbidden.
 - **Jurisdictional Boundaries (strict separation of concerns)**:
   - `AgentPlaybook`: Conceptual, evidence-based governance. Strictly VCS-neutral; no raw shell scripts or command syntax in catalog data.
   - VCS Mechanism: Low-level mechanics, headless guards (`--no-pager`), workspace management delegated to active VCS skill (Jujutsu / `agentjj` or Git).
@@ -57,8 +64,8 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-09-02T05:57:30Z @ working-copy`
-- **Dirty Status**: Modified 11 implementation/test/doc files for v0.3.1 Navigator Companion Role & Zero Side-Effect Governance; `AGENTS.md` and resolution artifact synthesized by Planner.
-- **Milestone**: AgentPlaybook v0.3.1 Navigator Companion Role - `REVIEW_PASS` (`ACCEPTED`).
+- **Observed-At**: `2026-09-04T05:27:00Z @ working-copy`
+- **Dirty Status**: Modified 16 implementation/test/doc files for v0.3.2 Cartographer Companion Role & Visual Architecture Governance; `AGENTS.md` and resolution artifact synthesized by Planner.
+- **Milestone**: AgentPlaybook v0.3.2 Cartographer Companion Role & Visual Architecture Governance - `REVIEW_PASS` (`ACCEPTED`).
 - **Next Pickup Item**: Execute commit flow via Jujutsu (`jj describe` / `jj new`), update working copy, and complete milestone finalization.
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

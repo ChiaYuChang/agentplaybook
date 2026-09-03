@@ -597,5 +597,46 @@
         "action": "Emit compact validated takeover state with anchor, audit evidence, risks, and next pickup."
       }
     ]
+  },
+  {
+    "name": "cartography",
+    "description": "Orchestrate structured visual diagram generation with Taste Gate evaluation, conditional advisory pushback, and zero context pollution.",
+    "steps": [
+      {
+        "index": 1,
+        "actor": "planner",
+        "action": "Identify visualization requirement and formulate structured diagram-brief artifact."
+      },
+      {
+        "index": 2,
+        "actor": "planner",
+        "action": "Dispatch diagram-brief message artifact to Cartographer."
+      },
+      {
+        "index": 3,
+        "actor": "cartographer",
+        "action": "Evaluate visual type, complexity budget (≤12 nodes), and suitability under Taste Gate criteria.",
+        "conditions": [
+          {
+            "when": "DIAGRAM_APPROVED",
+            "then": 4
+          },
+          {
+            "when": "ADVISORY_ISSUED",
+            "then": 5
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "actor": "cartographer",
+        "action": "Calculate layout geometry, render self-contained HTML/SVG, and delegate visual validation to the active diagramming capability."
+      },
+      {
+        "index": 5,
+        "actor": "cartographer",
+        "action": "Persist diagram to docs/diagrams/<safe-name>.html (or record advisory proposal) and emit lightweight diagram-completion message to commissioner."
+      }
+    ]
   }
 ]

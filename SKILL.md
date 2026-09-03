@@ -44,7 +44,7 @@ Do not query every knowledge domain on every turn. Query only the specific domai
    ```
 
 3. **Artifact Contracts**:
-   Before authoring, reviewing, or exchanging persistent plans, summaries, or structured findings (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`):
+   Before authoring, reviewing, or exchanging persistent plans, summaries, or structured findings (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`):
    ```sh
    sh "<skill-dir>/scripts/run-agentplaybook.sh" artifact <artifact-name>
    ```
@@ -73,7 +73,24 @@ sh "<skill-dir>/scripts/run-agentplaybook.sh" role navigator
 # Selectors: --description, --responsibility, --boundary, --communication
 ```
 
-Navigator operates under a strict star topology communicating only with the user and Planner. On detecting user change intent, Navigator executes a fixed handoff: *"Please send this requirement directly to Planner"*.
+Navigator operates under a strict star topology communicating only with the user, Planner, and Cartographer. On detecting user change intent, Navigator executes a fixed handoff: *"Please send this requirement directly to Planner"*.
+
+## Cartographer Role & Visual Architecture Companion
+
+The `cartographer` companion role (`category: "companion"`) is a specialized visual architect responsible for transforming architectural semantics, system topology, and execution flows into publication-grade, self-contained HTML/inline SVG diagrams under the editorial design system, while guaranteeing zero context pollution and non-blocking asynchronous decoupling for engineering pipelines.
+
+> [Notice] Cartographer requires the diagram-design skill (https://github.com/cathrynlavery/diagram-design) for publication-grade diagram rendering.
+
+```sh
+sh "<skill-dir>/scripts/run-agentplaybook.sh" role cartographer
+# Selectors: --description, --responsibility, --boundary, --communication
+```
+
+### Visual Boundaries & Protocols
+- **Path-Scoping & Security (`cartographer-visual-architect-boundary`)**: Write authority is strictly restricted to `docs/diagrams/<safe-name>.html` (rejecting directory traversal `..`, leading slashes, and external writes). Cartographer never modifies application source code or `AGENTS.md`.
+- **Taste Gate & Complexity Budget (`cartography-taste-gate-advisory`)**: Cartographer enforces a **Taste Gate** assessment (≤12 nodes for structural diagrams, ≤12 transitions for sequence flows). When tabular or prose representation is superior, Cartographer issues an advisory pushback (`ADVISORY_ISSUED`) directly to Step 5 without rendering markup.
+- **Zero Context Pollution (`cartography-zero-context-pollution`)**: Raw HTML/SVG markup remains confined to Cartographer's isolated session. Handoff to callers uses the lightweight `diagram-completion` message artifact (<100 tokens evaluated by deterministic subword estimator EstimateTokenCount, <=250 chars, <=60 words, single-sentence digest, zero inline markup), containing persistent file URI, single-sentence plain text summary digest, and node/edge statistics with zero inline HTML/SVG markup.
+- **Asynchronous Decoupling (`cartography-asynchronous-decoupling`)**: Callers dispatch `diagram-brief` artifacts asynchronously in fire-and-forget mode; blocking loops or polling on Cartographer completion are strictly prohibited.
 
 ## Repository Initialization Reconnaissance
 

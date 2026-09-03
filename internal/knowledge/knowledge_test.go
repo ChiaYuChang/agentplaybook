@@ -1,6 +1,7 @@
 package knowledge_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/ChiaYuChang/agentplaybook/internal/knowledge"
@@ -24,10 +25,10 @@ func TestLoad_Success(t *testing.T) {
 
 	// 2. Verify Roles
 	roles := k.Roles()
-	if len(roles) != 5 {
-		t.Fatalf("expected 5 roles, got %d", len(roles))
+	if len(roles) != 6 {
+		t.Fatalf("expected 6 roles, got %d", len(roles))
 	}
-	for _, expected := range []string{"planner", "builder", "reviewer", "scout", "navigator"} {
+	for _, expected := range []string{"planner", "builder", "reviewer", "scout", "navigator", "cartographer"} {
 		r, ok := k.Role(expected)
 		if !ok {
 			t.Errorf("expected role %q to exist", expected)
@@ -45,11 +46,23 @@ func TestLoad_Success(t *testing.T) {
 	if nav.Category != "companion" {
 		t.Errorf("expected navigator category 'companion', got %q", nav.Category)
 	}
-	if len(nav.Communication.Targets) != 2 || nav.Communication.Targets[0] != knowledge.RoleUser || nav.Communication.Targets[1] != knowledge.RolePlanner {
-		t.Errorf("expected navigator communication targets [user planner], got %v", nav.Communication.Targets)
+	if len(nav.Communication.Targets) != 3 || nav.Communication.Targets[0] != knowledge.RoleUser || nav.Communication.Targets[1] != knowledge.RolePlanner || nav.Communication.Targets[2] != knowledge.RoleCartographer {
+		t.Errorf("expected navigator communication targets [user planner cartographer], got %v", nav.Communication.Targets)
 	}
 
-	// Verify planner communication targets include navigator
+	// Verify cartographer role metadata
+	cart, ok := k.Role("cartographer")
+	if !ok {
+		t.Fatalf("expected cartographer role to exist")
+	}
+	if cart.Category != "companion" {
+		t.Errorf("expected cartographer category 'companion', got %q", cart.Category)
+	}
+	if len(cart.Communication.Targets) != 3 || cart.Communication.Targets[0] != knowledge.RoleUser || cart.Communication.Targets[1] != knowledge.RolePlanner || cart.Communication.Targets[2] != knowledge.RoleNavigator {
+		t.Errorf("expected cartographer communication targets [user planner navigator], got %v", cart.Communication.Targets)
+	}
+
+	// Verify planner communication targets include navigator and cartographer
 	planner, ok := k.Role("planner")
 	if !ok {
 		t.Fatalf("expected planner role to exist")
@@ -57,23 +70,28 @@ func TestLoad_Success(t *testing.T) {
 	if planner.Category != "core" {
 		t.Errorf("expected planner category 'core', got %q", planner.Category)
 	}
-	foundNavTarget := false
+	foundNavTarget, foundCartTarget := false, false
 	for _, target := range planner.Communication.Targets {
 		if target == knowledge.RoleNavigator {
 			foundNavTarget = true
-			break
+		}
+		if target == knowledge.RoleCartographer {
+			foundCartTarget = true
 		}
 	}
 	if !foundNavTarget {
 		t.Errorf("expected planner communication targets to include navigator, got %v", planner.Communication.Targets)
 	}
+	if !foundCartTarget {
+		t.Errorf("expected planner communication targets to include cartographer, got %v", planner.Communication.Targets)
+	}
 
 	// 3. Verify Flows
 	flows := k.Flows()
-	if len(flows) != 7 {
-		t.Fatalf("expected 7 flows, got %d", len(flows))
+	if len(flows) != 8 {
+		t.Fatalf("expected 8 flows, got %d", len(flows))
 	}
-	for _, expected := range []string{"init", "plan", "blueprint", "build", "review", "commit", "session-handoff"} {
+	for _, expected := range []string{"init", "plan", "blueprint", "build", "review", "commit", "session-handoff", "cartography"} {
 		f, ok := k.Flow(expected)
 		if !ok {
 			t.Errorf("expected flow %q to exist", expected)
@@ -229,10 +247,32 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("unexpected session-handoff step 1 conditions: %v", handoffStep1Conditions)
 	}
 
+	// Verify cartography flow
+	cartFlow, ok := k.Flow("cartography")
+	if !ok {
+		t.Fatalf("expected cartography flow to exist")
+	}
+	if len(cartFlow.Steps) != 5 {
+		t.Fatalf("expected 5 steps in cartography flow, got %d", len(cartFlow.Steps))
+	}
+	if cartFlow.Steps[0].Actor != knowledge.RolePlanner || cartFlow.Steps[1].Actor != knowledge.RolePlanner {
+		t.Errorf("expected cartography steps 1 and 2 actor to be planner")
+	}
+	if cartFlow.Steps[2].Actor != knowledge.RoleCartographer || cartFlow.Steps[3].Actor != knowledge.RoleCartographer || cartFlow.Steps[4].Actor != knowledge.RoleCartographer {
+		t.Errorf("expected cartography steps 3, 4, 5 actor to be cartographer")
+	}
+	cartStep3Conditions := make(map[string]int)
+	for _, c := range cartFlow.Steps[2].Conditions {
+		cartStep3Conditions[c.When] = c.Then
+	}
+	if cartStep3Conditions["DIAGRAM_APPROVED"] != 4 || cartStep3Conditions["ADVISORY_ISSUED"] != 5 {
+		t.Errorf("unexpected cartography step 3 conditions: %v", cartStep3Conditions)
+	}
+
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
-	if len(artifacts) != 10 {
-		t.Fatalf("expected 10 artifacts, got %d", len(artifacts))
+	if len(artifacts) != 12 {
+		t.Fatalf("expected 12 artifacts, got %d", len(artifacts))
 	}
 	for _, expected := range []string{
 		"agents-md",
@@ -245,6 +285,8 @@ func TestLoad_Success(t *testing.T) {
 		"review-findings",
 		"review-resolution",
 		"scout-survey",
+		"diagram-brief",
+		"diagram-completion",
 	} {
 		a, ok := k.Artifact(expected)
 		if !ok {
@@ -281,14 +323,37 @@ func TestLoad_Success(t *testing.T) {
 	if len(reviewResolution.Sections) != 5 {
 		t.Errorf("expected review-resolution to have 5 sections, got %d", len(reviewResolution.Sections))
 	}
-	if len(reviewResolution.Visibility) != 4 {
-		t.Errorf("expected review-resolution visibility to include 4 roles, got %v", reviewResolution.Visibility)
+	if len(reviewResolution.Visibility) != 5 {
+		t.Errorf("expected review-resolution visibility to include 5 roles, got %v", reviewResolution.Visibility)
+	}
+
+	// Verify diagram-brief and diagram-completion metadata
+	diagramBrief, _ := k.Artifact("diagram-brief")
+	if diagramBrief.Owner != knowledge.RolePlanner || diagramBrief.Type != "message" {
+		t.Errorf("unexpected diagram-brief metadata: %+v", diagramBrief)
+	}
+	if len(diagramBrief.Visibility) != 3 || diagramBrief.Visibility[0] != knowledge.RolePlanner || diagramBrief.Visibility[1] != knowledge.RoleNavigator || diagramBrief.Visibility[2] != knowledge.RoleCartographer {
+		t.Errorf("expected diagram-brief visibility [planner navigator cartographer], got %v", diagramBrief.Visibility)
+	}
+	if len(diagramBrief.Fields) != 5 {
+		t.Errorf("expected diagram-brief to have 5 fields, got %d", len(diagramBrief.Fields))
+	}
+
+	diagramCompletion, _ := k.Artifact("diagram-completion")
+	if diagramCompletion.Owner != knowledge.RoleCartographer || diagramCompletion.Type != "message" {
+		t.Errorf("unexpected diagram-completion metadata: %+v", diagramCompletion)
+	}
+	if len(diagramCompletion.Visibility) != 3 || diagramCompletion.Visibility[0] != knowledge.RolePlanner || diagramCompletion.Visibility[1] != knowledge.RoleNavigator || diagramCompletion.Visibility[2] != knowledge.RoleCartographer {
+		t.Errorf("expected diagram-completion visibility [planner navigator cartographer], got %v", diagramCompletion.Visibility)
+	}
+	if len(diagramCompletion.Fields) != 3 {
+		t.Errorf("expected diagram-completion to have 3 fields, got %d", len(diagramCompletion.Fields))
 	}
 
 	// 5. Verify Rules
 	rules := k.Rules()
-	if len(rules) < 22 {
-		t.Fatalf("expected at least 22 rules, got %d", len(rules))
+	if len(rules) < 26 {
+		t.Fatalf("expected at least 26 rules, got %d", len(rules))
 	}
 	for _, expected := range []string{
 		"anti-cheating",
@@ -309,6 +374,10 @@ func TestLoad_Success(t *testing.T) {
 		"companion-query-zero-side-effect",
 		"planner-source-restricted-response",
 		"target-state-gated-inquiry",
+		"cartographer-visual-architect-boundary",
+		"cartography-zero-context-pollution",
+		"cartography-taste-gate-advisory",
+		"cartography-asynchronous-decoupling",
 	} {
 		r, ok := k.Rule(expected)
 		if !ok {
@@ -424,12 +493,27 @@ func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
 		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
 		for i, r := range roles {
 			if r.Name == knowledge.RolePlanner {
-				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder, knowledge.RoleReviewer, knowledge.RoleScout}
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder, knowledge.RoleReviewer, knowledge.RoleScout, knowledge.RoleCartographer}
 			}
 		}
 		setRoles(&invalid, roles)
 		if err := knowledge.Validate(&invalid); err == nil {
 			t.Error("expected error when Planner omits navigator from communication targets")
+		}
+	}
+
+	// 6b. Planner omitting cartographer target
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RolePlanner {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder, knowledge.RoleReviewer, knowledge.RoleScout, knowledge.RoleNavigator}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Planner omits cartographer from communication targets")
 		}
 	}
 
@@ -439,7 +523,7 @@ func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
 		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
 		for i, r := range roles {
 			if r.Name == knowledge.RolePlanner {
-				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder, knowledge.RoleReviewer, knowledge.RoleScout, knowledge.RoleUser}
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder, knowledge.RoleReviewer, knowledge.RoleScout, knowledge.RoleNavigator, knowledge.RoleCartographer, knowledge.RoleUser}
 			}
 		}
 		setRoles(&invalid, roles)
@@ -448,13 +532,13 @@ func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
 		}
 	}
 
-	// 8. Navigator omitting user or planner
+	// 8. Navigator omitting user, planner, or cartographer
 	{
 		invalid := *k
 		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
 		for i, r := range roles {
 			if r.Name == knowledge.RoleNavigator {
-				roles[i].Communication.Targets = []knowledge.Role{knowledge.RolePlanner}
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RolePlanner, knowledge.RoleCartographer}
 			}
 		}
 		setRoles(&invalid, roles)
@@ -463,13 +547,27 @@ func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
 		}
 	}
 
-	// 8. Navigator targeting builder (violating star topology)
 	{
 		invalid := *k
 		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
 		for i, r := range roles {
 			if r.Name == knowledge.RoleNavigator {
-				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleUser, knowledge.RolePlanner, knowledge.RoleBuilder}
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleUser, knowledge.RolePlanner}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Navigator omits cartographer from communication targets")
+		}
+	}
+
+	// 8b. Navigator targeting builder (violating star topology)
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleNavigator {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleUser, knowledge.RolePlanner, knowledge.RoleCartographer, knowledge.RoleBuilder}
 			}
 		}
 		setRoles(&invalid, roles)
@@ -484,7 +582,7 @@ func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
 		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
 		for i, r := range roles {
 			if r.Name == knowledge.RoleNavigator {
-				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleUser, knowledge.RolePlanner, knowledge.RolePlanner}
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleUser, knowledge.RolePlanner, knowledge.RoleCartographer, knowledge.RoleCartographer}
 			}
 		}
 		setRoles(&invalid, roles)
@@ -499,7 +597,7 @@ func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
 		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
 		for i, r := range roles {
 			if r.Name == knowledge.RolePlanner {
-				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder, knowledge.RoleReviewer, knowledge.RoleScout, knowledge.RoleNavigator, knowledge.RoleNavigator}
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder, knowledge.RoleReviewer, knowledge.RoleScout, knowledge.RoleNavigator, knowledge.RoleCartographer, knowledge.RoleCartographer}
 			}
 		}
 		setRoles(&invalid, roles)
@@ -527,7 +625,7 @@ func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
 		}
 	}
 
-	// 10. Navigator in in-flight artifact visibility
+	// 12. Navigator in in-flight artifact visibility
 	{
 		invalid := *k
 		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
@@ -542,7 +640,7 @@ func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
 		}
 	}
 
-	// 11. Navigator in non-allowlisted artifact visibility
+	// 13. Navigator in non-allowlisted artifact visibility
 	{
 		invalid := *k
 		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
@@ -561,7 +659,7 @@ func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
 		}
 	}
 
-	// 12. Navigator as flow actor
+	// 14. Navigator as flow actor
 	{
 		invalid := *k
 		flows := append([]knowledge.Flow(nil), k.Flows()...)
@@ -582,7 +680,7 @@ func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
 		}
 	}
 
-	// 13. User as artifact owner or flow actor
+	// 15. User as artifact owner or flow actor
 	{
 		invalid := *k
 		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
@@ -598,6 +696,287 @@ func TestValidate_RoleCategoryAndUserConstraints(t *testing.T) {
 		setArtifacts(&invalid, artifacts)
 		if err := knowledge.Validate(&invalid); err == nil {
 			t.Error("expected error when User is an artifact owner")
+		}
+	}
+}
+
+func TestValidate_CartographerConstraints(t *testing.T) {
+	t.Parallel()
+
+	k, err := knowledge.Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	// 1. Cartographer omitting user, planner, or navigator
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleCartographer {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RolePlanner, knowledge.RoleNavigator}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Cartographer omits user from communication targets")
+		}
+	}
+
+	// 2. Cartographer targeting builder directly (violating star topology)
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleCartographer {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleUser, knowledge.RolePlanner, knowledge.RoleBuilder}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Cartographer targets builder directly")
+		}
+	}
+
+	// 3. Cartographer duplicate communication targets
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleCartographer {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleUser, knowledge.RolePlanner, knowledge.RolePlanner}
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Cartographer has duplicate communication targets")
+		}
+	}
+
+	// 4. Cartographer as artifact owner of non-diagram-completion artifact
+	{
+		invalid := *k
+		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
+		artifacts = append(artifacts, knowledge.Artifact{
+			Name:        "cartographer-code-plan",
+			Title:       "Cartographer Code Plan",
+			Description: "Invalid artifact owned by cartographer",
+			Owner:       knowledge.RoleCartographer,
+			Visibility:  []knowledge.Role{knowledge.RolePlanner},
+			Type:        "document",
+			Sections:    []knowledge.ArtifactSection{{Name: "Plan", Required: true, Description: "Plan content"}},
+		})
+		setArtifacts(&invalid, artifacts)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Cartographer owns a non-diagram-completion artifact")
+		}
+	}
+
+	// 5. Cartographer in in-flight artifact visibility (build-plan, review-findings, etc.)
+	for _, inFlight := range []string{"build-plan", "review-plan", "blueprint-plan", "review-findings", "scout-survey"} {
+		invalid := *k
+		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
+		for i, a := range artifacts {
+			if a.Name == inFlight {
+				artifacts[i].Visibility = append(artifacts[i].Visibility, knowledge.RoleCartographer)
+			}
+		}
+		setArtifacts(&invalid, artifacts)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Errorf("expected error when Cartographer is in %s visibility", inFlight)
+		}
+	}
+
+	// 6. Cartographer in non-allowlisted artifact visibility
+	{
+		invalid := *k
+		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
+		artifacts = append(artifacts, knowledge.Artifact{
+			Name:        "custom-internal-spec",
+			Title:       "Custom Internal Spec",
+			Description: "Non-allowlisted document",
+			Owner:       knowledge.RolePlanner,
+			Visibility:  []knowledge.Role{knowledge.RolePlanner, knowledge.RoleCartographer},
+			Type:        "document",
+			Sections:    []knowledge.ArtifactSection{{Name: "Content", Required: true, Description: "Content"}},
+		})
+		setArtifacts(&invalid, artifacts)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Cartographer is in non-allowlisted artifact visibility")
+		}
+	}
+
+	// 7. Cartographer as flow actor in engineering flows (build, init, plan, review, commit)
+	for _, engFlow := range []string{"init", "plan", "blueprint", "build", "review", "commit"} {
+		invalid := *k
+		flows := append([]knowledge.Flow(nil), k.Flows()...)
+		for i, f := range flows {
+			if f.Name == engFlow {
+				flows[i].Steps = append(flows[i].Steps, knowledge.FlowStep{
+					Index:  len(f.Steps) + 1,
+					Actor:  knowledge.RoleCartographer,
+					Action: "Unauthorized action by cartographer",
+				})
+			}
+		}
+		setFlows(&invalid, flows)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Errorf("expected error when Cartographer is an actor in %s flow", engFlow)
+		}
+	}
+}
+
+func TestValidateDiagramPath(t *testing.T) {
+	t.Parallel()
+
+	validPaths := []string{
+		"docs/diagrams/system-topology.html",
+		"docs/diagrams/code-development-lifecycle.html",
+		"docs/diagrams/overview.v2.html",
+		"docs/diagrams/flow_123-abc.html",
+		"docs/diagrams/arch.v1.2.3.html",
+	}
+	for _, p := range validPaths {
+		if err := knowledge.ValidateDiagramPath(p); err != nil {
+			t.Errorf("expected path %q to be valid, got err: %v", p, err)
+		}
+	}
+
+	invalidPaths := []struct {
+		path string
+		desc string
+	}{
+		{"", "empty path"},
+		{"../etc/passwd", "directory traversal"},
+		{"docs/diagrams/../escape.html", "directory traversal within path"},
+		{"docs/diagrams/foo.svg", "non-html extension svg"},
+		{"docs/diagrams/foo.png", "non-html extension png"},
+		{"diagrams/foo.html", "missing docs/ prefix"},
+		{"/docs/diagrams/foo.html", "leading slash absolute path"},
+		{"docs/diagrams/sub/foo.html", "nested directory inside diagrams"},
+		{"docs\\diagrams\\foo.html", "backslashes"},
+		{"docs/diagrams/foo..html", "double dots"},
+		{"docs/diagrams/.html", "missing base name"},
+		{"docs/diagrams/foo$.html", "invalid character $"},
+	}
+	for _, tc := range invalidPaths {
+		if err := knowledge.ValidateDiagramPath(tc.path); err == nil {
+			t.Errorf("expected path %q (%s) to be rejected, got nil", tc.path, tc.desc)
+		}
+	}
+}
+
+func TestEstimateTokenCount(t *testing.T) {
+	t.Parallel()
+
+	if tokens := knowledge.EstimateTokenCount(""); tokens != 0 {
+		t.Errorf("expected 0 tokens for empty string, got %d", tokens)
+	}
+
+	// 1 word of 4 letters: (4+3)/4 = 1 token
+	if tokens := knowledge.EstimateTokenCount("word"); tokens != 1 {
+		t.Errorf("expected 1 token for 'word', got %d", tokens)
+	}
+
+	// 1 word of 5 letters: (5+3)/4 = 2 tokens
+	if tokens := knowledge.EstimateTokenCount("hello"); tokens != 2 {
+		t.Errorf("expected 2 tokens for 'hello', got %d", tokens)
+	}
+
+	// 1 word of 20 letters: (20+3)/4 = 5 tokens
+	if tokens := knowledge.EstimateTokenCount("antidisestablishment"); tokens != 5 {
+		t.Errorf("expected 5 tokens for 20-letter word, got %d", tokens)
+	}
+
+	// 20 words of 20 letters: 20 * 5 = 100 tokens
+	longWords := strings.TrimSpace(strings.Repeat("antidisestablishment ", 20))
+	if tokens := knowledge.EstimateTokenCount(longWords); tokens != 100 {
+		t.Errorf("expected 100 tokens for 20 20-letter words, got %d", tokens)
+	}
+}
+
+func TestValidateDiagramCompletion(t *testing.T) {
+	t.Parallel()
+
+	validCases := []struct {
+		uri    string
+		digest string
+	}{
+		{
+			uri:    "docs/diagrams/system-topology.html",
+			digest: "System topology diagram illustrating 5 microservices and event queues.",
+		},
+		{
+			uri:    "file://docs/diagrams/code-development-lifecycle.html",
+			digest: "Lifecycle sequence showing state machine progression across 6 roles.",
+		},
+		{
+			uri:    "docs/diagrams/overview.v2.html",
+			digest: "High-level overview mapping out architectural layers and boundaries.",
+		},
+	}
+	for _, tc := range validCases {
+		if err := knowledge.ValidateDiagramCompletion(tc.uri, tc.digest); err != nil {
+			t.Errorf("expected valid diagram completion (%s, %s), got err: %v", tc.uri, tc.digest, err)
+		}
+	}
+
+	// Assert that absolute file:/// URIs are directly rejected with the specific error message
+	absURI := "file:///absolute/path/docs/diagrams/overview.html"
+	err := knowledge.ValidateDiagramCompletion(absURI, "Valid single-sentence digest.")
+	if err == nil {
+		t.Errorf("expected absolute file:/// URI %q to be rejected, got nil", absURI)
+	} else {
+		expectedSubstr := "absolute file:/// URIs are prohibited; use repo-relative path docs/diagrams/<name>.html or file://docs/diagrams/<name>.html"
+		if !strings.Contains(err.Error(), expectedSubstr) {
+			t.Errorf("expected error to contain %q, got: %v", expectedSubstr, err)
+		}
+	}
+
+	invalidCases := []struct {
+		uri    string
+		digest string
+		desc   string
+	}{
+		{"", "Valid digest.", "empty URI"},
+		{"http://evil.com/diagram.html", "Valid digest.", "external http URI"},
+		{"https://example.com/diagram.html", "Valid digest.", "external https URI"},
+		{"../escape.html", "Valid digest.", "traversal URI"},
+		{"file://docs/diagrams/../escape.html", "Valid digest.", "file URI traversal"},
+		{"file:///etc/passwd", "Valid digest.", "file URI outside diagrams"},
+		{"file:///outside/repo/docs/diagrams/name.html", "Valid digest.", "file URI outside repo working directory"},
+		{"file:///any/other/root/docs/diagrams/name.html", "Valid digest.", "file URI with arbitrary root outside repo"},
+		{"/docs/diagrams/foo.html", "Valid digest.", "absolute URI without file:// scheme"},
+		{"docs/diagrams/foo.svg", "Valid digest.", "non-html URI"},
+		{"docs/diagrams/foo.html", "", "empty digest"},
+		{"docs/diagrams/foo.html", "<svg>alert(1)</svg>", "raw SVG markup in digest"},
+		{"docs/diagrams/foo.html", "<div>Invalid</div>", "raw HTML markup in digest"},
+		{"docs/diagrams/foo.html", "Has < opening tag.", "opening tag in digest"},
+		{"docs/diagrams/foo.html", "Has > closing tag.", "closing tag in digest"},
+		{"docs/diagrams/foo.html", "Line 1.\nLine 2.", "newline in digest"},
+		{"docs/diagrams/foo.html", "Line 1.\rLine 2.", "carriage return in digest"},
+		{"docs/diagrams/foo.html", "First sentence. Second sentence.", "multi-sentence digest with period"},
+		{"docs/diagrams/foo.html", "First sentence! Second sentence.", "multi-sentence digest with exclamation mark"},
+		{"docs/diagrams/foo.html", "Question one? Question two.", "multi-sentence digest with question mark"},
+		{
+			uri:    "docs/diagrams/foo.html",
+			digest: strings.Repeat("A", 251) + ".",
+			desc:   "digest exceeding 250 characters",
+		},
+		{
+			uri:    "docs/diagrams/foo.html",
+			digest: strings.TrimSpace(strings.Repeat("word ", 61)) + ".",
+			desc:   "digest exceeding 60 words limit",
+		},
+		{
+			uri:    "docs/diagrams/foo.html",
+			digest: strings.TrimSpace(strings.Repeat("antidisestablishment ", 20)) + ".",
+			desc:   "digest exceeding 100 tokens limit with subword-heavy words",
+		},
+	}
+	for _, tc := range invalidCases {
+		if err := knowledge.ValidateDiagramCompletion(tc.uri, tc.digest); err == nil {
+			t.Errorf("expected invalid diagram completion (%s, %s) [%s] to fail, got nil", tc.uri, tc.digest, tc.desc)
 		}
 	}
 }

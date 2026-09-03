@@ -17,12 +17,13 @@ type CommunicationConfig struct {
 type Role string
 
 const (
-	RolePlanner   Role = "planner"
-	RoleBuilder   Role = "builder"
-	RoleReviewer  Role = "reviewer"
-	RoleScout     Role = "scout"
-	RoleNavigator Role = "navigator"
-	RoleUser      Role = "user"
+	RolePlanner      Role = "planner"
+	RoleBuilder      Role = "builder"
+	RoleReviewer     Role = "reviewer"
+	RoleScout        Role = "scout"
+	RoleNavigator    Role = "navigator"
+	RoleCartographer Role = "cartographer"
+	RoleUser         Role = "user"
 )
 
 // RoleDefinition defines the identity and boundaries of a participant role.

@@ -297,7 +297,7 @@
       "Navigator performs strictly read-only codebase navigation and visual mapping; modifying, creating, or deleting repository files is strictly prohibited.",
       "Navigator must never edit AGENTS.md directly, preserving the Single-Writer Principle.",
       "On detecting human intent for code changes or workflow initiation, Navigator must execute the fixed handoff: 'Please send this requirement directly to Planner'.",
-      "Navigator is strictly isolated from Builder, Reviewer, and Scout, communicating only with human user and Planner under strict star topology."
+      "Navigator is strictly isolated from Builder, Reviewer, and Scout, communicating strictly with human user, Planner, and Cartographer under strict star topology."
     ]
   },
   {
@@ -335,6 +335,60 @@
       "Non-eligible target states ('running', 'busy', 'waiting_for_input') prohibit inquiry dispatch; inquiries arriving during non-eligible states must be discarded without queueing or retry.",
       "Navigator enforces admission controls: maximum 1 in-flight inquiry, payload strictly under 500 characters, and static artifact fallback.",
       "Tier 3 rules define target-state gating conceptually, delegating lifecycle status inspection to active harness transport capabilities."
+    ]
+  },
+  {
+    "id": "cartographer-visual-architect-boundary",
+    "title": "Cartographer Visual Architect & Path-Scoping Boundary Protocol",
+    "category": "protocol",
+    "summary": "Governs Cartographer's visual-only scope, read-only code access, write authority strictly confined to docs/diagrams/<safe-name>.html (forbidding traversal or external writes), and prohibition from mutating codebase or AGENTS.md.",
+    "details": "Cartographer operates as a specialized visual architect dedicated exclusively to producing publication-grade, self-contained HTML/inline SVG architecture diagrams. Cartographer is strictly read-only with respect to application source code, test suites, and repository configurations. Write authority is strictly restricted to docs/diagrams/<safe-name>.html, rejecting path traversal, parent directory escapes, and writes outside docs/diagrams/. Cartographer must never edit AGENTS.md directly, author build plans, dispatch engineering tasks, or participate in verification review gates.",
+    "guidelines": [
+      "Upon session startup or role assumption, Cartographer displays an advisory notice reminding the operator that the diagram-design skill (https://github.com/cathrynlavery/diagram-design) is required for editorial rendering.",
+      "Cartographer performs strictly visual architecture and diagram synthesis; modifying application source code, test suites, or configuration is strictly prohibited.",
+      "Write permissions are strictly restricted to docs/diagrams/<safe-name>.html; directory traversal ('..') and writing outside docs/diagrams/ are forbidden.",
+      "Cartographer must never edit AGENTS.md directly, preserving the Single-Writer Principle.",
+      "Cartographer is prohibited from authoring task build plans, dispatching engineering tasks, or participating in review gates.",
+      "Enforce star-topology isolation: Cartographer communicates strictly with human user, Planner, and Navigator; direct communication with Builder, Reviewer, or Scout is forbidden."
+    ]
+  },
+  {
+    "id": "cartography-zero-context-pollution",
+    "title": "Cartography Zero Context Pollution Invariant",
+    "category": "protocol",
+    "summary": "Mandates complete containment of raw HTML/SVG markup inside Cartographer's isolated context; restricts inter-agent returns strictly to the diagram-completion message artifact (<100 tokens evaluated by deterministic subword estimator EstimateTokenCount, <=250 chars, <=60 words, single-sentence digest, zero inline markup).",
+    "details": "Publication-grade visual diagrams generate large HTML and inline SVG files (30KB+, equivalent to 5,000 to 15,000 tokens). Transmitting or embedding raw HTML/SVG markup within the primary orchestration context windows of Planner or Navigator causes severe context exhaustion and triggers premature conversation compaction. Cartographer operates within an isolated session and persists diagram markup directly to docs/diagrams/<safe-name>.html. Handoff to callers is strictly restricted to the lightweight diagram-completion message artifact containing file URI, a single-sentence digest, and node/edge statistics (<100 tokens evaluated by deterministic subword estimator EstimateTokenCount, <=250 chars, <=60 words, single-sentence digest, zero inline markup), with zero inline HTML/SVG markup.",
+    "guidelines": [
+      "Raw HTML and inline SVG markup must remain strictly contained within Cartographer's isolated session and persisted directly to docs/diagrams/<safe-name>.html.",
+      "Transmitting raw HTML or SVG markup to Planner, Navigator, or other orchestration agents is strictly prohibited.",
+      "Handoff signals must use the diagram-completion message artifact (<100 tokens evaluated by deterministic subword estimator EstimateTokenCount, <=250 chars, <=60 words, single-sentence digest, zero inline markup) containing file URI, single-sentence digest, and node/edge statistics.",
+      "Runtime validation rejects diagram completion payloads containing '<' or '>' characters, newlines, multi-sentence text, exceeding 60 words, 250 characters, or >=100 tokens."
+    ]
+  },
+  {
+    "id": "cartography-taste-gate-advisory",
+    "title": "Cartography Taste Gate & Advisory Pushback Protocol",
+    "category": "protocol",
+    "summary": "Empowers Cartographer with visual suitability assessment, complexity budget enforcement (≤12 nodes, ≤12 transitions), and advisory pushback (suggesting tables/prose when superior to diagrams).",
+    "details": "To prevent visual diagram proliferation and low-value diagram generation, Cartographer executes a Taste Gate assessment before rendering. Cartographer evaluates whether a diagram provides genuine communicative clarity over standard markdown tables or structured prose. Cartographer enforces strict complexity budgets: maximum 12 nodes for structural diagrams, maximum 12 transitions for sequence/lifecycle flows, and 4px grid alignment. If a visual diagram adds no net value or exceeds complexity budgets, Cartographer exercises professional discretion to issue an advisory pushback (ADVISORY_ISSUED) recommending tabular or prose representation.",
+    "guidelines": [
+      "Cartographer must evaluate visual suitability and complexity budgets under Taste Gate criteria before diagram synthesis.",
+      "Enforce complexity budgets: maximum 12 nodes for structural diagrams and maximum 12 transitions for sequence flows.",
+      "When markdown tables or prose provide superior clarity, Cartographer exercises advisory pushback (ADVISORY_ISSUED) directly to Step 5 without rendering markup.",
+      "Diagram layouts must adhere to the editorial design system: 4px grid geometry, orthogonal elbow connectors with r=8, and distinct focal node accents."
+    ]
+  },
+  {
+    "id": "cartography-asynchronous-decoupling",
+    "title": "Cartography Asynchronous Decoupling & Non-Blocking Coordination",
+    "category": "operational",
+    "summary": "Enforces fire-and-forget dispatch; callers (Planner/Navigator) have zero polling or blocking wait obligations.",
+    "details": "Cartography operations are decoupled from synchronous engineering pipelines. Commissioners (Planner or Navigator) dispatch diagram briefs asynchronously and continue workflow progression without active polling or blocking loops. Cartographer completes layout computation, rendering, and persistence independently, notifying commissioners via the diagram-completion message artifact when finished.",
+    "guidelines": [
+      "Commissioners dispatch diagram briefs asynchronously in fire-and-forget mode without blocking active workflows.",
+      "Active sleep polling or synchronous wait loops on Cartographer completion are strictly prohibited.",
+      "Cartographer delivers completed diagrams asynchronously via the diagram-completion message artifact.",
+      "Engineering pipelines (build, review, commit) must not block or gate on in-flight cartography operations."
     ]
   }
 ]

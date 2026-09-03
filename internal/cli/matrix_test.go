@@ -63,6 +63,10 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"role", "navigator", "--responsibility"},
 		{"role", "navigator", "--boundary"},
 		{"role", "navigator", "--communication"},
+		{"role", "cartographer"},
+		{"role", "cartographer", "--responsibility"},
+		{"role", "cartographer", "--boundary"},
+		{"role", "cartographer", "--communication"},
 		{"role", "planner", "--communication"},
 		{"flow", "init"},
 		{"flow", "init", "--step", "1"},
@@ -77,6 +81,9 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"flow", "session-handoff"},
 		{"flow", "session-handoff", "--step", "1"},
 		{"flow", "session-handoff", "--step", "2"},
+		{"flow", "cartography"},
+		{"flow", "cartography", "--step", "1"},
+		{"flow", "cartography", "--step", "3"},
 		{"artifact", "agents-md"},
 		{"artifact", "build-plan"},
 		{"artifact", "review-plan"},
@@ -87,6 +94,8 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"artifact", "review-findings"},
 		{"artifact", "scout-survey"},
 		{"artifact", "review-resolution"},
+		{"artifact", "diagram-brief"},
+		{"artifact", "diagram-completion"},
 		{"rule", "list"},
 		{"rule", "explain", "anti-cheating"},
 		{"rule", "explain", "coherent-plan-units"},
@@ -110,6 +119,10 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "companion-query-zero-side-effect"},
 		{"rule", "explain", "planner-source-restricted-response"},
 		{"rule", "explain", "target-state-gated-inquiry"},
+		{"rule", "explain", "cartographer-visual-architect-boundary"},
+		{"rule", "explain", "cartography-zero-context-pollution"},
+		{"rule", "explain", "cartography-taste-gate-advisory"},
+		{"rule", "explain", "cartography-asynchronous-decoupling"},
 	}
 
 	for _, cmd := range jsonCommands {
@@ -443,7 +456,7 @@ func TestCLI_AgentsLanguageConciseness(t *testing.T) {
 
 	telegraphicMessageContract := "Communicate using telegraphic Caveman mode for all inter-agent messages (including [Planner], [Reviewer], [Builder], [Scout], or [<role>] prefixed exchanges): omit conversational filler, pleasantries, and polite framing in favor of compact, structured technical fragments."
 	ephemeralCavemanMandate := "Inter-agent communication requires telegraphic (caveman) compression for all exchanges (including [Planner], [Reviewer], [Builder], [Scout], or [<role>] prefixed messages): drop conversational filler, pleasantries, and polite framing; communicate in compact, structured technical fragments to minimize transport token consumption."
-	for _, roleName := range []string{"planner", "builder", "reviewer", "scout", "navigator"} {
+	for _, roleName := range []string{"planner", "builder", "reviewer", "scout", "navigator", "cartographer"} {
 		var role knowledge.RoleDefinition
 		if err := json.Unmarshal(queryJSON("role", roleName), &role); err != nil {
 			t.Fatalf("failed to decode %s role: %v", roleName, err)
@@ -1213,8 +1226,8 @@ func TestCLI_AIReviewerSpecThreeTierIntegration(t *testing.T) {
 		if resolution.PathVariables["timestamp"] == "" || resolution.PathVariables["slug"] == "" {
 			t.Errorf("expected path_variables timestamp and slug in review-resolution, got %+v", resolution.PathVariables)
 		}
-		if len(resolution.Visibility) != 4 || resolution.Visibility[0] != knowledge.RolePlanner || resolution.Visibility[1] != knowledge.RoleBuilder || resolution.Visibility[2] != knowledge.RoleReviewer || resolution.Visibility[3] != knowledge.RoleNavigator {
-			t.Errorf("expected resolution visibility [planner builder reviewer navigator], got %v", resolution.Visibility)
+		if len(resolution.Visibility) != 5 || resolution.Visibility[0] != knowledge.RolePlanner || resolution.Visibility[1] != knowledge.RoleBuilder || resolution.Visibility[2] != knowledge.RoleReviewer || resolution.Visibility[3] != knowledge.RoleNavigator || resolution.Visibility[4] != knowledge.RoleCartographer {
+			t.Errorf("expected resolution visibility [planner builder reviewer navigator cartographer], got %v", resolution.Visibility)
 		}
 		for _, reqPhrase := range []string{"sanitization", "review-plan criteria", "hidden test fixtures", "private inspection methods"} {
 			if !strings.Contains(resolution.Description, reqPhrase) {
@@ -1607,8 +1620,8 @@ func TestCLI_V031_NavigatorAndCompanionGovernance(t *testing.T) {
 		if nav.Title != "Codebase Navigator & Comprehension Companion" {
 			t.Errorf("unexpected navigator title: %q", nav.Title)
 		}
-		if len(nav.Communication.Targets) != 2 || nav.Communication.Targets[0] != knowledge.RoleUser || nav.Communication.Targets[1] != knowledge.RolePlanner {
-			t.Errorf("expected navigator communication targets strictly [user planner], got %v", nav.Communication.Targets)
+		if len(nav.Communication.Targets) != 3 || nav.Communication.Targets[0] != knowledge.RoleUser || nav.Communication.Targets[1] != knowledge.RolePlanner || nav.Communication.Targets[2] != knowledge.RoleCartographer {
+			t.Errorf("expected navigator communication targets strictly [user planner cartographer], got %v", nav.Communication.Targets)
 		}
 
 		// Verify navigator boundaries
@@ -1616,7 +1629,7 @@ func TestCLI_V031_NavigatorAndCompanionGovernance(t *testing.T) {
 			"Strictly read-only; DO NOT modify, create, or delete repository files, test suites, or configuration.",
 			"DO NOT edit AGENTS.md directly; enforce the Single-Writer Principle.",
 			"Strictly prohibited from relaying instructions, authoring plans, or initiating task dispatches (fixed handoff: 'Please send this requirement directly to Planner').",
-			"Enforce strict star topology: communicate ONLY with user and planner; communication with Builder, Reviewer, or Scout is impossible and forbidden.",
+			"Enforce strict star topology: communicate strictly with user, planner, and cartographer; communication with Builder, Reviewer, or Scout remains strictly forbidden.",
 			"Gated strictly to eligible states (idle or done) before sending Planner inquiries; send-or-drop policy prohibits inquiry when Planner is in non-eligible states (running, busy, waiting_for_input).",
 			"Enforce admission controls: maximum 1 in-flight inquiry to Planner, payload strictly under 500 characters, fallback to static artifacts if unanswered.",
 			"Denylist absolute precedence: NEVER query, read, search for, or infer from confidential review plans, sub-review plans, review findings, or test criteria.",
@@ -1806,6 +1819,216 @@ func TestCLI_V031_NavigatorAndCompanionGovernance(t *testing.T) {
 			} {
 				if !strings.Contains(docStr, required) {
 					t.Errorf("expected doc file %q to contain v0.3.1 term %q", docPath, required)
+				}
+			}
+		}
+	}
+}
+
+func TestCLI_V032_CartographerAndVisualGovernance(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "dev"); err != nil {
+			t.Fatalf("cli.Execute(%v) failed: %v\nStderr: %s", args, err, stderr.String())
+		}
+		return stdout.Bytes()
+	}
+
+	// 1. Cartographer Role Identity & Communication Targets
+	{
+		var cart knowledge.RoleDefinition
+		if err := json.Unmarshal(queryJSON("role", "cartographer"), &cart); err != nil {
+			t.Fatalf("failed to decode cartographer role: %v", err)
+		}
+		if cart.Name != "cartographer" || cart.Category != "companion" {
+			t.Errorf("unexpected cartographer role name/category: %q / %q", cart.Name, cart.Category)
+		}
+		if cart.Title != "System Cartographer & Visual Architect" {
+			t.Errorf("unexpected cartographer title: %q", cart.Title)
+		}
+		if len(cart.Communication.Targets) != 3 || cart.Communication.Targets[0] != knowledge.RoleUser || cart.Communication.Targets[1] != knowledge.RolePlanner || cart.Communication.Targets[2] != knowledge.RoleNavigator {
+			t.Errorf("expected cartographer communication targets strictly [user planner navigator], got %v", cart.Communication.Targets)
+		}
+
+		// Assert exact cartographer responsibility
+		expectedResp := "Upon assuming the role or initiating a cartography session, display an advisory startup notice reminding the operator that publication-grade diagram rendering requires the diagram-design skill (https://github.com/cathrynlavery/diagram-design)."
+		if !slices.Contains(cart.Responsibilities, expectedResp) {
+			t.Errorf("expected cartographer responsibility %q", expectedResp)
+		}
+
+		// Assert exact cartographer boundary
+		expectedBoundary := "Advisory prerequisite: remind operator upon role assumption that diagram-design (https://github.com/cathrynlavery/diagram-design) is required; auto-installation is prohibited."
+		if !slices.Contains(cart.Boundaries, expectedBoundary) {
+			t.Errorf("expected cartographer boundary %q", expectedBoundary)
+		}
+
+		// Verify Planner targets include cartographer
+		var planner knowledge.RoleDefinition
+		if err := json.Unmarshal(queryJSON("role", "planner"), &planner); err != nil {
+			t.Fatalf("failed to decode planner role: %v", err)
+		}
+		if !slices.Contains(planner.Communication.Targets, knowledge.RoleCartographer) {
+			t.Errorf("expected planner communication targets to include cartographer, got %v", planner.Communication.Targets)
+		}
+	}
+
+	// 2. Rules Verification
+	{
+		for _, ruleID := range []string{
+			"cartographer-visual-architect-boundary",
+			"cartography-zero-context-pollution",
+			"cartography-taste-gate-advisory",
+			"cartography-asynchronous-decoupling",
+		} {
+			var rules []knowledge.Rule
+			if err := json.Unmarshal(queryJSON("rule", "explain", ruleID), &rules); err != nil {
+				t.Fatalf("failed to decode %s rule: %v", ruleID, err)
+			}
+			if len(rules) != 1 {
+				t.Fatalf("expected 1 %s rule, got %d", ruleID, len(rules))
+			}
+			if ruleID == "cartographer-visual-architect-boundary" {
+				expectedGuideline := "Upon session startup or role assumption, Cartographer displays an advisory notice reminding the operator that the diagram-design skill (https://github.com/cathrynlavery/diagram-design) is required for editorial rendering."
+				if !slices.Contains(rules[0].Guidelines, expectedGuideline) {
+					t.Errorf("expected rule guideline %q", expectedGuideline)
+				}
+			}
+		}
+	}
+
+	// 3. Artifact Visibility & Owner Invariants
+	{
+		// In-flight task plans strictly exclude cartographer
+		for _, artName := range []string{
+			"build-plan",
+			"review-plan",
+			"blueprint-plan",
+			"sub-build-plan",
+			"sub-review-plan",
+			"review-findings",
+			"scout-survey",
+		} {
+			var a knowledge.Artifact
+			if err := json.Unmarshal(queryJSON("artifact", artName), &a); err != nil {
+				t.Fatalf("failed to decode %s: %v", artName, err)
+			}
+			if slices.Contains(a.Visibility, knowledge.RoleCartographer) {
+				t.Errorf("in-flight artifact %q must strictly exclude cartographer from visibility", artName)
+			}
+		}
+
+		// Public milestone and diagram artifacts include cartographer
+		for _, artName := range []string{
+			"agents-md",
+			"sub-review-resolution",
+			"review-resolution",
+			"diagram-brief",
+			"diagram-completion",
+		} {
+			var a knowledge.Artifact
+			if err := json.Unmarshal(queryJSON("artifact", artName), &a); err != nil {
+				t.Fatalf("failed to decode %s: %v", artName, err)
+			}
+			if !slices.Contains(a.Visibility, knowledge.RoleCartographer) {
+				t.Errorf("artifact %q must include cartographer in visibility", artName)
+			}
+		}
+
+		// Cartographer owns ONLY diagram-completion
+		for _, artName := range []string{
+			"agents-md",
+			"build-plan",
+			"review-plan",
+			"blueprint-plan",
+			"sub-build-plan",
+			"sub-review-plan",
+			"sub-review-resolution",
+			"review-findings",
+			"scout-survey",
+			"review-resolution",
+			"diagram-brief",
+		} {
+			var a knowledge.Artifact
+			if err := json.Unmarshal(queryJSON("artifact", artName), &a); err != nil {
+				t.Fatalf("failed to decode %s: %v", artName, err)
+			}
+			if a.Owner == knowledge.RoleCartographer {
+				t.Errorf("cartographer cannot own artifact %q", artName)
+			}
+		}
+
+		var diagramComp knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "diagram-completion"), &diagramComp); err != nil {
+			t.Fatalf("failed to decode diagram-completion: %v", err)
+		}
+		if diagramComp.Owner != knowledge.RoleCartographer {
+			t.Errorf("expected diagram-completion owner to be cartographer, got %q", diagramComp.Owner)
+		}
+	}
+
+	// 4. Flow Actor Invariants & Cartography Flow
+	{
+		for _, flowName := range []string{"init", "plan", "blueprint", "build", "review", "commit", "session-handoff"} {
+			var f knowledge.Flow
+			if err := json.Unmarshal(queryJSON("flow", flowName), &f); err != nil {
+				t.Fatalf("failed to decode flow %s: %v", flowName, err)
+			}
+			for _, step := range f.Steps {
+				if step.Actor == knowledge.RoleCartographer {
+					t.Errorf("flow %s step %d cannot have cartographer as actor", flowName, step.Index)
+				}
+			}
+		}
+
+		var cartFlow knowledge.Flow
+		if err := json.Unmarshal(queryJSON("flow", "cartography"), &cartFlow); err != nil {
+			t.Fatalf("failed to decode cartography flow: %v", err)
+		}
+		if len(cartFlow.Steps) != 5 {
+			t.Fatalf("expected cartography flow to have 5 steps, got %d", len(cartFlow.Steps))
+		}
+		if cartFlow.Steps[0].Actor != knowledge.RolePlanner || cartFlow.Steps[1].Actor != knowledge.RolePlanner {
+			t.Errorf("expected cartography flow steps 1-2 actor to be planner")
+		}
+		if cartFlow.Steps[2].Actor != knowledge.RoleCartographer || cartFlow.Steps[3].Actor != knowledge.RoleCartographer || cartFlow.Steps[4].Actor != knowledge.RoleCartographer {
+			t.Errorf("expected cartography flow steps 3-5 actor to be cartographer")
+		}
+		step3Conds := make(map[string]int)
+		for _, c := range cartFlow.Steps[2].Conditions {
+			step3Conds[c.When] = c.Then
+		}
+		if step3Conds["DIAGRAM_APPROVED"] != 4 || step3Conds["ADVISORY_ISSUED"] != 5 {
+			t.Errorf("unexpected cartography step 3 conditions: %v", step3Conds)
+		}
+	}
+
+	// 5. Documentation & Versioning
+	{
+		for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+			content, err := os.ReadFile(docPath)
+			if err != nil {
+				t.Fatalf("failed to read doc file %q: %v", docPath, err)
+			}
+			docStr := string(content)
+			for _, required := range []string{
+				"cartographer",
+				"companion",
+				"Taste Gate",
+				"cartographer-visual-architect-boundary",
+				"cartography-zero-context-pollution",
+				"cartography-taste-gate-advisory",
+				"cartography-asynchronous-decoupling",
+				"docs/diagrams/",
+				"diagram-completion",
+				"ADVISORY_ISSUED",
+				"https://github.com/cathrynlavery/diagram-design",
+				"[Notice] Cartographer requires the diagram-design skill",
+			} {
+				if !strings.Contains(docStr, required) {
+					t.Errorf("expected doc file %q to contain v0.3.2 term %q", docPath, required)
 				}
 			}
 		}

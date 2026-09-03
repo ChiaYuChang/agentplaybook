@@ -62,8 +62,8 @@ func Validate(k *Knowledge) error {
 				errs = append(errs, fmt.Errorf("role %q has duplicate communication target %q", r.Name, target))
 			}
 			if target == RoleUser {
-				if r.Name != RoleNavigator {
-					errs = append(errs, fmt.Errorf("role %q cannot communicate with external user (permitted exclusively for companion role navigator)", r.Name))
+				if r.Name != RoleNavigator && r.Name != RoleCartographer {
+					errs = append(errs, fmt.Errorf("role %q cannot communicate with external user (permitted exclusively for companion roles navigator and cartographer)", r.Name))
 				}
 			} else if !roleNames[target] {
 				errs = append(errs, fmt.Errorf("role %q communication target %q does not exist", r.Name, target))
@@ -73,26 +73,40 @@ func Validate(k *Knowledge) error {
 
 		switch r.Name {
 		case RolePlanner:
-			if len(r.Communication.Targets) != 4 {
-				errs = append(errs, fmt.Errorf("planner communication targets must contain exactly 4 targets, got %d", len(r.Communication.Targets)))
+			if len(r.Communication.Targets) != 5 {
+				errs = append(errs, fmt.Errorf("planner communication targets must contain exactly 5 targets, got %d", len(r.Communication.Targets)))
 			}
-			for _, required := range []Role{RoleBuilder, RoleReviewer, RoleScout, RoleNavigator} {
+			for _, required := range []Role{RoleBuilder, RoleReviewer, RoleScout, RoleNavigator, RoleCartographer} {
 				if !targetSet[required] {
 					errs = append(errs, fmt.Errorf("planner communication targets must include %q", required))
 				}
 			}
 		case RoleNavigator:
-			if len(r.Communication.Targets) != 2 {
-				errs = append(errs, fmt.Errorf("navigator communication targets must contain exactly 2 targets ('user' and 'planner'), got %d", len(r.Communication.Targets)))
+			if len(r.Communication.Targets) != 3 {
+				errs = append(errs, fmt.Errorf("navigator communication targets must contain exactly 3 targets ('user', 'planner', and 'cartographer'), got %d", len(r.Communication.Targets)))
 			}
-			for _, required := range []Role{RoleUser, RolePlanner} {
+			for _, required := range []Role{RoleUser, RolePlanner, RoleCartographer} {
 				if !targetSet[required] {
 					errs = append(errs, fmt.Errorf("navigator communication targets must include %q", required))
 				}
 			}
 			for target := range targetSet {
-				if target != RoleUser && target != RolePlanner {
-					errs = append(errs, fmt.Errorf("navigator communication target %q is not permitted (must be 'user' or 'planner')", target))
+				if target != RoleUser && target != RolePlanner && target != RoleCartographer {
+					errs = append(errs, fmt.Errorf("navigator communication target %q is not permitted (must be 'user', 'planner', or 'cartographer')", target))
+				}
+			}
+		case RoleCartographer:
+			if len(r.Communication.Targets) != 3 {
+				errs = append(errs, fmt.Errorf("cartographer communication targets must contain exactly 3 targets ('user', 'planner', and 'navigator'), got %d", len(r.Communication.Targets)))
+			}
+			for _, required := range []Role{RoleUser, RolePlanner, RoleNavigator} {
+				if !targetSet[required] {
+					errs = append(errs, fmt.Errorf("cartographer communication targets must include %q", required))
+				}
+			}
+			for target := range targetSet {
+				if target != RoleUser && target != RolePlanner && target != RoleNavigator {
+					errs = append(errs, fmt.Errorf("cartographer communication target %q is not permitted (must be 'user', 'planner', or 'navigator')", target))
 				}
 			}
 		case RoleBuilder, RoleReviewer, RoleScout:
@@ -104,9 +118,18 @@ func Validate(k *Knowledge) error {
 
 	// 3. Validate Artifacts
 	allowedNavigatorArtifacts := map[string]bool{
-		"agents-md":              true,
+		"agents-md":             true,
 		"sub-review-resolution": true,
 		"review-resolution":     true,
+		"diagram-brief":         true,
+		"diagram-completion":    true,
+	}
+	allowedCartographerArtifacts := map[string]bool{
+		"agents-md":             true,
+		"sub-review-resolution": true,
+		"review-resolution":     true,
+		"diagram-brief":         true,
+		"diagram-completion":    true,
 	}
 
 	artifactNames := make(map[string]bool, len(k.artifactList))
@@ -124,6 +147,8 @@ func Validate(k *Knowledge) error {
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be user", a.Name))
 		} else if a.Owner == RoleNavigator {
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role navigator", a.Name))
+		} else if a.Owner == RoleCartographer && a.Name != "diagram-completion" {
+			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role cartographer (permitted exclusively for diagram-completion)", a.Name))
 		} else if !roleNames[a.Owner] {
 			errs = append(errs, fmt.Errorf("artifact %q owner %q does not exist", a.Name, a.Owner))
 		}
@@ -138,6 +163,8 @@ func Validate(k *Knowledge) error {
 				errs = append(errs, fmt.Errorf("artifact %q visibility role %q does not exist", a.Name, v))
 			} else if v == RoleNavigator && !allowedNavigatorArtifacts[a.Name] {
 				errs = append(errs, fmt.Errorf("artifact %q is not in the settled allowlist and cannot include companion role navigator in visibility", a.Name))
+			} else if v == RoleCartographer && !allowedCartographerArtifacts[a.Name] {
+				errs = append(errs, fmt.Errorf("artifact %q is not in the settled allowlist and cannot include companion role cartographer in visibility", a.Name))
 			}
 		}
 
@@ -187,6 +214,8 @@ func Validate(k *Knowledge) error {
 				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be user", f.Name, s.Index))
 			} else if s.Actor == RoleNavigator {
 				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be companion role navigator", f.Name, s.Index))
+			} else if s.Actor == RoleCartographer && f.Name != "cartography" {
+				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be companion role cartographer (permitted exclusively in cartography flow)", f.Name, s.Index))
 			} else if !roleNames[s.Actor] {
 				errs = append(errs, fmt.Errorf("flow %q step %d actor %q does not exist", f.Name, s.Index, s.Actor))
 			}

@@ -8,7 +8,8 @@
       "planner",
       "builder",
       "reviewer",
-      "navigator"
+      "navigator",
+      "cartographer"
     ],
     "path": "AGENTS.md",
     "type": "document",
@@ -272,7 +273,8 @@
       "planner",
       "reviewer",
       "builder",
-      "navigator"
+      "navigator",
+      "cartographer"
     ],
     "path": "plan/{timestamp}/sub/{slug}.resolution.md",
     "path_variables": {
@@ -370,7 +372,8 @@
       "planner",
       "builder",
       "reviewer",
-      "navigator"
+      "navigator",
+      "cartographer"
     ],
     "path": "plan/{timestamp}/{slug}.resolution.md",
     "path_variables": {
@@ -451,6 +454,74 @@
         "name": "uncertainties",
         "required": true,
         "description": "Identified unknowns, ambiguous areas, low-confidence inferences, and items requiring Planner ground-truth verification"
+      }
+    ]
+  },
+  {
+    "name": "diagram-brief",
+    "title": "Diagram Brief",
+    "description": "Structured specification message dispatched to Cartographer defining visual requirements, target path, semantics, and summary takeaways.",
+    "owner": "planner",
+    "visibility": [
+      "planner",
+      "navigator",
+      "cartographer"
+    ],
+    "type": "message",
+    "fields": [
+      {
+        "name": "title",
+        "required": true,
+        "description": "Descriptive title of the architectural diagram."
+      },
+      {
+        "name": "target_path",
+        "required": true,
+        "description": "Target persistence path strictly matching docs/diagrams/<safe-name>.html."
+      },
+      {
+        "name": "semantic_spec",
+        "required": true,
+        "description": "Semantic architectural specification, components, relationships, and data flows to visualize."
+      },
+      {
+        "name": "focal_nodes",
+        "required": true,
+        "description": "Key focal components or nodes requiring accent emphasis."
+      },
+      {
+        "name": "summary_takeaways",
+        "required": true,
+        "description": "Key architectural takeaways the diagram must communicate."
+      }
+    ]
+  },
+  {
+    "name": "diagram-completion",
+    "title": "Diagram Completion Message",
+    "description": "Lightweight completion signal emitted by Cartographer containing persistent file URI, single-sentence summary digest, and node/edge statistics; strictly prohibits inline HTML/SVG markup to guarantee zero context pollution.",
+    "owner": "cartographer",
+    "visibility": [
+      "planner",
+      "navigator",
+      "cartographer"
+    ],
+    "type": "message",
+    "fields": [
+      {
+        "name": "uri",
+        "required": true,
+        "description": "Persistent file URI for the rendered diagram under docs/diagrams/."
+      },
+      {
+        "name": "digest",
+        "required": true,
+        "description": "Single-sentence plain text summary digest (<100 tokens evaluated by deterministic subword estimator EstimateTokenCount, <=250 chars, <=60 words) with zero inline HTML/SVG markup."
+      },
+      {
+        "name": "statistics",
+        "required": true,
+        "description": "Node and edge count statistics and layout dimensions."
       }
     ]
   }

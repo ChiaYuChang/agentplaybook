@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentPlaybook Code Development Lifecycle · Sequence</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Editorial Design System Tokens ──────────────────────────── */
+    :root {
+      --color-paper:       #f5f5f5;
+      --color-paper-2:     #ececec;
+      --color-ink:         #2d3142;
+      --color-muted:       #4f5d75;
+      --color-soft:        #7a8399;
+      --color-rule:        rgba(45,49,66,0.12);
+      --color-rule-solid:  rgba(79,93,117,0.25);
+      --color-accent:      #eb6c36;
+      --color-accent-tint: rgba(235,108,54,0.08);
+      --color-link:        #2e5aa8;
+      --font-sans:   'Geist', system-ui, sans-serif;
+      --font-serif:  'Instrument Serif', 'Noto Serif KR', 'Times New Roman', serif;
+      --font-mono:   'Geist Mono', ui-monospace, Menlo, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      min-height: 100vh;
+      padding: 3rem 2rem;
+      color: var(--color-ink);
+    }
+
+    .container {
+      max-width: 1160px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .header {
+      margin-bottom: 2rem;
+    }
+
+    .header-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.75rem, 2.5vw + 1rem, 2.35rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: var(--color-muted);
+      max-width: 72ch;
+    }
+
+    /* ── Diagram Container ──────────────────────────────────────── */
+    .diagram-container {
+      background: transparent;
+      border: none;
+      padding: 0;
+      overflow-x: auto;
+      margin-bottom: 2rem;
+    }
+
+    svg {
+      width: 100%;
+      min-width: 1000px;
+      display: block;
+    }
+
+    /* ── Summary Cards ──────────────────────────────────────────── */
+    .cards {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 860px) {
+      .cards { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 6px;
+      border: 1px solid var(--color-rule);
+      padding: 1.25rem;
+    }
+
+    .card-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--color-soft);
+      margin-bottom: 0.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.625rem;
+      border-bottom: 1px solid rgba(45,49,66,0.08);
+    }
+
+    .card-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .card-dot.coral { background: var(--color-accent); }
+    .card-dot.ink   { background: var(--color-ink); }
+    .card-dot.link  { background: var(--color-link); }
+
+    .card h3 {
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .card p {
+      font-size: 0.82rem;
+      line-height: 1.55;
+      color: var(--color-muted);
+    }
+
+    /* ── Footer Colophon ────────────────────────────────────────── */
+    .footer {
+      margin-top: 2.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--color-rule);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--color-soft);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <p class="header-eyebrow">AgentPlaybook · Orchestration Protocol v0.3.1</p>
+      <h1>Code Development Lifecycle: Planner, Reviewer, Builder Interaction</h1>
+      <p class="subtitle">A star-topology orchestration lifecycle governed by dual formal verification gates (PLAN_PASS &amp; REVIEW_PASS) and an airlocked blind barrier isolating test execution from private review criteria.</p>
+    </header>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1120 948" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="code-development-lifecycle-title code-development-lifecycle-desc">
+        <title id="code-development-lifecycle-title">AgentPlaybook Code Development Lifecycle Interaction</title>
+        <desc id="code-development-lifecycle-desc">Sequence diagram showing multi-phase interaction among Human Operator, Reviewer, Planner, and Builder, highlighting the blind barrier, star topology, and dual gates.</desc>
+
+        <defs>
+          <!-- Arrowhead Markers -->
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/>
+          </marker>
+          <marker id="arrow-ink" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#2d3142"/>
+          </marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/>
+          </marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/>
+          </marker>
+        </defs>
+
+        <!-- Canvas Background -->
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+        <!-- =============================================================
+             PHASE BACKGROUND BANDS & ISOLATED CHAMBERS
+             ============================================================= -->
+        <!-- Builder Chamber: Shaded execution domain to right of barrier -->
+        <rect x="820" y="72" width="260" height="788" rx="8" fill="rgba(45,49,66,0.015)" stroke="rgba(45,49,66,0.08)" stroke-width="0.8"/>
+
+        <!-- Phase 1 Band: Plan Consensus -->
+        <rect x="36" y="148" width="1048" height="144" rx="6" fill="rgba(45,49,66,0.012)"/>
+        <!-- Phase 2 Band: Blind Implementation -->
+        <rect x="36" y="308" width="1048" height="156" rx="6" fill="rgba(45,49,66,0.012)"/>
+        <!-- Phase 3 Band: Audit & Remediation -->
+        <rect x="36" y="480" width="1048" height="192" rx="6" fill="rgba(45,49,66,0.012)"/>
+        <!-- Phase 4 Band: Seal & Commit -->
+        <rect x="36" y="688" width="1048" height="152" rx="6" fill="rgba(45,49,66,0.012)"/>
+
+        <!-- Phase Labels on Far Left Margin -->
+        <g text-anchor="start">
+          <!-- Phase 1 -->
+          <text x="48" y="172" fill="#7a8399" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.16em">PHASE 1</text>
+          <text x="48" y="188" fill="#4f5d75" font-size="9" font-weight="600" font-family="'Geist', sans-serif">Plan Consensus</text>
+
+          <!-- Phase 2 -->
+          <text x="48" y="332" fill="#7a8399" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.16em">PHASE 2</text>
+          <text x="48" y="348" fill="#4f5d75" font-size="9" font-weight="600" font-family="'Geist', sans-serif">Blind Implementation</text>
+
+          <!-- Phase 3 -->
+          <text x="48" y="504" fill="#7a8399" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.16em">PHASE 3</text>
+          <text x="48" y="520" fill="#4f5d75" font-size="9" font-weight="600" font-family="'Geist', sans-serif">Audit &amp; Remediation</text>
+
+          <!-- Phase 4 -->
+          <text x="48" y="712" fill="#7a8399" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.16em">PHASE 4</text>
+          <text x="48" y="728" fill="#4f5d75" font-size="9" font-weight="600" font-family="'Geist', sans-serif">Seal &amp; Commit</text>
+        </g>
+
+        <!-- =============================================================
+             THE BLIND BARRIER (AIRLOCK DIVIDER)
+             ============================================================= -->
+        <line x1="820" y1="64" x2="820" y2="856" stroke="rgba(235,108,54,0.45)" stroke-width="1.2" stroke-dasharray="6,4"/>
+        <rect x="748" y="44" width="144" height="18" rx="3" fill="#f5f5f5" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
+        <text x="820" y="56" dominant-baseline="central" fill="#eb6c36" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">THE BLIND BARRIER</text>
+
+        <!-- =============================================================
+             LIFELINES (Vertical dashed tracks descending from actor centers)
+             Actor Lifeline Centers: 128 (User), 392 (Reviewer), 664 (Planner), 980 (Builder)
+             ============================================================= -->
+        <line x1="128" y1="128" x2="128" y2="856" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="392" y1="128" x2="392" y2="856" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="664" y1="128" x2="664" y2="856" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="980" y1="128" x2="980" y2="856" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+
+        <!-- =============================================================
+             ACTIVATION BARS (Narrow rects on lifelines indicating active work)
+             Drawn before message arrows so arrowheads dock cleanly
+             ============================================================= -->
+        <!-- User Activations -->
+        <rect x="124" y="716" width="8" height="48" rx="1" fill="rgba(45,49,66,0.06)" stroke="#4f5d75" stroke-width="0.8"/>
+
+        <!-- Reviewer Activations -->
+        <rect x="388" y="224" width="8" height="56" rx="1" fill="rgba(45,49,66,0.06)" stroke="#4f5d75" stroke-width="0.8"/>
+        <rect x="388" y="508" width="8" height="148" rx="1" fill="rgba(45,49,66,0.06)" stroke="#4f5d75" stroke-width="0.8"/>
+
+        <!-- Planner Focal Activations (Hub coordination intervals) -->
+        <rect x="660" y="180" width="8" height="100" rx="1" fill="rgba(235,108,54,0.12)" stroke="#eb6c36" stroke-width="0.8"/>
+        <rect x="660" y="336" width="8" height="112" rx="1" fill="rgba(235,108,54,0.12)" stroke="#eb6c36" stroke-width="0.8"/>
+        <rect x="660" y="504" width="8" height="152" rx="1" fill="rgba(235,108,54,0.12)" stroke="#eb6c36" stroke-width="0.8"/>
+        <rect x="660" y="712" width="8" height="116" rx="1" fill="rgba(235,108,54,0.12)" stroke="#eb6c36" stroke-width="0.8"/>
+
+        <!-- Builder Activations (Airlocked within chamber) -->
+        <rect x="976" y="340" width="8" height="108" rx="1" fill="rgba(45,49,66,0.06)" stroke="#4f5d75" stroke-width="0.8"/>
+        <rect x="976" y="588" width="8" height="28" rx="1" fill="rgba(45,49,66,0.06)" stroke="#4f5d75" stroke-width="0.8"/>
+
+        <!-- =============================================================
+             COMBINED FRAGMENT: Phase 3 Remediation Loop
+             ============================================================= -->
+        <!-- Frame enclosing Reviewer, Planner, and Builder -->
+        <rect x="368" y="532" width="648" height="88" rx="4" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.22)" stroke-width="1"/>
+        <!-- Operator Tab -->
+        <rect x="368" y="532" width="36" height="16" rx="2" fill="#f5f5f5" stroke="rgba(45,49,66,0.22)" stroke-width="1"/>
+        <text x="386" y="543" dominant-baseline="central" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">OPT</text>
+        <text x="416" y="543" dominant-baseline="central" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.04em">[If Blocker / Major: Sanitized Remediation Cycle]</text>
+
+        <!-- =============================================================
+             MESSAGE ARROWS (Horizontal time-ordered flows)
+             Drawn before message labels so label masks cover strokes
+             ============================================================= -->
+
+        <!-- ── Phase 1 Messages ─────────────────────────────────────── -->
+        <!-- M1: User → Planner (Requirement Initiation) -->
+        <line x1="128" y1="180" x2="660" y2="180" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+
+        <!-- M2: Planner → Reviewer (Dual-Track Plan Audit) -->
+        <line x1="660" y1="224" x2="396" y2="224" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- M3: Reviewer → Planner (Gate 1 Passed: PLAN_PASS) -->
+        <line x1="396" y1="276" x2="660" y2="276" stroke="#2d3142" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+
+        <!-- ── Phase 2 Messages ─────────────────────────────────────── -->
+        <!-- M4: Planner → Builder (Sanitized Build Plan dispatched across Barrier) -->
+        <line x1="668" y1="340" x2="976" y2="340" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- M5: Builder Self-Loop (TDD Red/Green Execution) -->
+        <path d="M 984 380 H 1016 Q 1024 380 1024 388 V 400 Q 1024 408 1016 408 H 984" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- M6: Builder → Planner (Verified Handoff Diff) -->
+        <line x1="976" y1="444" x2="668" y2="444" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+
+        <!-- ── Phase 3 Messages ─────────────────────────────────────── -->
+        <!-- M7: Planner → Reviewer (Submit Audit Request) -->
+        <line x1="660" y1="508" x2="396" y2="508" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- M8a: Reviewer → Planner (Raw Findings, strictly restricted) -->
+        <line x1="396" y1="560" x2="660" y2="560" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+        <!-- M8b: Planner → Builder (Sanitized Remediation Instructions across Barrier) -->
+        <line x1="668" y1="588" x2="976" y2="588" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- M8c: Builder → Planner (Remediated Diff) -->
+        <line x1="976" y1="612" x2="668" y2="612" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+
+        <!-- M9: Reviewer → Planner (Gate 2 Passed: REVIEW_PASS - Headline Accent) -->
+        <line x1="396" y1="652" x2="660" y2="652" stroke="#eb6c36" stroke-width="1.6" marker-end="url(#arrow-accent)"/>
+
+        <!-- ── Phase 4 Messages ─────────────────────────────────────── -->
+        <!-- M10: Planner → User (Request Human Commit Authorization) -->
+        <line x1="660" y1="716" x2="132" y2="716" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- M11: User → Planner (Grant Commit Auth) -->
+        <line x1="132" y1="760" x2="660" y2="760" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+
+        <!-- M12: Planner Self-Loop (Living Memory Seal & jj/git Resolution) -->
+        <path d="M 668 796 H 700 Q 708 796 708 804 V 816 Q 708 824 700 824 H 668" fill="none" stroke="#2d3142" stroke-width="1.2" marker-end="url(#arrow-ink)"/>
+
+        <!-- =============================================================
+             MESSAGE LABELS (Masked with opaque rects, 8px gap above stroke)
+             ============================================================= -->
+
+        <!-- L1: Requirement (User -> Planner) -->
+        <rect x="200" y="156" width="112" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="256" y="168" dominant-baseline="central" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">1. REQUIREMENT</text>
+
+        <!-- L2: Plan Audit (Planner -> Reviewer) -->
+        <rect x="444" y="200" width="168" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="528" y="212" dominant-baseline="central" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">2. PLAN_AUDIT / CHALLENGE</text>
+
+        <!-- L3: Gate 1 Formal Stamped Badge (Reviewer -> Planner) -->
+        <rect x="440" y="252" width="176" height="16" rx="2" fill="#f5f5f5" stroke="#2d3142" stroke-width="0.8"/>
+        <text x="528" y="264" dominant-baseline="central" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GATE 1 · PLAN_PASS [SEALED]</text>
+
+        <!-- L4: Build Plan Handover across Barrier (Planner -> Builder) -->
+        <rect x="724" y="316" width="192" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="820" y="328" dominant-baseline="central" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">4. BUILD_PLAN [BLIND HANDOVER]</text>
+
+        <!-- L5: TDD Build Self-Loop Annotation -->
+        <rect x="1032" y="388" width="76" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="1070" y="400" dominant-baseline="central" fill="#4f5d75" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">TDD HARNESS</text>
+
+        <!-- L6: Verified Diff Handover (Builder -> Planner) -->
+        <rect x="736" y="420" width="168" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="820" y="432" dominant-baseline="central" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">6. HANDOFF_DIFF [TEST LOGS]</text>
+
+        <!-- L7: Audit Request (Planner -> Reviewer) -->
+        <rect x="444" y="484" width="168" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="528" y="496" dominant-baseline="central" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">7. AUDIT_REQUEST [DIFF + HARNESS]</text>
+
+        <!-- L8a: Raw Findings (Reviewer -> Planner) -->
+        <rect x="448" y="536" width="160" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="528" y="548" dominant-baseline="central" fill="#7a8399" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">RAW FINDINGS (RESTRICTED)</text>
+
+        <!-- L8b: Sanitized Remediation across Barrier (Planner -> Builder) -->
+        <rect x="732" y="564" width="176" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="820" y="576" dominant-baseline="central" fill="#4f5d75" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">REMEDIATION (SANITIZED)</text>
+
+        <!-- L8c: Remediated Diff (Builder -> Planner) -->
+        <rect x="748" y="600" width="144" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="820" y="612" dominant-baseline="central" fill="#4f5d75" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">REMEDIATED_DIFF</text>
+
+        <!-- L9: Gate 2 Formal Stamped Badge (Headline Coral) -->
+        <rect x="436" y="628" width="184" height="16" rx="2" fill="#f5f5f5" stroke="#eb6c36" stroke-width="1"/>
+        <text x="528" y="640" dominant-baseline="central" fill="#eb6c36" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GATE 2 · REVIEW_PASS [ACCEPTED]</text>
+
+        <!-- L10: Request Auth (Planner -> User) -->
+        <rect x="180" y="692" width="152" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="256" y="704" dominant-baseline="central" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">9. REQUEST_AUTH [DIFF + AUDIT]</text>
+
+        <!-- L11: Commit Auth (User -> Planner) -->
+        <rect x="168" y="736" width="176" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="256" y="748" dominant-baseline="central" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">10. COMMIT_AUTH [LOCAL SEAL ONLY]</text>
+
+        <!-- L12: Resolution & Living Memory Seal Annotation -->
+        <rect x="716" y="804" width="100" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="766" y="816" dominant-baseline="central" fill="#2d3142" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">UPDATE AGENTS.MD</text>
+
+        <!-- =============================================================
+             ACTOR BOXES (Drawn after arrows/labels for clean paint hierarchy)
+             Centers: 128, 392, 664, 980 | Top: 72, Height: 56
+             ============================================================= -->
+
+        <!-- Actor 1: Human Operator (User) -->
+        <rect x="48" y="72" width="160" height="56" rx="6" fill="#f5f5f5"/>
+        <rect x="48" y="72" width="160" height="56" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+        <rect x="56" y="80" width="32" height="12" rx="2" fill="transparent" stroke="rgba(122,131,153,0.40)" stroke-width="0.8"/>
+        <text x="72" y="89" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">OPER</text>
+        <text x="128" y="104" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Human Operator</text>
+        <text x="128" y="119" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">User · Commit Auth</text>
+
+        <!-- Actor 2: Reviewer (Independent Auditor) -->
+        <rect x="312" y="72" width="160" height="56" rx="6" fill="#f5f5f5"/>
+        <rect x="312" y="72" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="320" y="80" width="32" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.35)" stroke-width="0.8"/>
+        <text x="336" y="89" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">CORE</text>
+        <text x="392" y="104" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Reviewer</text>
+        <text x="392" y="119" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Independent Auditor</text>
+
+        <!-- Actor 3: Planner (Focal Coordinator & Sanitizer) -->
+        <rect x="584" y="72" width="160" height="56" rx="6" fill="#f5f5f5"/>
+        <rect x="584" y="72" width="160" height="56" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+        <rect x="592" y="80" width="32" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
+        <text x="608" y="89" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">FOCAL</text>
+        <text x="664" y="104" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Planner</text>
+        <text x="664" y="119" fill="#eb6c36" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Orchestration Hub</text>
+
+        <!-- Actor 4: Builder (Stateless Worker in Chamber) -->
+        <rect x="900" y="72" width="160" height="56" rx="6" fill="#f5f5f5"/>
+        <rect x="900" y="72" width="160" height="56" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <rect x="908" y="80" width="32" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.35)" stroke-width="0.8"/>
+        <text x="924" y="89" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">EXEC</text>
+        <text x="980" y="104" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Builder</text>
+        <text x="980" y="119" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Stateless Worker</text>
+
+        <!-- =============================================================
+             LEGEND STRIP (Horizontal bottom strip with separator)
+             ============================================================= -->
+        <line x1="36" y1="876" x2="1084" y2="876" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
+        <text x="36" y="896" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND &amp; PROTOCOL CONVENTIONS</text>
+
+        <!-- Swatch 1: Focal Coordinator (Coral) -->
+        <rect x="36" y="912" width="14" height="10" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+        <text x="56" y="920" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Focal hub (Planner)</text>
+
+        <!-- Swatch 2: The Blind Barrier -->
+        <line x1="184" y1="917" x2="208" y2="917" stroke="#eb6c36" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="216" y="920" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">The Blind Barrier</text>
+
+        <!-- Swatch 3: Dual Gates -->
+        <rect x="332" y="911" width="22" height="12" rx="2" fill="#f5f5f5" stroke="#2d3142" stroke-width="0.8"/>
+        <text x="360" y="920" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Formal gate check (PLAN_PASS / REVIEW_PASS)</text>
+
+        <!-- Swatch 4: Synchronous / Trigger -->
+        <line x1="608" y1="917" x2="636" y2="917" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="644" y="920" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Synchronous call</text>
+
+        <!-- Swatch 5: Return / Diff Payload -->
+        <line x1="760" y1="917" x2="788" y2="917" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="796" y="920" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Return / Diff payload</text>
+
+        <!-- Swatch 6: Human Authorization -->
+        <line x1="936" y1="917" x2="964" y2="917" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <text x="972" y="920" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Operator Auth</text>
+      </svg>
+    </div>
+
+    <!-- ── Three Summary Takeaway Cards ───────────────────────────── -->
+    <div class="cards">
+      <div class="card">
+        <p class="card-eyebrow">ISOLATION INVARIANT</p>
+        <div class="card-header">
+          <span class="card-dot coral"></span>
+          <h3>The Blind Barrier</h3>
+        </div>
+        <p>Builder operates strictly inside an airlocked execution chamber, receiving only Planner-sanitized Build Plans and concrete remediation instructions. Builder never sees Review Plans, private review criteria, or raw Review Findings, guaranteeing uncompromised test independence and preventing benchmark gaming.</p>
+      </div>
+
+      <div class="card">
+        <p class="card-eyebrow">VERIFICATION GATES</p>
+        <div class="card-header">
+          <span class="card-dot ink"></span>
+          <h3>Dual Formal Gates</h3>
+        </div>
+        <p>The lifecycle enforces two mandatory sequential checkpoints: <strong>GATE 1 (PLAN_PASS)</strong> ensures architectural consensus and review criteria coverage before any code is generated; <strong>GATE 2 (REVIEW_PASS)</strong> confirms objective test verification and zero unresolved Blocker/Major findings before human commit authorization.</p>
+      </div>
+
+      <div class="card">
+        <p class="card-eyebrow">COORDINATION TOPOLOGY</p>
+        <div class="card-header">
+          <span class="card-dot link"></span>
+          <h3>Star Topology</h3>
+        </div>
+        <p>Builder and Reviewer maintain zero direct communication channels. Planner stands at the physical and logical hub as the sole coordinator, airlock filter, and living memory curator (<code style="font-family: var(--font-mono); font-size: 0.78rem;">AGENTS.md</code>), eliminating peer interference, circular debates, and state synchronization leaks.</p>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span>AgentPlaybook Architectural Governance · Cartographer Dispatch</span>
+      <span>VCS-Neutral · Static Editorial SVG Contract</span>
+    </footer>
+  </div>
+</body>
+</html>
