@@ -21,6 +21,8 @@ func TestCLI_GoldenDiscoveryMatrix(t *testing.T) {
 		{"flow"},
 		{"artifact"},
 		{"rule"},
+		{"init"},
+		{"init", "--help"},
 	}
 
 	for _, cmd := range discoveryCommands {
@@ -123,6 +125,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "cartography-zero-context-pollution"},
 		{"rule", "explain", "cartography-taste-gate-advisory"},
 		{"rule", "explain", "cartography-asynchronous-decoupling"},
+		{"rule", "explain", "peer-session-transport-primacy"},
 	}
 
 	for _, cmd := range jsonCommands {
@@ -2029,6 +2032,129 @@ func TestCLI_V032_CartographerAndVisualGovernance(t *testing.T) {
 			} {
 				if !strings.Contains(docStr, required) {
 					t.Errorf("expected doc file %q to contain v0.3.2 term %q", docPath, required)
+				}
+			}
+		}
+	}
+}
+
+func TestCLI_V033_InitScaffoldAndPeerSessionPrimacy(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "dev"); err != nil {
+			t.Fatalf("cli.Execute(%v) failed: %v\nStderr: %s", args, err, stderr.String())
+		}
+		return stdout.Bytes()
+	}
+
+	// 1. Discovery and Help Text for init
+	{
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute([]string{"init", "--help"}, &stdout, &stderr, "dev"); err != nil {
+			t.Fatalf("init --help failed: %v\nStderr: %s", err, stderr.String())
+		}
+		helpStr := stdout.String()
+		for _, required := range []string{
+			"Initialize a standard AGENTS.md living memory file with anti-compaction governance",
+			"--file",
+			"--force",
+		} {
+			if !strings.Contains(helpStr, required) {
+				t.Errorf("expected init --help to contain %q", required)
+			}
+		}
+
+		// Bare init streams template to stdout without file mutation
+		var bareStdout, bareStderr bytes.Buffer
+		if err := cli.Execute([]string{"init"}, &bareStdout, &bareStderr, "dev"); err != nil {
+			t.Fatalf("bare init failed: %v\nStderr: %s", err, bareStderr.String())
+		}
+		if !strings.Contains(bareStdout.String(), "# AGENTS.md") {
+			t.Errorf("expected bare init to stream template markdown")
+		}
+	}
+
+	// 2. Rule Verification: peer-session-transport-primacy
+	{
+		var rules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "peer-session-transport-primacy"), &rules); err != nil {
+			t.Fatalf("failed to decode peer-session-transport-primacy rule: %v", err)
+		}
+		if len(rules) != 1 {
+			t.Fatalf("expected 1 rule, got %d", len(rules))
+		}
+		r := rules[0]
+		if r.ID != "peer-session-transport-primacy" {
+			t.Errorf("unexpected rule ID: %q", r.ID)
+		}
+		if r.Category != "protocol" {
+			t.Errorf("unexpected rule category: %q", r.Category)
+		}
+		if !strings.Contains(r.Summary, "Mandates that formal Reviewer, Builder, and Companion gates execute exclusively across dedicated external peer sessions") {
+			t.Errorf("unexpected rule summary: %q", r.Summary)
+		}
+		for _, requiredGuideline := range []string{
+			"Planners must never simulate or spawn Reviewer or Builder roles within internal nested subagent contexts.",
+			"Formal review and build gates must execute in dedicated, isolated peer sessions.",
+			"Across context compaction recovery, Planners must discover active workspace peer sessions through the active harness transport rather than spawning internal subagents.",
+			"Living memory (AGENTS.md) must prominently record peer session topology and transport invariants.",
+		} {
+			if !slices.Contains(r.Guidelines, requiredGuideline) {
+				t.Errorf("expected rule guideline %q", requiredGuideline)
+			}
+		}
+
+		// Verify zero raw command syntax in catalog data
+		for _, forbidden := range []string{"jj ", "git ", "curl ", "sh "} {
+			if strings.Contains(r.Summary, forbidden) || strings.Contains(r.Details, forbidden) {
+				t.Errorf("catalog rule data contains raw command syntax %q", forbidden)
+			}
+			for _, g := range r.Guidelines {
+				if strings.Contains(g, forbidden) {
+					t.Errorf("catalog guideline contains raw command syntax %q: %s", forbidden, g)
+				}
+			}
+		}
+	}
+
+	// 3. Flow Verification: init step 3
+	{
+		var f knowledge.Flow
+		if err := json.Unmarshal(queryJSON("flow", "init"), &f); err != nil {
+			t.Fatalf("failed to decode init flow: %v", err)
+		}
+		if len(f.Steps) < 3 {
+			t.Fatalf("expected at least 3 steps in init flow, got %d", len(f.Steps))
+		}
+		step3 := f.Steps[2]
+		if step3.Index != 3 {
+			t.Errorf("expected step 3 index to be 3, got %d", step3.Index)
+		}
+		expectedAction := "Validate survey evidence or survey repository ground truth; upon explicit operator authorization, invoke the initialization scaffolding capability when living memory is absent (requiring explicit force authorization if replacing existing files) to scaffold baseline living memory, and draft comprehensive AGENTS.md."
+		if step3.Action != expectedAction {
+			t.Errorf("unexpected step 3 action:\nExpected: %s\nGot:      %s", expectedAction, step3.Action)
+		}
+	}
+
+	// 4. Documentation Assertions for v0.3.3
+	{
+		for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+			content, err := os.ReadFile(docPath)
+			if err != nil {
+				t.Fatalf("failed to read doc file %q: %v", docPath, err)
+			}
+			docStr := string(content)
+			for _, required := range []string{
+				"agentplaybook init",
+				"peer-session-transport-primacy",
+				"Peer-Session Primacy over Subagents",
+				"anti-compaction",
+			} {
+				if !strings.Contains(docStr, required) {
+					t.Errorf("expected doc file %q to contain v0.3.3 term %q", docPath, required)
 				}
 			}
 		}

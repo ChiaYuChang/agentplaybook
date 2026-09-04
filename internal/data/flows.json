@@ -26,7 +26,7 @@
       {
         "index": 3,
         "actor": "planner",
-        "action": "Validate scout-survey evidence against repository ground truth and active Tier 2 VCS capability (or perform direct repository survey) and draft the initial AGENTS.md artifact."
+        "action": "Validate survey evidence or survey repository ground truth; upon explicit operator authorization, invoke the initialization scaffolding capability when living memory is absent (requiring explicit force authorization if replacing existing files) to scaffold baseline living memory, and draft comprehensive AGENTS.md."
       },
       {
         "index": 4,

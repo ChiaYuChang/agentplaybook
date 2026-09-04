@@ -11,12 +11,12 @@ Instead of stuffing massive, static role prompts into every agent turn—wasting
 
 ## Key Features
 
-- **Read-Only Collaboration Manual**: Zero side-effects on your target repository. No orchestrator runtime daemon, no external state store.
+- **Read-Only Collaboration Manual & Opt-In Scaffolding**: AgentPlaybook remains an evidence-based, read-only guidance manual; the 'agentplaybook init' command is an explicit, opt-in local scaffolding utility executed strictly upon operator invocation to generate baseline AGENTS.md, with zero background mutation, network downloads, or daemon processes.
 - **5 Orthogonal Knowledge Domains**:
   - `role`: Core and companion participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`, `scout`, `navigator`, `cartographer`).
   - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `blueprint`, `build`, `review`, `commit`, `session-handoff`, `cartography`).
   - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`).
-  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`, `navigator-read-only-companion`, `companion-query-zero-side-effect`, `planner-source-restricted-response`, `target-state-gated-inquiry`, `cartographer-visual-architect-boundary`, `cartography-zero-context-pollution`, `cartography-taste-gate-advisory`, `cartography-asynchronous-decoupling`).
+  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`, `navigator-read-only-companion`, `companion-query-zero-side-effect`, `planner-source-restricted-response`, `target-state-gated-inquiry`, `cartographer-visual-architect-boundary`, `cartography-zero-context-pollution`, `cartography-taste-gate-advisory`, `cartography-asynchronous-decoupling`, `peer-session-transport-primacy`).
   - `config`: Supported languages, prefix templates, and transport settings.
 - **Progressive Disclosure UX**: Bare discovery commands output concise catalogs (Exit 0); specific queries return clean, indented JSON.
 - **Built for AI Agents**: Automatic self-caching runner script, compatible with [skills.sh](https://skills.sh) across 17+ agent harnesses.
@@ -285,6 +285,34 @@ To eliminate mechanism leakage and preserve strict jurisdictional boundaries (st
 - **Tier 3 Policy Overlay ([`agentcommit`](https://github.com/ChiaYuChang/agentcommit))**: Specialized commit policy overlay skill governing candidate stabilization, TOCTOU verification, secret scanning execution, and authorization checks.
 - **Tier 2 Mechanism (Jujutsu & Git VCS Mechanism Skills)**: Underlying version control mechanism skills. Concrete tool invocations, command flags, headless guards (`--no-pager`), temporary workspace routines, and conflict resolutions reside exclusively in mechanism skills.
 - **Tier 1 Tooling**: Raw binaries (`jj`, `git`, `gitleaks`).
+
+---
+
+## Living Memory Initialization & Scaffolding (`agentplaybook init`)
+
+AgentPlaybook remains an evidence-based, read-only guidance manual; the 'agentplaybook init' command streams the standard AGENTS.md template to stdout by default (zero filesystem writes). When invoked with `--file`, it serves as an explicit, opt-in local scaffolding utility executed strictly upon operator invocation to generate baseline AGENTS.md, with zero background mutation, network downloads, or daemon processes.
+
+```bash
+# Stream template directly to stdout (zero disk writes, read-only inspection)
+agentplaybook init
+
+# Initialize standard AGENTS.md in current directory (fails if file already exists)
+agentplaybook init --file AGENTS.md
+
+# Force overwrite existing AGENTS.md (enforces strict 0644 permissions)
+agentplaybook init --file AGENTS.md --force
+# or
+agentplaybook init -f AGENTS.md -F
+
+# Scaffold to custom destination with automatic directory creation
+agentplaybook init --file docs/AGENTS.md
+```
+
+### Peer-Session Primacy over Subagents (`peer-session-transport-primacy`)
+To prevent recursive context compaction churn and preserve the Blind Barrier, AgentPlaybook enforces **Peer-Session Primacy over Subagents**:
+- Reviewer, Builder, Scout, and Cartographer operate as dedicated peer sessions in external panes or workspaces (orchestrated via the active harness transport, e.g. herdr).
+- Planners MUST NEVER spawn nested subagents (e.g. `invoke_subagent`) to simulate Reviewer or Builder gates.
+- All review dispatches and build tasks MUST be routed to dedicated peer panes to preserve the Blind Barrier and prevent anti-compaction churn.
 
 ---
 

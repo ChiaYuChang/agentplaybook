@@ -352,8 +352,8 @@ func TestLoad_Success(t *testing.T) {
 
 	// 5. Verify Rules
 	rules := k.Rules()
-	if len(rules) < 26 {
-		t.Fatalf("expected at least 26 rules, got %d", len(rules))
+	if len(rules) < 27 {
+		t.Fatalf("expected at least 27 rules, got %d", len(rules))
 	}
 	for _, expected := range []string{
 		"anti-cheating",
@@ -378,6 +378,7 @@ func TestLoad_Success(t *testing.T) {
 		"cartography-zero-context-pollution",
 		"cartography-taste-gate-advisory",
 		"cartography-asynchronous-decoupling",
+		"peer-session-transport-primacy",
 	} {
 		r, ok := k.Rule(expected)
 		if !ok {

@@ -83,6 +83,7 @@ func NewRootCmd(k *knowledge.Knowledge, version string) *cobra.Command {
 	cmd.AddCommand(NewFlowCmd(k))
 	cmd.AddCommand(NewArtifactCmd(k))
 	cmd.AddCommand(NewRuleCmd(k))
+	cmd.AddCommand(NewInitCmd(k))
 
 	return cmd
 }
@@ -102,6 +103,9 @@ Knowledge Domains:
   flow        Inspect end-to-end multi-agent orchestration procedures
   artifact    Inspect document contracts, required sections, and message schemas
   rule        Inspect operational policies, invariants, and protocols
+
+Scaffolding:
+  init        Initialize a standard AGENTS.md living memory file with anti-compaction governance
 
 Global Flags:
   --language   Show supported collaboration languages

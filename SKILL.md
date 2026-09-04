@@ -22,6 +22,7 @@ Runner progress is emitted only to `stderr`; CLI output on `stdout` remains clea
 ## Core Philosophy
 
 The AgentPlaybook CLI is an informational collaboration manual. It provides on-demand reference for roles, flows, artifact contracts, and rules.
+AgentPlaybook remains an evidence-based, read-only guidance manual; the 'agentplaybook init' command is an explicit, opt-in local scaffolding utility executed strictly upon operator invocation to generate baseline AGENTS.md, with zero background mutation, network downloads, or daemon processes.
 The manual queries perform no workflow mutations, track no live state, spawn no agents, and execute no transport calls. It has zero side-effects on the target repository.
 Interpret the retrieved guidance and perform the work using your own reasoning and tools.
 
@@ -92,13 +93,37 @@ sh "<skill-dir>/scripts/run-agentplaybook.sh" role cartographer
 - **Zero Context Pollution (`cartography-zero-context-pollution`)**: Raw HTML/SVG markup remains confined to Cartographer's isolated session. Handoff to callers uses the lightweight `diagram-completion` message artifact (<100 tokens evaluated by deterministic subword estimator EstimateTokenCount, <=250 chars, <=60 words, single-sentence digest, zero inline markup), containing persistent file URI, single-sentence plain text summary digest, and node/edge statistics with zero inline HTML/SVG markup.
 - **Asynchronous Decoupling (`cartography-asynchronous-decoupling`)**: Callers dispatch `diagram-brief` artifacts asynchronously in fire-and-forget mode; blocking loops or polling on Cartographer completion are strictly prohibited.
 
+## Living Memory Scaffolding & Anti-Compaction Governance (`init`)
+
+AgentPlaybook remains an evidence-based, read-only guidance manual; the 'agentplaybook init' command streams the standard AGENTS.md template to stdout by default (zero filesystem writes). When invoked with `--file`, it acts as an explicit, opt-in local scaffolding utility executed strictly upon operator invocation to generate baseline AGENTS.md, with zero background mutation, network downloads, or daemon processes.
+
+```sh
+# Stream template directly to stdout (zero disk writes, read-only inspection)
+sh "<skill-dir>/scripts/run-agentplaybook.sh" init
+
+# Initialize standard AGENTS.md in current directory (fails if file already exists)
+sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file AGENTS.md
+
+# Force overwrite existing AGENTS.md (enforces strict 0644 permissions)
+sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file AGENTS.md --force
+
+# Scaffold to custom destination with automatic directory creation
+sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file path/to/AGENTS.md
+```
+
+### Peer-Session Primacy over Subagents (`peer-session-transport-primacy`)
+To prevent recursive context compaction churn and preserve the Blind Barrier, AgentPlaybook enforces **Peer-Session Primacy over Subagents**:
+- Reviewer, Builder, Scout, and Cartographer operate as dedicated peer sessions in external panes or workspaces (orchestrated via the active harness transport, e.g. herdr).
+- Planners MUST NEVER spawn nested subagents (e.g. `invoke_subagent`) to simulate Reviewer or Builder gates.
+- All review dispatches and build tasks MUST be routed to dedicated peer panes to preserve the Blind Barrier and prevent anti-compaction churn.
+
 ## Repository Initialization Reconnaissance
 
 The `init` flow has nine steps with an optional Scout branch:
 
 1. Planner inspects active same-workspace peer sessions through the active harness transport (prioritizing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents), assesses repository scale, and chooses `SCOUT_RECON_REQUIRED` -> Step 2 or `DIRECT_SURVEY` -> Step 3.
 2. Scout performs read-only topological reconnaissance and returns a structured `scout-survey` to Planner.
-3. Planner validates Scout evidence against repository ground truth, or performs the direct survey, and drafts `AGENTS.md`.
+3. Planner validates Scout evidence against repository ground truth, or performs the direct survey; upon explicit operator authorization, invokes the initialization scaffolding capability (`agentplaybook init`) when living memory is absent (requiring explicit `--force` authorization if replacing existing files) to scaffold baseline living memory, and drafts comprehensive `AGENTS.md`.
 4. Reviewer reviews the current `AGENTS.md` artifact.
 5. Planner incorporates Reviewer feedback.
 6. Builder reviews the updated `AGENTS.md` artifact.

@@ -390,5 +390,18 @@
       "Cartographer delivers completed diagrams asynchronously via the diagram-completion message artifact.",
       "Engineering pipelines (build, review, commit) must not block or gate on in-flight cartography operations."
     ]
+  },
+  {
+    "id": "peer-session-transport-primacy",
+    "title": "Peer-Session Transport Primacy & Subagent Simulation Prohibition",
+    "category": "protocol",
+    "summary": "Mandates that formal Reviewer, Builder, and Companion gates execute exclusively across dedicated external peer sessions; strictly prohibits nested subagent simulation to preserve the Blind Barrier and prevent context compaction churn.",
+    "details": "Operating formal review and build gates inside nested, ephemeral subagent contexts compromises verification independence, leaks un-sanitized planning context through shared memory, and triggers recursive conversation compaction churn. All formal Reviewer verification and Builder implementation tasks must execute within dedicated external peer sessions orchestrated through the active harness transport. Planners must never simulate or spawn Reviewer or Builder within internal nested subagent contexts.",
+    "guidelines": [
+      "Planners must never simulate or spawn Reviewer or Builder roles within internal nested subagent contexts.",
+      "Formal review and build gates must execute in dedicated, isolated peer sessions.",
+      "Across context compaction recovery, Planners must discover active workspace peer sessions through the active harness transport rather than spawning internal subagents.",
+      "Living memory (AGENTS.md) must prominently record peer session topology and transport invariants."
+    ]
   }
 ]
