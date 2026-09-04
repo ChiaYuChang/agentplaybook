@@ -7,7 +7,7 @@ func DefaultLivingMemoryTemplate() string {
 
 ## Architectural Topology & Jurisdictions
 
-- **Repository Tier**: Tier 3 Orchestration Protocol (` + "`" + `AgentPlaybook` + "`" + ` v0.3.3). Roles: ` + "`" + `planner` + "`" + `, ` + "`" + `reviewer` + "`" + `, ` + "`" + `builder` + "`" + `, ` + "`" + `scout` + "`" + ` (category: ` + "`" + `core` + "`" + `), ` + "`" + `navigator` + "`" + `, ` + "`" + `cartographer` + "`" + ` (category: ` + "`" + `companion` + "`" + `). Flows: ` + "`" + `init` + "`" + `, ` + "`" + `plan` + "`" + `, ` + "`" + `blueprint` + "`" + `, ` + "`" + `build` + "`" + `, ` + "`" + `review` + "`" + `, ` + "`" + `commit` + "`" + `, ` + "`" + `cartography` + "`" + `, ` + "`" + `session-handoff` + "`" + `. Memory: living ` + "`" + `AGENTS.md` + "`" + `.
+- **Repository Tier**: Tier 3 Orchestration Protocol (` + "`" + `AgentPlaybook v0.3.4 Living Memory Blueprint` + "`" + `). Roles: ` + "`" + `planner` + "`" + `, ` + "`" + `reviewer` + "`" + `, ` + "`" + `builder` + "`" + `, ` + "`" + `scout` + "`" + ` (category: ` + "`" + `core` + "`" + `), ` + "`" + `navigator` + "`" + `, ` + "`" + `cartographer` + "`" + ` (category: ` + "`" + `companion` + "`" + `). Flows: ` + "`" + `init` + "`" + `, ` + "`" + `plan` + "`" + `, ` + "`" + `blueprint` + "`" + `, ` + "`" + `build` + "`" + `, ` + "`" + `review` + "`" + `, ` + "`" + `commit` + "`" + `, ` + "`" + `cartography` + "`" + `, ` + "`" + `session-handoff` + "`" + `. Memory: living ` + "`" + `AGENTS.md` + "`" + `.
 - **External Interfaces**: Go CLI (` + "`" + `agentplaybook` + "`" + `) discovery commands (` + "`" + `role` + "`" + `, ` + "`" + `flow` + "`" + `, ` + "`" + `artifact` + "`" + `, ` + "`" + `rule` + "`" + `) and scaffolding (` + "`" + `init` + "`" + `) with JSON/markdown output.
 - **Artifact Governance**: Hierarchical structure with ` + "`" + `blueprint-plan` + "`" + ` (` + "`" + `<slug>.blueprint.md` + "`" + `), ` + "`" + `sub-build-plan` + "`" + ` (` + "`" + `sub/<slug>.build.md` + "`" + `), ` + "`" + `sub-review-plan` + "`" + ` (` + "`" + `sub/<slug>.review.md` + "`" + `), ` + "`" + `sub-review-resolution` + "`" + ` (` + "`" + `sub/<slug>.resolution.md` + "`" + `), top-level ` + "`" + `review-resolution` + "`" + ` (` + "`" + `<slug>.resolution.md` + "`" + `), ` + "`" + `diagram-brief` + "`" + `, and ` + "`" + `diagram-completion` + "`" + `.
 - **Blind Barrier, Scout Isolation & Companion Allowlist**: ` + "`" + `review-findings` + "`" + ` strictly restricted to ` + "`" + `["planner", "reviewer"]` + "`" + `; Builder receives only Planner-sanitized remediation instructions. Scout strictly excluded from all task in-flight artifacts (` + "`" + `build-plan` + "`" + `, ` + "`" + `review-plan` + "`" + `, ` + "`" + `blueprint-plan` + "`" + `, ` + "`" + `sub-*` + "`" + `, ` + "`" + `review-findings` + "`" + `). Navigator and Cartographer visibility strictly constrained by Settled-Artifact Allowlist (` + "`" + `agents-md` + "`" + `, ` + "`" + `review-resolution` + "`" + `, ` + "`" + `sub-review-resolution` + "`" + `); in-flight draft plans and review artifacts strictly exclude companions. Navigator is never an artifact owner or flow actor; Cartographer owns only ` + "`" + `diagram-completion` + "`" + ` and acts only in ` + "`" + `cartography` + "`" + ` flow.
@@ -77,5 +77,47 @@ func DefaultLivingMemoryTemplate() string {
 - **Milestone**: ` + "`" + `Milestone Title - Status (e.g. READY_TO_INIT)` + "`" + `
 - **Next Pickup Item**: ` + "`" + `Immediate next action item` + "`" + `
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh VCS status inspection to revalidate mutable repository ground truth; never blindly trust cached Active State.
+`
+}
+
+// MinimalLivingMemoryTemplate returns the ultra-compact telegraphic Caveman-style AGENTS.md template markdown.
+// Strictly adheres to size budget (<=50 lines, <=2500 bytes, <25% of DefaultLivingMemoryTemplate) and pure ASCII.
+func MinimalLivingMemoryTemplate() string {
+	return `# AGENTS.md
+
+## Topology
+- Tier: 3. Core: planner, reviewer, builder, scout. Companion: navigator, cartographer. Memory: AGENTS.md.
+- Flow: init, plan, blueprint, build, review, commit, cartography, session-handoff.
+- Artifacts: blueprint-plan, sub-build-plan, sub-review-plan, sub-review-resolution, review-resolution, diagram-brief, diagram-completion.
+- Companion Allowlist: Companions see only agents-md, review-resolution, sub-review-resolution. No draft plans or review-findings access.
+- Star Topology: Builder, Reviewer, Scout talk ONLY to Planner. Navigator/Cartographer talk ONLY to User, Planner, Navigator/Cartographer.
+- Navigator: Handoff: "Please send this requirement directly to Planner". Provenance: [Source: <path> | Observed: <rev> @ <timestamp>]. Gated: idle/done only; discard on arrival, no retry/queue, max 1 in-flight, <500 chars, static fallback. Zero side-effects.
+- Cartographer: Write: docs/diagrams/<safe-name>.html (traversal prohibited). Return: diagram-completion (file URI, single-sentence digest, node/edge statistics; <100 tokens, <=60 words, <=250 runes, zero inline markup). Taste Gate: budget <=12 nodes, <=12 transitions; pushback ADVISORY_ISSUED. async non-blocking. Prerequisite: diagram-design.
+
+## Invariants
+- Peer-Session Primacy: Reviewer, Builder, Scout, Cartographer = external panes via herdr. NEVER call invoke_subagent for Reviewer/Builder. Protects Blind Barrier and context.
+- Dual Gates: PLAN_PASS before code, REVIEW_PASS before commit. No bypass.
+- Headless: Non-interactive only. No TUIs/pagers.
+- Single Writer: Planner curates AGENTS.md. Others never edit.
+- Commit: Human auth = local seal only. Remote push requires separate auth.
+- Fail-Closed: Return to Step 2 on AUTHORIZATION_DENIED.
+- Format: Pure ASCII, telegraphic, drop filler words.
+
+## Builder Rules
+- Single truth: Query CLI agentplaybook role/flow/rule.
+- Embed data: JSON syntax error invalidates CLI suite.
+- Blind barrier: Never inspect review-plan.
+- No VCS: Code and test only. No git/jj commits.
+
+## Reviewer Checklist
+- Independent verification: Run tests, race, vet, gofmt, diff check.
+- Severity: Blocker (blocks pass), Major (resolve or waiver), Minor/Other (non-blocking).
+- Plan vs Code: Challenge scope creep and missing invariants.
+
+## Active State
+- Observed-At: <TIMESTAMP> @ <REV>
+- Status: Clean
+- Milestone: Active work
+- Next: Awaiting user intent
 `
 }

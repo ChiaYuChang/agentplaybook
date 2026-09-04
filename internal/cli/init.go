@@ -11,8 +11,15 @@ import (
 )
 
 // WriteLivingMemoryTemplate writes the canonical living memory template to the provided writer.
-func WriteLivingMemoryTemplate(w io.Writer) error {
-	_, err := io.WriteString(w, DefaultLivingMemoryTemplate())
+// If minimal is true, MinimalLivingMemoryTemplate is written; otherwise DefaultLivingMemoryTemplate is written.
+func WriteLivingMemoryTemplate(w io.Writer, minimal bool) error {
+	var content string
+	if minimal {
+		content = MinimalLivingMemoryTemplate()
+	} else {
+		content = DefaultLivingMemoryTemplate()
+	}
+	_, err := io.WriteString(w, content)
 	return err
 }
 
@@ -21,6 +28,7 @@ func NewInitCmd(k *knowledge.Knowledge) *cobra.Command {
 	var (
 		filePath string
 		force    bool
+		minimal  bool
 	)
 
 	cmd := &cobra.Command{
@@ -32,7 +40,8 @@ AgentPlaybook remains an evidence-based, read-only guidance manual; the 'agentpl
 command streams the standard AGENTS.md template to stdout by default (zero filesystem writes).
 When invoked with --file/-f, it acts as an explicit opt-in local scaffolding utility executed
 strictly upon operator invocation to generate baseline AGENTS.md, with zero background
-mutation, network downloads, or daemon processes.`,
+mutation, network downloads, or daemon processes. Use --minimal/-m for an ultra-compact
+telegraphic Caveman-style template optimized for minimal context budget.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -42,7 +51,7 @@ mutation, network downloads, or daemon processes.`,
 
 			// If no target file is specified, stream template directly to stdout (zero disk writes)
 			if filePath == "" {
-				return WriteLivingMemoryTemplate(cmd.OutOrStdout())
+				return WriteLivingMemoryTemplate(cmd.OutOrStdout(), minimal)
 			}
 
 			// Preflight collision check
@@ -74,7 +83,7 @@ mutation, network downloads, or daemon processes.`,
 				return fmt.Errorf("failed to set permissions on %s: %w", filePath, err)
 			}
 
-			if err := WriteLivingMemoryTemplate(f); err != nil {
+			if err := WriteLivingMemoryTemplate(f, minimal); err != nil {
 				_ = f.Close()
 				return fmt.Errorf("failed to write %s: %w", filePath, err)
 			}
@@ -90,6 +99,7 @@ mutation, network downloads, or daemon processes.`,
 
 	cmd.Flags().StringVarP(&filePath, "file", "f", "", "Target file path (if omitted, template is streamed to stdout)")
 	cmd.Flags().BoolVarP(&force, "force", "F", false, "Overwrite target file if it already exists (requires --file)")
+	cmd.Flags().BoolVarP(&minimal, "minimal", "m", false, "Use ultra-compact telegraphic Caveman-style living memory template")
 
 	return cmd
 }

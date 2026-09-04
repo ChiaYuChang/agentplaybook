@@ -2,7 +2,7 @@
 
 ## Architectural Topology & Jurisdictions
 
-- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook` v0.3.3). Roles: `planner`, `reviewer`, `builder`, `scout` (category: `core`), `navigator`, `cartographer` (category: `companion`). Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`, `cartography`, `session-handoff`. Memory: living `AGENTS.md`.
+- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook` v0.3.4). Roles: `planner`, `reviewer`, `builder`, `scout` (category: `core`), `navigator`, `cartographer` (category: `companion`). Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`, `cartography`, `session-handoff`. Memory: living `AGENTS.md`.
 - **External Interfaces**: Go CLI (`agentplaybook`) discovery commands (`role`, `flow`, `artifact`, `rule`) and scaffolding (`init`) with JSON/markdown output.
 - **Artifact Governance**: Hierarchical structure with `blueprint-plan` (`<slug>.blueprint.md`), `sub-build-plan` (`sub/<slug>.build.md`), `sub-review-plan` (`sub/<slug>.review.md`), `sub-review-resolution` (`sub/<slug>.resolution.md`), top-level `review-resolution` (`<slug>.resolution.md`), `diagram-brief`, and `diagram-completion`.
 - **Blind Barrier, Scout Isolation & Companion Allowlist**: `review-findings` strictly restricted to `["planner", "reviewer"]`; Builder receives only Planner-sanitized remediation instructions. Scout strictly excluded from all task in-flight artifacts (`build-plan`, `review-plan`, `blueprint-plan`, `sub-*`, `review-findings`). Navigator and Cartographer visibility strictly constrained by Settled-Artifact Allowlist (`agents-md`, `review-resolution`, `sub-review-resolution`); in-flight draft plans and review artifacts strictly exclude companions. Navigator is never an artifact owner or flow actor; Cartographer owns only `diagram-completion` and acts only in `cartography` flow.
@@ -66,8 +66,8 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-09-04T16:38:00Z @ working-copy`
-- **Dirty Status**: Modified 9 implementation/test/doc files and 3 new files for v0.3.3 Init Scaffolding & Anti-Compaction Governance; `AGENTS.md` and resolution artifact synthesized by Planner.
-- **Milestone**: AgentPlaybook v0.3.3 Init Scaffolding & Living Memory Anti-Compaction Governance - `REVIEW_PASS` (`ACCEPTED`).
-- **Next Pickup Item**: Execute commit flow via Jujutsu (`jj describe` / `jj new`), update working copy, and complete milestone finalization.
+- **Observed-At**: `2026-09-05T07:10:40Z @ working-copy`
+- **Dirty Status**: Modified implementation/test/doc files for v0.3.4 Init Minimal Caveman Scaffold; resolution artifact synthesized by Planner.
+- **Milestone**: AgentPlaybook v0.3.4 Init Minimal Caveman Scaffold - `REVIEW_PASS` (`RESOLVED_PASS`).
+- **Next Pickup Item**: Seek operator commit authorization, execute commit flow via Jujutsu (`jj describe` / `jj new`), advance `main` bookmark, and seek remote push authorization.
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

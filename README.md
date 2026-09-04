@@ -296,8 +296,16 @@ AgentPlaybook remains an evidence-based, read-only guidance manual; the 'agentpl
 # Stream template directly to stdout (zero disk writes, read-only inspection)
 agentplaybook init
 
+# Stream ultra-compact telegraphic Caveman template to stdout (>75% size reduction)
+agentplaybook init --minimal
+# or
+agentplaybook init -m
+
 # Initialize standard AGENTS.md in current directory (fails if file already exists)
 agentplaybook init --file AGENTS.md
+
+# Initialize minimal Caveman AGENTS.md directly to disk
+agentplaybook init --minimal --file AGENTS.md
 
 # Force overwrite existing AGENTS.md (enforces strict 0644 permissions)
 agentplaybook init --file AGENTS.md --force
@@ -307,6 +315,9 @@ agentplaybook init -f AGENTS.md -F
 # Scaffold to custom destination with automatic directory creation
 agentplaybook init --file docs/AGENTS.md
 ```
+
+### Minimal Caveman Living Memory (`--minimal` / `-m`)
+The standard `AGENTS.md` template provides a comprehensive ~250-line handbook. For token-conscious pair programming, use `--minimal` (`-m`) to generate an ultra-dense telegraphic **Caveman** living memory template (≤50 lines, ≤2,500 bytes, >75% size reduction vs standard) that preserves 100% of critical governance invariants, peer-session primacy, and companion contracts.
 
 ### Peer-Session Primacy over Subagents (`peer-session-transport-primacy`)
 To prevent recursive context compaction churn and preserve the Blind Barrier, AgentPlaybook enforces **Peer-Session Primacy over Subagents**:

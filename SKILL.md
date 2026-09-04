@@ -101,8 +101,16 @@ AgentPlaybook remains an evidence-based, read-only guidance manual; the 'agentpl
 # Stream template directly to stdout (zero disk writes, read-only inspection)
 sh "<skill-dir>/scripts/run-agentplaybook.sh" init
 
+# Stream ultra-compact telegraphic Caveman template to stdout (>75% size reduction)
+sh "<skill-dir>/scripts/run-agentplaybook.sh" init --minimal
+# or
+sh "<skill-dir>/scripts/run-agentplaybook.sh" init -m
+
 # Initialize standard AGENTS.md in current directory (fails if file already exists)
 sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file AGENTS.md
+
+# Initialize minimal Caveman AGENTS.md directly to disk
+sh "<skill-dir>/scripts/run-agentplaybook.sh" init --minimal --file AGENTS.md
 
 # Force overwrite existing AGENTS.md (enforces strict 0644 permissions)
 sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file AGENTS.md --force
@@ -110,6 +118,9 @@ sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file AGENTS.md --force
 # Scaffold to custom destination with automatic directory creation
 sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file path/to/AGENTS.md
 ```
+
+### Minimal Caveman Living Memory (`--minimal` / `-m`)
+Use `--minimal` (`-m`) for an ultra-dense telegraphic **Caveman** living memory template (≤50 lines, ≤2,500 bytes, >75% size reduction vs standard) that preserves 100% of critical governance invariants, peer-session primacy, and companion contracts.
 
 ### Peer-Session Primacy over Subagents (`peer-session-transport-primacy`)
 To prevent recursive context compaction churn and preserve the Blind Barrier, AgentPlaybook enforces **Peer-Session Primacy over Subagents**:

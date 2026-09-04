@@ -23,6 +23,8 @@ func TestCLI_GoldenDiscoveryMatrix(t *testing.T) {
 		{"rule"},
 		{"init"},
 		{"init", "--help"},
+		{"init", "--minimal"},
+		{"init", "-m"},
 	}
 
 	for _, cmd := range discoveryCommands {
@@ -2155,6 +2157,69 @@ func TestCLI_V033_InitScaffoldAndPeerSessionPrimacy(t *testing.T) {
 			} {
 				if !strings.Contains(docStr, required) {
 					t.Errorf("expected doc file %q to contain v0.3.3 term %q", docPath, required)
+				}
+			}
+		}
+	}
+}
+
+func TestCLI_V034_InitMinimalCaveman(t *testing.T) {
+	t.Parallel()
+
+	// 1. Discovery and Help Text for init minimal flag
+	{
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute([]string{"init", "--help"}, &stdout, &stderr, "dev"); err != nil {
+			t.Fatalf("init --help failed: %v\nStderr: %s", err, stderr.String())
+		}
+		helpStr := stdout.String()
+		for _, required := range []string{
+			"--minimal",
+			"-m",
+			"Caveman",
+		} {
+			if !strings.Contains(helpStr, required) {
+				t.Errorf("expected init --help to contain %q", required)
+			}
+		}
+	}
+
+	// 2. Both --minimal and -m stream identical minimal template to stdout
+	{
+		var out1, err1 bytes.Buffer
+		if err := cli.Execute([]string{"init", "--minimal"}, &out1, &err1, "dev"); err != nil {
+			t.Fatalf("init --minimal failed: %v", err)
+		}
+
+		var out2, err2 bytes.Buffer
+		if err := cli.Execute([]string{"init", "-m"}, &out2, &err2, "dev"); err != nil {
+			t.Fatalf("init -m failed: %v", err)
+		}
+
+		if out1.String() != out2.String() {
+			t.Errorf("expected init --minimal and init -m to produce identical output")
+		}
+
+		if out1.String() != cli.MinimalLivingMemoryTemplate() {
+			t.Errorf("expected stdout to match MinimalLivingMemoryTemplate")
+		}
+	}
+
+	// 3. Documentation Assertions for v0.3.4
+	{
+		for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+			content, err := os.ReadFile(docPath)
+			if err != nil {
+				t.Fatalf("failed to read doc file %q: %v", docPath, err)
+			}
+			docStr := string(content)
+			for _, required := range []string{
+				"--minimal",
+				"-m",
+				"Caveman",
+			} {
+				if !strings.Contains(docStr, required) {
+					t.Errorf("expected doc file %q to contain v0.3.4 term %q", docPath, required)
 				}
 			}
 		}
