@@ -144,12 +144,15 @@ agentplaybook flow plan
 agentplaybook flow blueprint
 agentplaybook flow session-handoff
 agentplaybook flow commit
+agentplaybook flow cartography
+agentplaybook flow e2e
 
 # Isolated single step query
 agentplaybook flow blueprint --step 2
 agentplaybook flow build --step 2
 agentplaybook flow session-handoff --step 1
 agentplaybook flow commit --step 5
+agentplaybook flow e2e --step 5
 ```
 
 ### 4. Inspecting Artifact Contracts
@@ -163,6 +166,10 @@ agentplaybook artifact sub-review-resolution
 agentplaybook artifact review-findings
 agentplaybook artifact scout-survey
 agentplaybook artifact review-resolution
+agentplaybook artifact diagram-brief
+agentplaybook artifact diagram-completion
+agentplaybook artifact e2e-brief
+agentplaybook artifact e2e-report
 ```
 
 ### 5. Inspecting Behavioral Rules
@@ -275,6 +282,34 @@ The `cartographer` companion role (`category: "companion"`) is a specialized vis
 4. Cartographer calculates layout geometry, renders HTML/SVG, and performs conceptual visual validation.
 5. Cartographer persists diagram to `docs/diagrams/<safe-name>.html` (or records advisory proposal) and emits lightweight `diagram-completion` message artifact to commissioner.
 
+### Verifier Role & Out-of-Tree E2E Sandbox Isolation
+
+The `verifier` role (`category: "core"`) is a specialized verification runner responsible for executing end-to-end, integration, and scenario-based test suites in an isolated out-of-tree sandbox or detached clone, protecting the primary working copy and live `@` commit from VCS state pollution while containing test log volume.
+
+```bash
+agentplaybook role verifier
+agentplaybook role verifier --responsibility
+agentplaybook role verifier --boundary
+agentplaybook role verifier --communication
+```
+
+#### Core E2E Verification Rules & Protocols
+1. **Sandbox Isolation & Working Tree Protection (`e2e-sandbox-isolation`)**:
+   In modern version control systems like Jujutsu (`jj`), the working copy is a live commit (`@`) that automatically amends filesystem additions into candidate revisions. All end-to-end and multi-service test suites must execute within an isolated out-of-tree sandbox or detached clone (`mktemp -d /tmp/e2e-XXXXXX` or dedicated test mirror). Running state-generating E2E suites directly in the primary working tree is strictly forbidden.
+2. **Context Containment & Zero Log Pollution (`e2e-zero-log-pollution`)**:
+   Raw stdout/stderr, browser traces, and daemon outputs remain strictly confined to sandbox disk storage. Verifier emits only the lightweight `e2e-report` message artifact (<150 tokens) containing high-level outcome tokens, scenario counts, duration, sandbox URI, and minimized failure digests.
+3. **Star-Topology Isolation**:
+   Verifier communicates strictly with Planner. Verifier never edits application code, task build plans, or `AGENTS.md`.
+
+#### E2E Verification Flow (`flow e2e`)
+1. Planner identifies end-to-end verification requirement and formulates `e2e-brief`.
+2. Planner dispatches `e2e-brief` message artifact to Verifier.
+3. Verifier provisions isolated out-of-tree sandbox or clone pinned to `candidate_ref`.
+4. Verifier executes test scenarios, redirecting verbose logs to sandbox storage.
+5. Verifier emits compact `e2e-report` message artifact to Planner (`E2E_PASS` -> Step 6, `E2E_FAIL` -> Step 7).
+6. Planner incorporates verified E2E evidence into Feature Composition Gate or Review Resolution.
+7. Planner arbitrates failure, sanitizes defect trace, and dispatches remediation requirements to Builder.
+
 ---
 
 ## 3-Tier Architectural Delegation
@@ -321,7 +356,7 @@ The standard `AGENTS.md` template provides a comprehensive ~250-line handbook. F
 
 ### Peer-Session Primacy over Subagents (`peer-session-transport-primacy`)
 To prevent recursive context compaction churn and preserve the Blind Barrier, AgentPlaybook enforces **Peer-Session Primacy over Subagents**:
-- Reviewer, Builder, Scout, and Cartographer operate as dedicated peer sessions in external panes or workspaces (orchestrated via the active harness transport, e.g. herdr).
+- Reviewer, Builder, Scout, Verifier, and Cartographer operate as dedicated peer sessions in external panes or workspaces (orchestrated via the active harness transport, e.g. herdr).
 - Planners MUST NEVER spawn nested subagents (e.g. `invoke_subagent`) to simulate Reviewer or Builder gates.
 - All review dispatches and build tasks MUST be routed to dedicated peer panes to preserve the Blind Barrier and prevent anti-compaction churn.
 

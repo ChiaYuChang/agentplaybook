@@ -23,6 +23,7 @@ const (
 	RoleScout        Role = "scout"
 	RoleNavigator    Role = "navigator"
 	RoleCartographer Role = "cartographer"
+	RoleVerifier     Role = "verifier"
 	RoleUser         Role = "user"
 )
 

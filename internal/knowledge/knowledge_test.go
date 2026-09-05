@@ -25,10 +25,10 @@ func TestLoad_Success(t *testing.T) {
 
 	// 2. Verify Roles
 	roles := k.Roles()
-	if len(roles) != 6 {
-		t.Fatalf("expected 6 roles, got %d", len(roles))
+	if len(roles) != 7 {
+		t.Fatalf("expected 7 roles, got %d", len(roles))
 	}
-	for _, expected := range []string{"planner", "builder", "reviewer", "scout", "navigator", "cartographer"} {
+	for _, expected := range []string{"planner", "builder", "reviewer", "scout", "navigator", "cartographer", "verifier"} {
 		r, ok := k.Role(expected)
 		if !ok {
 			t.Errorf("expected role %q to exist", expected)
@@ -62,7 +62,19 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("expected cartographer communication targets [user planner navigator], got %v", cart.Communication.Targets)
 	}
 
-	// Verify planner communication targets include navigator and cartographer
+	// Verify verifier role metadata
+	ver, ok := k.Role("verifier")
+	if !ok {
+		t.Fatalf("expected verifier role to exist")
+	}
+	if ver.Category != "core" {
+		t.Errorf("expected verifier category 'core', got %q", ver.Category)
+	}
+	if len(ver.Communication.Targets) != 1 || ver.Communication.Targets[0] != knowledge.RolePlanner {
+		t.Errorf("expected verifier communication targets [planner], got %v", ver.Communication.Targets)
+	}
+
+	// Verify planner communication targets include navigator, cartographer, and verifier
 	planner, ok := k.Role("planner")
 	if !ok {
 		t.Fatalf("expected planner role to exist")
@@ -70,13 +82,16 @@ func TestLoad_Success(t *testing.T) {
 	if planner.Category != "core" {
 		t.Errorf("expected planner category 'core', got %q", planner.Category)
 	}
-	foundNavTarget, foundCartTarget := false, false
+	foundNavTarget, foundCartTarget, foundVerTarget := false, false, false
 	for _, target := range planner.Communication.Targets {
 		if target == knowledge.RoleNavigator {
 			foundNavTarget = true
 		}
 		if target == knowledge.RoleCartographer {
 			foundCartTarget = true
+		}
+		if target == knowledge.RoleVerifier {
+			foundVerTarget = true
 		}
 	}
 	if !foundNavTarget {
@@ -85,13 +100,16 @@ func TestLoad_Success(t *testing.T) {
 	if !foundCartTarget {
 		t.Errorf("expected planner communication targets to include cartographer, got %v", planner.Communication.Targets)
 	}
+	if !foundVerTarget {
+		t.Errorf("expected planner communication targets to include verifier, got %v", planner.Communication.Targets)
+	}
 
 	// 3. Verify Flows
 	flows := k.Flows()
-	if len(flows) != 8 {
-		t.Fatalf("expected 8 flows, got %d", len(flows))
+	if len(flows) != 9 {
+		t.Fatalf("expected 9 flows, got %d", len(flows))
 	}
-	for _, expected := range []string{"init", "plan", "blueprint", "build", "review", "commit", "session-handoff", "cartography"} {
+	for _, expected := range []string{"init", "plan", "blueprint", "build", "review", "commit", "session-handoff", "cartography", "e2e"} {
 		f, ok := k.Flow(expected)
 		if !ok {
 			t.Errorf("expected flow %q to exist", expected)
@@ -271,8 +289,8 @@ func TestLoad_Success(t *testing.T) {
 
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
-	if len(artifacts) != 12 {
-		t.Fatalf("expected 12 artifacts, got %d", len(artifacts))
+	if len(artifacts) != 14 {
+		t.Fatalf("expected 14 artifacts, got %d", len(artifacts))
 	}
 	for _, expected := range []string{
 		"agents-md",
@@ -287,6 +305,8 @@ func TestLoad_Success(t *testing.T) {
 		"scout-survey",
 		"diagram-brief",
 		"diagram-completion",
+		"e2e-brief",
+		"e2e-report",
 	} {
 		a, ok := k.Artifact(expected)
 		if !ok {
@@ -323,8 +343,8 @@ func TestLoad_Success(t *testing.T) {
 	if len(reviewResolution.Sections) != 5 {
 		t.Errorf("expected review-resolution to have 5 sections, got %d", len(reviewResolution.Sections))
 	}
-	if len(reviewResolution.Visibility) != 5 {
-		t.Errorf("expected review-resolution visibility to include 5 roles, got %v", reviewResolution.Visibility)
+	if len(reviewResolution.Visibility) != 6 {
+		t.Errorf("expected review-resolution visibility to include 6 roles, got %v", reviewResolution.Visibility)
 	}
 
 	// Verify diagram-brief and diagram-completion metadata
@@ -350,10 +370,33 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("expected diagram-completion to have 3 fields, got %d", len(diagramCompletion.Fields))
 	}
 
+	// Verify e2e-brief and e2e-report metadata
+	e2eBrief, _ := k.Artifact("e2e-brief")
+	if e2eBrief.Owner != knowledge.RolePlanner || e2eBrief.Type != "message" {
+		t.Errorf("unexpected e2e-brief metadata: %+v", e2eBrief)
+	}
+	if len(e2eBrief.Visibility) != 2 || e2eBrief.Visibility[0] != knowledge.RolePlanner || e2eBrief.Visibility[1] != knowledge.RoleVerifier {
+		t.Errorf("expected e2e-brief visibility [planner verifier], got %v", e2eBrief.Visibility)
+	}
+	if len(e2eBrief.Fields) != 5 {
+		t.Errorf("expected e2e-brief to have 5 fields, got %d", len(e2eBrief.Fields))
+	}
+
+	e2eReport, _ := k.Artifact("e2e-report")
+	if e2eReport.Owner != knowledge.RoleVerifier || e2eReport.Type != "message" {
+		t.Errorf("unexpected e2e-report metadata: %+v", e2eReport)
+	}
+	if len(e2eReport.Visibility) != 3 || e2eReport.Visibility[0] != knowledge.RolePlanner || e2eReport.Visibility[1] != knowledge.RoleVerifier || e2eReport.Visibility[2] != knowledge.RoleReviewer {
+		t.Errorf("expected e2e-report visibility [planner verifier reviewer], got %v", e2eReport.Visibility)
+	}
+	if len(e2eReport.Fields) != 7 {
+		t.Errorf("expected e2e-report to have 7 fields, got %d", len(e2eReport.Fields))
+	}
+
 	// 5. Verify Rules
 	rules := k.Rules()
-	if len(rules) < 27 {
-		t.Fatalf("expected at least 27 rules, got %d", len(rules))
+	if len(rules) < 29 {
+		t.Fatalf("expected at least 29 rules, got %d", len(rules))
 	}
 	for _, expected := range []string{
 		"anti-cheating",
@@ -379,6 +422,8 @@ func TestLoad_Success(t *testing.T) {
 		"cartography-taste-gate-advisory",
 		"cartography-asynchronous-decoupling",
 		"peer-session-transport-primacy",
+		"e2e-sandbox-isolation",
+		"e2e-zero-log-pollution",
 	} {
 		r, ok := k.Rule(expected)
 		if !ok {
@@ -978,6 +1023,114 @@ func TestValidateDiagramCompletion(t *testing.T) {
 	for _, tc := range invalidCases {
 		if err := knowledge.ValidateDiagramCompletion(tc.uri, tc.digest); err == nil {
 			t.Errorf("expected invalid diagram completion (%s, %s) [%s] to fail, got nil", tc.uri, tc.digest, tc.desc)
+		}
+	}
+}
+
+func TestValidate_VerifierConstraints(t *testing.T) {
+	t.Parallel()
+
+	k, err := knowledge.Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	// 1. Verifier category must be core
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleVerifier {
+				roles[i].Category = "invalid_cat"
+				break
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error for invalid verifier category")
+		}
+	}
+
+	// 2. Verifier communication target cannot be builder or user
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RoleVerifier {
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder}
+				break
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when verifier communicates with builder")
+		}
+	}
+
+	// 3. Planner communication targets must include verifier
+	{
+		invalid := *k
+		roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+		for i, r := range roles {
+			if r.Name == knowledge.RolePlanner {
+				// Drop verifier
+				roles[i].Communication.Targets = []knowledge.Role{knowledge.RoleBuilder, knowledge.RoleReviewer, knowledge.RoleScout, knowledge.RoleNavigator, knowledge.RoleCartographer}
+				break
+			}
+		}
+		setRoles(&invalid, roles)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when planner omits verifier")
+		}
+	}
+
+	// 4. Verifier cannot own artifacts other than e2e-report
+	{
+		invalid := *k
+		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
+		for i, a := range artifacts {
+			if a.Name == "build-plan" {
+				artifacts[i].Owner = knowledge.RoleVerifier
+				break
+			}
+		}
+		setArtifacts(&invalid, artifacts)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when verifier owns build-plan")
+		}
+	}
+
+	// 5. Verifier cannot be an actor in flow build or flow review
+	{
+		invalid := *k
+		flows := append([]knowledge.Flow(nil), k.Flows()...)
+		for i, f := range flows {
+			if f.Name == "build" {
+				steps := append([]knowledge.FlowStep(nil), f.Steps...)
+				steps[0].Actor = knowledge.RoleVerifier
+				flows[i].Steps = steps
+				break
+			}
+		}
+		setFlows(&invalid, flows)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when verifier is actor in flow build")
+		}
+	}
+
+	// 6. Verifier cannot be visible on unapproved artifacts (e.g. build-plan)
+	{
+		invalid := *k
+		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
+		for i, a := range artifacts {
+			if a.Name == "build-plan" {
+				artifacts[i].Visibility = append(artifacts[i].Visibility, knowledge.RoleVerifier)
+				break
+			}
+		}
+		setArtifacts(&invalid, artifacts)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when verifier is visible on build-plan")
 		}
 	}
 }

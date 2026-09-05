@@ -2,10 +2,15 @@
 
 ## Architectural Topology & Jurisdictions
 
-- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook` v0.3.4). Roles: `planner`, `reviewer`, `builder`, `scout` (category: `core`), `navigator`, `cartographer` (category: `companion`). Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`, `cartography`, `session-handoff`. Memory: living `AGENTS.md`.
+- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook` v0.3.5). Roles: `planner`, `reviewer`, `builder`, `scout`, `verifier` (category: `core`), `navigator`, `cartographer` (category: `companion`). Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`, `cartography`, `session-handoff`, `e2e`. Memory: living `AGENTS.md`.
 - **External Interfaces**: Go CLI (`agentplaybook`) discovery commands (`role`, `flow`, `artifact`, `rule`) and scaffolding (`init`) with JSON/markdown output.
-- **Artifact Governance**: Hierarchical structure with `blueprint-plan` (`<slug>.blueprint.md`), `sub-build-plan` (`sub/<slug>.build.md`), `sub-review-plan` (`sub/<slug>.review.md`), `sub-review-resolution` (`sub/<slug>.resolution.md`), top-level `review-resolution` (`<slug>.resolution.md`), `diagram-brief`, and `diagram-completion`.
-- **Blind Barrier, Scout Isolation & Companion Allowlist**: `review-findings` strictly restricted to `["planner", "reviewer"]`; Builder receives only Planner-sanitized remediation instructions. Scout strictly excluded from all task in-flight artifacts (`build-plan`, `review-plan`, `blueprint-plan`, `sub-*`, `review-findings`). Navigator and Cartographer visibility strictly constrained by Settled-Artifact Allowlist (`agents-md`, `review-resolution`, `sub-review-resolution`); in-flight draft plans and review artifacts strictly exclude companions. Navigator is never an artifact owner or flow actor; Cartographer owns only `diagram-completion` and acts only in `cartography` flow.
+- **Artifact Governance**: Hierarchical structure with `blueprint-plan` (`<slug>.blueprint.md`), `sub-build-plan` (`sub/<slug>.build.md`), `sub-review-plan` (`sub/<slug>.review.md`), `sub-review-resolution` (`sub/<slug>.resolution.md`), top-level `review-resolution` (`<slug>.resolution.md`), `diagram-brief`, `diagram-completion`, `e2e-brief`, and `e2e-report`.
+- **Blind Barrier, Scout Isolation & Companion/Verifier Allowlists**: `review-findings` strictly restricted to `["planner", "reviewer"]`; Builder receives only Planner-sanitized remediation instructions. Scout strictly excluded from all task in-flight artifacts (`build-plan`, `review-plan`, `blueprint-plan`, `sub-*`, `review-findings`). Navigator, Cartographer, and Verifier visibility strictly constrained by Settled-Artifact Allowlist (`agents-md`, `review-resolution`, `sub-review-resolution`); in-flight draft plans and review artifacts strictly exclude companions and verifier. Navigator is never an artifact owner or flow actor; Cartographer owns only `diagram-completion` and acts only in `cartography` flow; Verifier owns only `e2e-report` and acts only in `e2e` flow.
+- **Verifier Role & Out-of-Tree E2E Isolation**:
+  - System Verifier: Specialized runner executing heavy end-to-end, multi-service, and scenario suites in an isolated out-of-tree sandbox/clone (`mktemp -d /tmp/e2e-XXXXXX` or test mirror).
+  - Zero Working Copy Pollution (`e2e-sandbox-isolation`): Strictly prohibited from running test suites in the primary working tree to protect Jujutsu's live `@` commit from automatic dirty-state amendments.
+  - Zero Log Pollution (`e2e-zero-log-pollution`): Quarantines raw console output, traces, and daemon logs in sandbox storage; transmits strictly the compact `e2e-report` message artifact (<150 tokens) to Planner.
+  - Star-Topology Isolation: Communicates strictly with `planner`.
 - **Navigator Companion Governance**:
   - Star-Topology Isolation: Communicates strictly with `user`, `planner`, and `cartographer`. Direct communication with `builder`, `reviewer`, `scout` strictly forbidden.
   - Zero Instruction Relay: Returns fixed handoff (*"Please send this requirement directly to Planner"*) on change requests.
@@ -26,10 +31,10 @@
 
 ## Global Operational Invariants
 
-- **Peer-Session Primacy over Subagents**: Reviewer, Builder, Scout, and Cartographer operate as dedicated peer sessions in external panes or workspaces (orchestrated via the active harness transport, e.g. herdr). Planners MUST NEVER spawn nested subagents (e.g. invoke_subagent) to simulate Reviewer or Builder gates. All review dispatches and build tasks MUST be routed to dedicated peer panes to preserve the Blind Barrier and prevent context window exhaustion.
+- **Peer-Session Primacy over Subagents**: Reviewer, Builder, Scout, Verifier, and Cartographer operate as dedicated peer sessions in external panes or workspaces (orchestrated via the active harness transport, e.g. herdr). Planners MUST NEVER spawn nested subagents (e.g. invoke_subagent) to simulate Reviewer or Builder gates. All review dispatches and build tasks MUST be routed to dedicated peer panes to preserve the Blind Barrier and prevent context window exhaustion.
 
 - **Non-Interactive Execution**: Headless-safe only. Prohibit interactive TUIs, unshielded pagers, confirmation prompts in unattended sessions.
-- **Living Memory Single-Writer**: Planner sole author/curator of `AGENTS.md`. Builder, Reviewer, Scout, Navigator never edit directly.
+- **Living Memory Single-Writer**: Planner sole author/curator of `AGENTS.md`. Builder, Reviewer, Scout, Verifier, Navigator, Cartographer never edit directly.
 - **Language Standard & Telegraphic Style**: Machine-facing memory in concise en-US ASCII. Drop articles/filler/prose. Non-ASCII domain terms require explicit adjacent inline rationale. Exact symbols/paths mandatory.
 - **Inter-Agent Messaging**: Efficiency-first. Drop pleasantries, social framing, human prose. Transmit compact, structured technical payloads with exact symbols/paths.
 - **Commit & Publication Separation**: Human commit auth = local seal only. Remote push requires separate explicit user auth.
@@ -66,8 +71,8 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-09-05T07:10:40Z @ working-copy`
-- **Dirty Status**: Modified implementation/test/doc files for v0.3.4 Init Minimal Caveman Scaffold; resolution artifact synthesized by Planner.
-- **Milestone**: AgentPlaybook v0.3.4 Init Minimal Caveman Scaffold - `REVIEW_PASS` (`RESOLVED_PASS`).
-- **Next Pickup Item**: Seek operator commit authorization, execute commit flow via Jujutsu (`jj describe` / `jj new`), advance `main` bookmark, and seek remote push authorization.
+- **Observed-At**: `2026-09-06T01:00:00Z @ 2071fbfa`
+- **Dirty Status**: `clean` (v0.3.5 committed locally to `main*`)
+- **Milestone**: AgentPlaybook v0.3.5 Verifier Role & Out-of-Tree E2E Sandbox Isolation Governance - `ACCEPTED`
+- **Next Pickup Item**: Awaiting user intent or remote push authorization (`main*` ahead of `origin`).
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

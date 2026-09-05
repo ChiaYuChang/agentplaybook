@@ -1,15 +1,15 @@
 package cli
 
 // DefaultLivingMemoryTemplate returns the canonical AGENTS.md template markdown
-// incorporating the 6 roles, 8 flows, dual formal gates, and peer-session primacy over subagents.
+// incorporating the 7 roles, 9 flows, dual formal gates, and peer-session primacy over subagents.
 func DefaultLivingMemoryTemplate() string {
 	return `# AGENTS.md
 
 ## Architectural Topology & Jurisdictions
 
-- **Repository Tier**: Tier 3 Orchestration Protocol (` + "`" + `AgentPlaybook v0.3.4 Living Memory Blueprint` + "`" + `). Roles: ` + "`" + `planner` + "`" + `, ` + "`" + `reviewer` + "`" + `, ` + "`" + `builder` + "`" + `, ` + "`" + `scout` + "`" + ` (category: ` + "`" + `core` + "`" + `), ` + "`" + `navigator` + "`" + `, ` + "`" + `cartographer` + "`" + ` (category: ` + "`" + `companion` + "`" + `). Flows: ` + "`" + `init` + "`" + `, ` + "`" + `plan` + "`" + `, ` + "`" + `blueprint` + "`" + `, ` + "`" + `build` + "`" + `, ` + "`" + `review` + "`" + `, ` + "`" + `commit` + "`" + `, ` + "`" + `cartography` + "`" + `, ` + "`" + `session-handoff` + "`" + `. Memory: living ` + "`" + `AGENTS.md` + "`" + `.
+- **Repository Tier**: Tier 3 Orchestration Protocol (` + "`" + `AgentPlaybook v0.3.5 Living Memory Blueprint` + "`" + `). Roles: ` + "`" + `planner` + "`" + `, ` + "`" + `reviewer` + "`" + `, ` + "`" + `builder` + "`" + `, ` + "`" + `scout` + "`" + `, ` + "`" + `verifier` + "`" + ` (category: ` + "`" + `core` + "`" + `), ` + "`" + `navigator` + "`" + `, ` + "`" + `cartographer` + "`" + ` (category: ` + "`" + `companion` + "`" + `). Flows: ` + "`" + `init` + "`" + `, ` + "`" + `plan` + "`" + `, ` + "`" + `blueprint` + "`" + `, ` + "`" + `build` + "`" + `, ` + "`" + `review` + "`" + `, ` + "`" + `commit` + "`" + `, ` + "`" + `cartography` + "`" + `, ` + "`" + `session-handoff` + "`" + `, ` + "`" + `e2e` + "`" + `. Memory: living ` + "`" + `AGENTS.md` + "`" + `.
 - **External Interfaces**: Go CLI (` + "`" + `agentplaybook` + "`" + `) discovery commands (` + "`" + `role` + "`" + `, ` + "`" + `flow` + "`" + `, ` + "`" + `artifact` + "`" + `, ` + "`" + `rule` + "`" + `) and scaffolding (` + "`" + `init` + "`" + `) with JSON/markdown output.
-- **Artifact Governance**: Hierarchical structure with ` + "`" + `blueprint-plan` + "`" + ` (` + "`" + `<slug>.blueprint.md` + "`" + `), ` + "`" + `sub-build-plan` + "`" + ` (` + "`" + `sub/<slug>.build.md` + "`" + `), ` + "`" + `sub-review-plan` + "`" + ` (` + "`" + `sub/<slug>.review.md` + "`" + `), ` + "`" + `sub-review-resolution` + "`" + ` (` + "`" + `sub/<slug>.resolution.md` + "`" + `), top-level ` + "`" + `review-resolution` + "`" + ` (` + "`" + `<slug>.resolution.md` + "`" + `), ` + "`" + `diagram-brief` + "`" + `, and ` + "`" + `diagram-completion` + "`" + `.
+- **Artifact Governance**: Hierarchical structure with ` + "`" + `blueprint-plan` + "`" + ` (` + "`" + `<slug>.blueprint.md` + "`" + `), ` + "`" + `sub-build-plan` + "`" + ` (` + "`" + `sub/<slug>.build.md` + "`" + `), ` + "`" + `sub-review-plan` + "`" + ` (` + "`" + `sub/<slug>.review.md` + "`" + `), ` + "`" + `sub-review-resolution` + "`" + ` (` + "`" + `sub/<slug>.resolution.md` + "`" + `), top-level ` + "`" + `review-resolution` + "`" + ` (` + "`" + `<slug>.resolution.md` + "`" + `), ` + "`" + `diagram-brief` + "`" + `, ` + "`" + `diagram-completion` + "`" + `, ` + "`" + `e2e-brief` + "`" + `, and ` + "`" + `e2e-report` + "`" + `.
 - **Blind Barrier, Scout Isolation & Companion Allowlist**: ` + "`" + `review-findings` + "`" + ` strictly restricted to ` + "`" + `["planner", "reviewer"]` + "`" + `; Builder receives only Planner-sanitized remediation instructions. Scout strictly excluded from all task in-flight artifacts (` + "`" + `build-plan` + "`" + `, ` + "`" + `review-plan` + "`" + `, ` + "`" + `blueprint-plan` + "`" + `, ` + "`" + `sub-*` + "`" + `, ` + "`" + `review-findings` + "`" + `). Navigator and Cartographer visibility strictly constrained by Settled-Artifact Allowlist (` + "`" + `agents-md` + "`" + `, ` + "`" + `review-resolution` + "`" + `, ` + "`" + `sub-review-resolution` + "`" + `); in-flight draft plans and review artifacts strictly exclude companions. Navigator is never an artifact owner or flow actor; Cartographer owns only ` + "`" + `diagram-completion` + "`" + ` and acts only in ` + "`" + `cartography` + "`" + ` flow.
 - **Navigator Companion Governance**:
   - Star-Topology Isolation: Communicates strictly with ` + "`" + `user` + "`" + `, ` + "`" + `planner` + "`" + `, and ` + "`" + `cartographer` + "`" + `. Direct communication with ` + "`" + `builder` + "`" + `, ` + "`" + `reviewer` + "`" + `, ` + "`" + `scout` + "`" + ` strictly forbidden.
@@ -31,7 +31,7 @@ func DefaultLivingMemoryTemplate() string {
 
 ## Global Operational Invariants
 
-- **Peer-Session Primacy over Subagents**: Reviewer, Builder, Scout, and Cartographer operate as dedicated peer sessions in external panes or workspaces (orchestrated via the active harness transport, e.g. herdr). Planners MUST NEVER spawn nested subagents (e.g. invoke_subagent) to simulate Reviewer or Builder gates. All review dispatches and build tasks MUST be routed to dedicated peer panes to preserve the Blind Barrier and prevent context window exhaustion.
+- **Peer-Session Primacy over Subagents**: Reviewer, Builder, Scout, Verifier, and Cartographer operate as dedicated peer sessions in external panes or workspaces (orchestrated via the active harness transport, e.g. herdr). Planners MUST NEVER spawn nested subagents (e.g. invoke_subagent) to simulate Reviewer or Builder gates. All review dispatches and build tasks MUST be routed to dedicated peer panes to preserve the Blind Barrier and prevent context window exhaustion.
 - **Dual Formal Gates**: Two distinct validation gates govern the pipeline: the Plan-Review Gate (` + "`" + `PLAN_PASS` + "`" + `) before any implementation begins, and the Code-Review Gate (` + "`" + `REVIEW_PASS` + "`" + `) before commit synthesis. Neither gate may be bypassed.
 - **Non-Interactive Execution**: Headless-safe only. Prohibit interactive TUIs, unshielded pagers, confirmation prompts in unattended sessions.
 - **Living Memory Single-Writer**: Planner sole author/curator of ` + "`" + `AGENTS.md` + "`" + `. Builder, Reviewer, Scout, Navigator, Cartographer never edit directly.
@@ -86,22 +86,23 @@ func MinimalLivingMemoryTemplate() string {
 	return `# AGENTS.md
 
 ## Topology
-- Tier: 3. Core: planner, reviewer, builder, scout. Companion: navigator, cartographer. Memory: AGENTS.md.
-- Flow: init, plan, blueprint, build, review, commit, cartography, session-handoff.
-- Artifacts: blueprint-plan, sub-build-plan, sub-review-plan, sub-review-resolution, review-resolution, diagram-brief, diagram-completion.
-- Companion Allowlist: Companions see only agents-md, review-resolution, sub-review-resolution. No draft plans or review-findings access.
-- Star Topology: Builder, Reviewer, Scout talk ONLY to Planner. Navigator/Cartographer talk ONLY to User, Planner, Navigator/Cartographer.
+- Tier: 3. Core: planner, reviewer, builder, scout, verifier. Companion: navigator, cartographer. Memory: AGENTS.md.
+- Flow: init, plan, blueprint, build, review, commit, cartography, session-handoff, e2e.
+- Artifacts: blueprint-plan, sub-build-plan, sub-review-plan, sub-review-resolution, review-resolution, diagram-brief, diagram-completion, e2e-brief, e2e-report.
+- Companion Allowlist: sub-review-resolution only; no draft/review access.
+- Star: Builder, Reviewer, Scout, Verifier to Planner; Companions to User/Planner.
 - Navigator: Handoff: "Please send this requirement directly to Planner". Provenance: [Source: <path> | Observed: <rev> @ <timestamp>]. Gated: idle/done only; discard on arrival, no retry/queue, max 1 in-flight, <500 chars, static fallback. Zero side-effects.
 - Cartographer: Write: docs/diagrams/<safe-name>.html (traversal prohibited). Return: diagram-completion (file URI, single-sentence digest, node/edge statistics; <100 tokens, <=60 words, <=250 runes, zero inline markup). Taste Gate: budget <=12 nodes, <=12 transitions; pushback ADVISORY_ISSUED. async non-blocking. Prerequisite: diagram-design.
 
 ## Invariants
-- Peer-Session Primacy: Reviewer, Builder, Scout, Cartographer = external panes via herdr. NEVER call invoke_subagent for Reviewer/Builder. Protects Blind Barrier and context.
+- Peer-Session Primacy: Reviewer, Builder, Scout, Verifier, Cartographer = external panes via herdr. NEVER call invoke_subagent for Reviewer/Builder. Protects Blind Barrier and context.
 - Dual Gates: PLAN_PASS before code, REVIEW_PASS before commit. No bypass.
 - Headless: Non-interactive only. No TUIs/pagers.
 - Single Writer: Planner curates AGENTS.md. Others never edit.
 - Commit: Human auth = local seal only. Remote push requires separate auth.
 - Fail-Closed: Return to Step 2 on AUTHORIZATION_DENIED.
 - Format: Pure ASCII, telegraphic, drop filler words.
+- E2E Sandbox: Out-of-tree execution; zero dirty-state in live @ commit; zero log pollution; report <150 tokens.
 
 ## Builder Rules
 - Single truth: Query CLI agentplaybook role/flow/rule.

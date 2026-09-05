@@ -9,7 +9,8 @@
       "builder",
       "reviewer",
       "navigator",
-      "cartographer"
+      "cartographer",
+      "verifier"
     ],
     "path": "AGENTS.md",
     "type": "document",
@@ -274,7 +275,8 @@
       "reviewer",
       "builder",
       "navigator",
-      "cartographer"
+      "cartographer",
+      "verifier"
     ],
     "path": "plan/{timestamp}/sub/{slug}.resolution.md",
     "path_variables": {
@@ -373,7 +375,8 @@
       "builder",
       "reviewer",
       "navigator",
-      "cartographer"
+      "cartographer",
+      "verifier"
     ],
     "path": "plan/{timestamp}/{slug}.resolution.md",
     "path_variables": {
@@ -522,6 +525,93 @@
         "name": "statistics",
         "required": true,
         "description": "Node and edge count statistics and layout dimensions."
+      }
+    ]
+  },
+  {
+    "name": "e2e-brief",
+    "title": "E2E Verification Brief",
+    "description": "Structured specification message dispatched by Planner to Verifier defining candidate revision, target scenarios, environment parameters, and execution timeouts.",
+    "owner": "planner",
+    "visibility": [
+      "planner",
+      "verifier"
+    ],
+    "type": "message",
+    "fields": [
+      {
+        "name": "candidate_ref",
+        "required": true,
+        "description": "Target commit hash, change ID, or revision identifier to verify."
+      },
+      {
+        "name": "test_scope",
+        "required": true,
+        "description": "Test suite identifier, tag, or target directory."
+      },
+      {
+        "name": "scenarios",
+        "required": true,
+        "description": "List or filter pattern of specific end-to-end scenarios to execute."
+      },
+      {
+        "name": "environment_spec",
+        "required": false,
+        "description": "Environment variables, mock configuration, or container dependencies."
+      },
+      {
+        "name": "timeout_seconds",
+        "required": false,
+        "description": "Maximum allowed execution duration before timeout failure."
+      }
+    ]
+  },
+  {
+    "name": "e2e-report",
+    "title": "E2E Verification Report",
+    "description": "Lightweight verification summary emitted by Verifier containing execution status, scenario metrics, sandbox URI, and sanitized failure digest; strictly prohibits raw test log dumps.",
+    "owner": "verifier",
+    "visibility": [
+      "planner",
+      "verifier",
+      "reviewer"
+    ],
+    "type": "message",
+    "fields": [
+      {
+        "name": "outcome",
+        "required": true,
+        "description": "Execution outcome token: PASS, FAIL, or ENV_ERROR."
+      },
+      {
+        "name": "scenarios_total",
+        "required": true,
+        "description": "Total count of executed scenarios."
+      },
+      {
+        "name": "scenarios_passed",
+        "required": true,
+        "description": "Count of passing scenarios."
+      },
+      {
+        "name": "scenarios_failed",
+        "required": true,
+        "description": "Count of failing scenarios."
+      },
+      {
+        "name": "duration_ms",
+        "required": true,
+        "description": "Total test execution time in milliseconds."
+      },
+      {
+        "name": "sandbox_uri",
+        "required": true,
+        "description": "Local path or URI to the isolated sandbox where detailed raw logs are stored."
+      },
+      {
+        "name": "failure_digest",
+        "required": false,
+        "description": "Minimized reproduction trace and failing assertion summary (populated only on FAIL)."
       }
     ]
   }

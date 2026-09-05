@@ -638,5 +638,56 @@
         "action": "Persist diagram to docs/diagrams/<safe-name>.html (or record advisory proposal) and emit lightweight diagram-completion message to commissioner."
       }
     ]
+  },
+  {
+    "name": "e2e",
+    "description": "Execute end-to-end verification in an isolated out-of-tree sandbox, quarantining test logs and delivering compact evidence to Planner.",
+    "steps": [
+      {
+        "index": 1,
+        "actor": "planner",
+        "action": "Identify end-to-end verification requirement and formulate structured e2e-brief artifact specifying candidate revision."
+      },
+      {
+        "index": 2,
+        "actor": "planner",
+        "action": "Dispatch e2e-brief message artifact to Verifier."
+      },
+      {
+        "index": 3,
+        "actor": "verifier",
+        "action": "Provision isolated out-of-tree sandbox or detached clone pinned strictly to candidate revision and initialize dependencies."
+      },
+      {
+        "index": 4,
+        "actor": "verifier",
+        "action": "Execute test scenarios, redirecting and quarantining verbose stdout/stderr and trace logs to persistent sandbox disk storage."
+      },
+      {
+        "index": 5,
+        "actor": "verifier",
+        "action": "Emit lightweight e2e-report message artifact to Planner.",
+        "conditions": [
+          {
+            "when": "E2E_PASS",
+            "then": 6
+          },
+          {
+            "when": "E2E_FAIL",
+            "then": 7
+          }
+        ]
+      },
+      {
+        "index": 6,
+        "actor": "planner",
+        "action": "Incorporate verified E2E evidence into Feature Composition Gate or Review Resolution."
+      },
+      {
+        "index": 7,
+        "actor": "planner",
+        "action": "Arbitrate failure, sanitize defect trace, and dispatch remediation requirements to Builder."
+      }
+    ]
   }
 ]

@@ -71,6 +71,10 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"role", "cartographer", "--responsibility"},
 		{"role", "cartographer", "--boundary"},
 		{"role", "cartographer", "--communication"},
+		{"role", "verifier"},
+		{"role", "verifier", "--responsibility"},
+		{"role", "verifier", "--boundary"},
+		{"role", "verifier", "--communication"},
 		{"role", "planner", "--communication"},
 		{"flow", "init"},
 		{"flow", "init", "--step", "1"},
@@ -88,6 +92,9 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"flow", "cartography"},
 		{"flow", "cartography", "--step", "1"},
 		{"flow", "cartography", "--step", "3"},
+		{"flow", "e2e"},
+		{"flow", "e2e", "--step", "1"},
+		{"flow", "e2e", "--step", "5"},
 		{"artifact", "agents-md"},
 		{"artifact", "build-plan"},
 		{"artifact", "review-plan"},
@@ -100,6 +107,8 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"artifact", "review-resolution"},
 		{"artifact", "diagram-brief"},
 		{"artifact", "diagram-completion"},
+		{"artifact", "e2e-brief"},
+		{"artifact", "e2e-report"},
 		{"rule", "list"},
 		{"rule", "explain", "anti-cheating"},
 		{"rule", "explain", "coherent-plan-units"},
@@ -128,6 +137,8 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "cartography-taste-gate-advisory"},
 		{"rule", "explain", "cartography-asynchronous-decoupling"},
 		{"rule", "explain", "peer-session-transport-primacy"},
+		{"rule", "explain", "e2e-sandbox-isolation"},
+		{"rule", "explain", "e2e-zero-log-pollution"},
 	}
 
 	for _, cmd := range jsonCommands {
@@ -1231,8 +1242,8 @@ func TestCLI_AIReviewerSpecThreeTierIntegration(t *testing.T) {
 		if resolution.PathVariables["timestamp"] == "" || resolution.PathVariables["slug"] == "" {
 			t.Errorf("expected path_variables timestamp and slug in review-resolution, got %+v", resolution.PathVariables)
 		}
-		if len(resolution.Visibility) != 5 || resolution.Visibility[0] != knowledge.RolePlanner || resolution.Visibility[1] != knowledge.RoleBuilder || resolution.Visibility[2] != knowledge.RoleReviewer || resolution.Visibility[3] != knowledge.RoleNavigator || resolution.Visibility[4] != knowledge.RoleCartographer {
-			t.Errorf("expected resolution visibility [planner builder reviewer navigator cartographer], got %v", resolution.Visibility)
+		if len(resolution.Visibility) != 6 || resolution.Visibility[0] != knowledge.RolePlanner || resolution.Visibility[1] != knowledge.RoleBuilder || resolution.Visibility[2] != knowledge.RoleReviewer || resolution.Visibility[3] != knowledge.RoleNavigator || resolution.Visibility[4] != knowledge.RoleCartographer || resolution.Visibility[5] != knowledge.RoleVerifier {
+			t.Errorf("expected resolution visibility [planner builder reviewer navigator cartographer verifier], got %v", resolution.Visibility)
 		}
 		for _, reqPhrase := range []string{"sanitization", "review-plan criteria", "hidden test fixtures", "private inspection methods"} {
 			if !strings.Contains(resolution.Description, reqPhrase) {

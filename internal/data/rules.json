@@ -403,5 +403,33 @@
       "Across context compaction recovery, Planners must discover active workspace peer sessions through the active harness transport rather than spawning internal subagents.",
       "Living memory (AGENTS.md) must prominently record peer session topology and transport invariants."
     ]
+  },
+  {
+    "id": "e2e-sandbox-isolation",
+    "title": "End-to-End Sandbox Isolation & Working Tree Protection",
+    "category": "protocol",
+    "summary": "Mandates that all end-to-end, multi-service, or heavy integration test suites run exclusively in an isolated out-of-tree clone or workspace to protect the primary working copy and live @ commit from state pollution.",
+    "details": "In modern version control systems such as Jujutsu (jj), the working directory is a live commit (@) that automatically amends uncommitted filesystem additions and side-effects into the candidate revision. Heavy integration and end-to-end test suites routinely produce temporary databases, sockets, caches, logs, and mock artifacts that corrupt clean implementation diffs. To preserve repository integrity and maintain finalization equivalence, all end-to-end, scenario-based, and multi-service test suites must execute exclusively within an isolated out-of-tree sandbox, detached clone, or separate temporary directory (e.g., mktemp -d /tmp/e2e-XXXXXX or dedicated test mirror). Executing state-generating E2E suites directly in the primary working copy is strictly prohibited. Physical cloning and harness provisioning mechanics are delegated to Tier 2 skills.",
+    "guidelines": [
+      "All end-to-end, multi-service, and integration test executions must occur within an isolated out-of-tree sandbox or detached clone.",
+      "Executing state-generating or artifact-producing E2E suites directly in the primary working tree is strictly prohibited to prevent auto-amending pollution into the live @ commit.",
+      "The isolated sandbox must be pinned strictly to the candidate revision specified in the e2e-brief.",
+      "Background services, containers, and mock servers must be contained within the sandbox lifecycle and terminated upon test completion.",
+      "Tier 3 rules define isolation conceptually, delegating concrete clone, worktree, and container mechanics to Tier 2 skills."
+    ]
+  },
+  {
+    "id": "e2e-zero-log-pollution",
+    "title": "E2E Context Containment & Zero Log Pollution Invariant",
+    "category": "protocol",
+    "summary": "Restricts E2E verification returns strictly to the lightweight e2e-report message artifact, quarantining raw execution logs and browser traces inside sandbox disk storage to prevent context compaction churn.",
+    "details": "End-to-end test execution produces massive volumes of console output, stack traces, browser logs, and network telemetry. Transmitting or displaying raw test logs across multi-agent communication channels triggers immediate context window explosion, degrading LLM reasoning and causing recursive compaction churn. Verifier must quarantine raw stdout/stderr and trace logs inside persistent sandbox disk storage, transmitting strictly the compact e2e-report message artifact (<150 tokens) to Planner. The report includes high-level status, total/passed/failed counts, duration, and a minimized failure digest only when assertions fail.",
+    "guidelines": [
+      "Raw test execution logs, browser traces, and daemon outputs must remain strictly confined to sandbox disk storage.",
+      "Verifier must never dump raw test logs or verbose stack traces into communication messages to Planner.",
+      "The return payload is restricted strictly to the e2e-report message artifact (<150 tokens).",
+      "Upon test failure, the failure_digest must contain only the failing assertion, scenario name, and minimal reproduction command, omitting passing scenario output.",
+      "Planner and Reviewer inspect high-level pass/fail evidence; detailed log files are accessed out-of-band via persistent sandbox URIs only when debugging."
+    ]
   }
 ]

@@ -39,7 +39,8 @@
         "reviewer",
         "scout",
         "navigator",
-        "cartographer"
+        "cartographer",
+        "verifier"
       ]
     }
   },
@@ -189,6 +190,32 @@
         "user",
         "planner",
         "navigator"
+      ]
+    }
+  },
+  {
+    "name": "verifier",
+    "title": "System Verifier & E2E Sandbox Runner",
+    "category": "core",
+    "description": "Specialized verification runner responsible for executing end-to-end, integration, and scenario-based test suites in an isolated out-of-tree sandbox/clone, preventing working copy pollution and containing test log volume while returning compact verification digests.",
+    "responsibilities": [
+      "Provision and synchronize an isolated out-of-tree sandbox or detached clone pinned strictly to the candidate revision specified in the e2e-brief.",
+      "Manage sandboxed dependency and service lifecycles (mock servers, background daemons, test databases, and headless drivers) outside the primary repository.",
+      "Execute end-to-end, integration, and scenario test suites, redirecting and quarantining verbose execution logs and traces inside sandbox disk storage.",
+      "Emit strictly compact e2e-report message artifacts (<150 tokens, zero raw log dumps) containing outcome status, scenario counts, duration, and minimal failure digest to Planner upon completion.",
+      "Communicate using telegraphic Caveman mode for all inter-agent messages (including [Planner], [Reviewer], [Builder], [Scout], [Verifier], or [<role>] prefixed exchanges): omit conversational filler, pleasantries, and polite framing in favor of compact, structured technical fragments."
+    ],
+    "boundaries": [
+      "Strictly forbidden from executing test suites or spawning background services in the primary working tree.",
+      "Strictly prohibited from modifying application source code, task build plans, or repository configuration directly.",
+      "DO NOT edit AGENTS.md directly; preserve the Single-Writer Principle.",
+      "Strictly adhere to star topology: communicate strictly with planner; direct communication with Builder, Reviewer, Scout, Navigator, or Cartographer is forbidden.",
+      "Strictly maintain the blind barrier: never receive, request, or infer from confidential review plans or private reviewer fixtures.",
+      "DO NOT dump verbose terminal logs, browser traces, or raw stderr into messages dispatched to Planner; enforce zero log pollution."
+    ],
+    "communication": {
+      "targets": [
+        "planner"
       ]
     }
   }

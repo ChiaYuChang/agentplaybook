@@ -416,9 +416,11 @@ func TestCLI_Init_Minimal_Invariants(t *testing.T) {
 		"invoke_subagent",
 		"Blind Barrier",
 		"herdr",
-		"planner", "reviewer", "builder", "scout", "navigator", "cartographer",
-		"init", "plan", "blueprint", "build", "review", "commit", "cartography", "session-handoff",
+		"planner", "reviewer", "builder", "scout", "verifier", "navigator", "cartographer",
+		"init", "plan", "blueprint", "build", "review", "commit", "cartography", "session-handoff", "e2e",
 		"sub-review-resolution",
+		"e2e-brief", "e2e-report",
+		"E2E Sandbox",
 		"Please send this requirement directly to Planner",
 		"[Source: <path> | Observed: <rev> @ <timestamp>]",
 		"idle/done only",
@@ -468,7 +470,7 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 
 	// 2. Verify mandatory structural strings
 	requiredStrings := []string{
-		"AgentPlaybook v0.3.4 Living Memory Blueprint",
+		"AgentPlaybook v0.3.5 Living Memory Blueprint",
 		"Peer-Session Primacy over Subagents",
 		"invoke_subagent",
 		"Blind Barrier",
@@ -482,10 +484,12 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 		"review",
 		"commit",
 		"cartography",
+		"e2e",
 		"planner",
 		"reviewer",
 		"builder",
 		"scout",
+		"verifier",
 	}
 
 	for _, s := range requiredStrings {

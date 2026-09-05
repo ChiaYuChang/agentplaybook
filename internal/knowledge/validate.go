@@ -73,10 +73,10 @@ func Validate(k *Knowledge) error {
 
 		switch r.Name {
 		case RolePlanner:
-			if len(r.Communication.Targets) != 5 {
-				errs = append(errs, fmt.Errorf("planner communication targets must contain exactly 5 targets, got %d", len(r.Communication.Targets)))
+			if len(r.Communication.Targets) != 6 {
+				errs = append(errs, fmt.Errorf("planner communication targets must contain exactly 6 targets, got %d", len(r.Communication.Targets)))
 			}
-			for _, required := range []Role{RoleBuilder, RoleReviewer, RoleScout, RoleNavigator, RoleCartographer} {
+			for _, required := range []Role{RoleBuilder, RoleReviewer, RoleScout, RoleNavigator, RoleCartographer, RoleVerifier} {
 				if !targetSet[required] {
 					errs = append(errs, fmt.Errorf("planner communication targets must include %q", required))
 				}
@@ -109,7 +109,7 @@ func Validate(k *Knowledge) error {
 					errs = append(errs, fmt.Errorf("cartographer communication target %q is not permitted (must be 'user', 'planner', or 'navigator')", target))
 				}
 			}
-		case RoleBuilder, RoleReviewer, RoleScout:
+		case RoleBuilder, RoleReviewer, RoleScout, RoleVerifier:
 			if len(r.Communication.Targets) != 1 || !targetSet[RolePlanner] {
 				errs = append(errs, fmt.Errorf("role %q communication targets must contain strictly 'planner'", r.Name))
 			}
@@ -131,6 +131,13 @@ func Validate(k *Knowledge) error {
 		"diagram-brief":         true,
 		"diagram-completion":    true,
 	}
+	allowedVerifierArtifacts := map[string]bool{
+		"agents-md":             true,
+		"sub-review-resolution": true,
+		"review-resolution":     true,
+		"e2e-brief":             true,
+		"e2e-report":            true,
+	}
 
 	artifactNames := make(map[string]bool, len(k.artifactList))
 	for _, a := range k.artifactList {
@@ -149,6 +156,8 @@ func Validate(k *Knowledge) error {
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role navigator", a.Name))
 		} else if a.Owner == RoleCartographer && a.Name != "diagram-completion" {
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role cartographer (permitted exclusively for diagram-completion)", a.Name))
+		} else if a.Owner == RoleVerifier && a.Name != "e2e-report" {
+			errs = append(errs, fmt.Errorf("artifact %q owner cannot be role verifier (permitted exclusively for e2e-report)", a.Name))
 		} else if !roleNames[a.Owner] {
 			errs = append(errs, fmt.Errorf("artifact %q owner %q does not exist", a.Name, a.Owner))
 		}
@@ -165,6 +174,8 @@ func Validate(k *Knowledge) error {
 				errs = append(errs, fmt.Errorf("artifact %q is not in the settled allowlist and cannot include companion role navigator in visibility", a.Name))
 			} else if v == RoleCartographer && !allowedCartographerArtifacts[a.Name] {
 				errs = append(errs, fmt.Errorf("artifact %q is not in the settled allowlist and cannot include companion role cartographer in visibility", a.Name))
+			} else if v == RoleVerifier && !allowedVerifierArtifacts[a.Name] {
+				errs = append(errs, fmt.Errorf("artifact %q is not in the settled allowlist and cannot include role verifier in visibility", a.Name))
 			}
 		}
 
@@ -216,6 +227,8 @@ func Validate(k *Knowledge) error {
 				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be companion role navigator", f.Name, s.Index))
 			} else if s.Actor == RoleCartographer && f.Name != "cartography" {
 				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be companion role cartographer (permitted exclusively in cartography flow)", f.Name, s.Index))
+			} else if s.Actor == RoleVerifier && f.Name != "e2e" {
+				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be role verifier (permitted exclusively in e2e flow)", f.Name, s.Index))
 			} else if !roleNames[s.Actor] {
 				errs = append(errs, fmt.Errorf("flow %q step %d actor %q does not exist", f.Name, s.Index, s.Actor))
 			}

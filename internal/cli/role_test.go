@@ -20,7 +20,7 @@ func TestRole_BareDiscovery(t *testing.T) {
 	}
 
 	out := stdout.String()
-	for _, expected := range []string{"planner", "builder", "reviewer", "scout", "navigator", "cartographer"} {
+	for _, expected := range []string{"planner", "builder", "reviewer", "scout", "navigator", "cartographer", "verifier"} {
 		if !strings.Contains(out, expected) {
 			t.Errorf("expected role %q in discovery output, got: %s", expected, out)
 		}
@@ -209,5 +209,97 @@ func TestRole_Unknown(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "unknown role") {
 		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestRole_Verifier(t *testing.T) {
+	t.Parallel()
+
+	var stdout, stderr bytes.Buffer
+	err := cli.Execute([]string{"role", "verifier"}, &stdout, &stderr, "dev")
+	if err != nil {
+		t.Fatalf("querying role verifier failed: %v", err)
+	}
+
+	var r knowledge.RoleDefinition
+	if err := json.Unmarshal(stdout.Bytes(), &r); err != nil {
+		t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
+	}
+
+	if r.Name != "verifier" {
+		t.Errorf("expected role name 'verifier', got %q", r.Name)
+	}
+	if r.Category != "core" {
+		t.Errorf("expected category 'core', got %q", r.Category)
+	}
+	if len(r.Responsibilities) == 0 {
+		t.Error("expected non-empty responsibilities")
+	}
+	if len(r.Boundaries) == 0 {
+		t.Error("expected non-empty boundaries")
+	}
+	if len(r.Communication.Targets) != 1 || r.Communication.Targets[0] != knowledge.RolePlanner {
+		t.Errorf("expected verifier communication targets [planner], got %v", r.Communication.Targets)
+	}
+
+	// Test selectors
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"role", "verifier", "--description"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("--description failed: %v", err)
+		}
+		var desc string
+		if err := json.Unmarshal(stdout.Bytes(), &desc); err != nil {
+			t.Fatalf("failed to decode description: %v", err)
+		}
+		if desc == "" {
+			t.Error("expected description to be non-empty")
+		}
+	}
+
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"role", "verifier", "--responsibility"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("--responsibility failed: %v", err)
+		}
+		var resp []string
+		if err := json.Unmarshal(stdout.Bytes(), &resp); err != nil {
+			t.Fatalf("failed to decode responsibilities: %v", err)
+		}
+		if len(resp) == 0 {
+			t.Error("expected responsibilities to be non-empty")
+		}
+	}
+
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"role", "verifier", "--boundary"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("--boundary failed: %v", err)
+		}
+		var bounds []string
+		if err := json.Unmarshal(stdout.Bytes(), &bounds); err != nil {
+			t.Fatalf("failed to decode boundaries: %v", err)
+		}
+		if len(bounds) == 0 {
+			t.Error("expected boundaries to be non-empty")
+		}
+	}
+
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"role", "verifier", "--communication"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("--communication failed: %v", err)
+		}
+		var comm knowledge.RoleCommunication
+		if err := json.Unmarshal(stdout.Bytes(), &comm); err != nil {
+			t.Fatalf("failed to decode communication targets: %v", err)
+		}
+		if len(comm.Targets) != 1 || comm.Targets[0] != "planner" {
+			t.Errorf("expected communication targets [planner], got %v", comm.Targets)
+		}
 	}
 }

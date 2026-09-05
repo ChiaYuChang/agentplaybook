@@ -45,7 +45,7 @@ Do not query every knowledge domain on every turn. Query only the specific domai
    ```
 
 3. **Artifact Contracts**:
-   Before authoring, reviewing, or exchanging persistent plans, summaries, or structured findings (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`):
+   Before authoring, reviewing, or exchanging persistent plans, summaries, or structured findings (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`, `e2e-brief`, `e2e-report`):
    ```sh
    sh "<skill-dir>/scripts/run-agentplaybook.sh" artifact <artifact-name>
    ```
@@ -93,6 +93,20 @@ sh "<skill-dir>/scripts/run-agentplaybook.sh" role cartographer
 - **Zero Context Pollution (`cartography-zero-context-pollution`)**: Raw HTML/SVG markup remains confined to Cartographer's isolated session. Handoff to callers uses the lightweight `diagram-completion` message artifact (<100 tokens evaluated by deterministic subword estimator EstimateTokenCount, <=250 chars, <=60 words, single-sentence digest, zero inline markup), containing persistent file URI, single-sentence plain text summary digest, and node/edge statistics with zero inline HTML/SVG markup.
 - **Asynchronous Decoupling (`cartography-asynchronous-decoupling`)**: Callers dispatch `diagram-brief` artifacts asynchronously in fire-and-forget mode; blocking loops or polling on Cartographer completion are strictly prohibited.
 
+## Verifier Role & Out-of-Tree E2E Sandbox Isolation
+
+The `verifier` role (`category: "core"`) is a specialized verification runner responsible for executing end-to-end, integration, and scenario-based test suites in an isolated out-of-tree sandbox or detached clone, protecting the primary working copy and live `@` commit from VCS state pollution while containing test log volume.
+
+```sh
+sh "<skill-dir>/scripts/run-agentplaybook.sh" role verifier
+# Selectors: --description, --responsibility, --boundary, --communication
+```
+
+### E2E Boundaries & Protocols
+- **Sandbox Isolation (`e2e-sandbox-isolation`)**: All end-to-end and multi-service test suites must execute within an isolated out-of-tree sandbox or clone (`mktemp -d /tmp/e2e-XXXXXX` or dedicated test mirror). Running state-generating E2E suites directly in the primary working tree is strictly forbidden to protect Jujutsu's live `@` commit from automatic dirty-state amendments.
+- **Zero Log Pollution (`e2e-zero-log-pollution`)**: Raw stdout/stderr, browser traces, and daemon outputs remain strictly confined to sandbox disk storage. Verifier emits only the lightweight `e2e-report` message artifact (<150 tokens) containing high-level outcome tokens, scenario counts, duration, sandbox URI, and minimized failure digests.
+- **Star-Topology Isolation**: Verifier communicates strictly with Planner. Verifier never edits application code, task build plans, or `AGENTS.md`.
+
 ## Living Memory Scaffolding & Anti-Compaction Governance (`init`)
 
 AgentPlaybook remains an evidence-based, read-only guidance manual; the 'agentplaybook init' command streams the standard AGENTS.md template to stdout by default (zero filesystem writes). When invoked with `--file`, it acts as an explicit, opt-in local scaffolding utility executed strictly upon operator invocation to generate baseline AGENTS.md, with zero background mutation, network downloads, or daemon processes.
@@ -124,7 +138,7 @@ Use `--minimal` (`-m`) for an ultra-dense telegraphic **Caveman** living memory 
 
 ### Peer-Session Primacy over Subagents (`peer-session-transport-primacy`)
 To prevent recursive context compaction churn and preserve the Blind Barrier, AgentPlaybook enforces **Peer-Session Primacy over Subagents**:
-- Reviewer, Builder, Scout, and Cartographer operate as dedicated peer sessions in external panes or workspaces (orchestrated via the active harness transport, e.g. herdr).
+- Reviewer, Builder, Scout, Verifier, and Cartographer operate as dedicated peer sessions in external panes or workspaces (orchestrated via the active harness transport, e.g. herdr).
 - Planners MUST NEVER spawn nested subagents (e.g. `invoke_subagent`) to simulate Reviewer or Builder gates.
 - All review dispatches and build tasks MUST be routed to dedicated peer panes to preserve the Blind Barrier and prevent anti-compaction churn.
 
