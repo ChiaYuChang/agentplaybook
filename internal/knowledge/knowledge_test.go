@@ -270,27 +270,34 @@ func TestLoad_Success(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected cartography flow to exist")
 	}
-	if len(cartFlow.Steps) != 5 {
-		t.Fatalf("expected 5 steps in cartography flow, got %d", len(cartFlow.Steps))
+	if len(cartFlow.Steps) != 6 {
+		t.Fatalf("expected 6 steps in cartography flow, got %d", len(cartFlow.Steps))
 	}
 	if cartFlow.Steps[0].Actor != knowledge.RolePlanner || cartFlow.Steps[1].Actor != knowledge.RolePlanner {
 		t.Errorf("expected cartography steps 1 and 2 actor to be planner")
 	}
-	if cartFlow.Steps[2].Actor != knowledge.RoleCartographer || cartFlow.Steps[3].Actor != knowledge.RoleCartographer || cartFlow.Steps[4].Actor != knowledge.RoleCartographer {
-		t.Errorf("expected cartography steps 3, 4, 5 actor to be cartographer")
+	if cartFlow.Steps[2].Actor != knowledge.RoleCartographer || cartFlow.Steps[3].Actor != knowledge.RoleCartographer || cartFlow.Steps[4].Actor != knowledge.RoleCartographer || cartFlow.Steps[5].Actor != knowledge.RoleCartographer {
+		t.Errorf("expected cartography steps 3, 4, 5, 6 actor to be cartographer")
 	}
 	cartStep3Conditions := make(map[string]int)
 	for _, c := range cartFlow.Steps[2].Conditions {
 		cartStep3Conditions[c.When] = c.Then
 	}
-	if cartStep3Conditions["DIAGRAM_APPROVED"] != 4 || cartStep3Conditions["ADVISORY_ISSUED"] != 5 {
+	if cartStep3Conditions["CLARIFICATION_REQUIRED"] != 4 || cartStep3Conditions["DIAGRAM_APPROVED"] != 5 || cartStep3Conditions["ADVISORY_ISSUED"] != 6 {
 		t.Errorf("unexpected cartography step 3 conditions: %v", cartStep3Conditions)
+	}
+	cartStep4Conditions := make(map[string]int)
+	for _, c := range cartFlow.Steps[3].Conditions {
+		cartStep4Conditions[c.When] = c.Then
+	}
+	if cartStep4Conditions["CLARIFICATION_RESOLVED"] != 3 {
+		t.Errorf("unexpected cartography step 4 conditions: %v", cartStep4Conditions)
 	}
 
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
-	if len(artifacts) != 14 {
-		t.Fatalf("expected 14 artifacts, got %d", len(artifacts))
+	if len(artifacts) != 15 {
+		t.Fatalf("expected 15 artifacts, got %d", len(artifacts))
 	}
 	for _, expected := range []string{
 		"agents-md",
@@ -305,6 +312,7 @@ func TestLoad_Success(t *testing.T) {
 		"scout-survey",
 		"diagram-brief",
 		"diagram-completion",
+		"diagram-clarification-request",
 		"e2e-brief",
 		"e2e-report",
 	} {
@@ -370,6 +378,17 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("expected diagram-completion to have 3 fields, got %d", len(diagramCompletion.Fields))
 	}
 
+	diagramClarification, _ := k.Artifact("diagram-clarification-request")
+	if diagramClarification.Owner != knowledge.RoleCartographer || diagramClarification.Type != "message" {
+		t.Errorf("unexpected diagram-clarification-request metadata: %+v", diagramClarification)
+	}
+	if len(diagramClarification.Visibility) != 2 || diagramClarification.Visibility[0] != knowledge.RolePlanner || diagramClarification.Visibility[1] != knowledge.RoleCartographer {
+		t.Errorf("expected diagram-clarification-request visibility [planner cartographer], got %v", diagramClarification.Visibility)
+	}
+	if len(diagramClarification.Fields) != 4 {
+		t.Errorf("expected diagram-clarification-request to have 4 fields, got %d", len(diagramClarification.Fields))
+	}
+
 	// Verify e2e-brief and e2e-report metadata
 	e2eBrief, _ := k.Artifact("e2e-brief")
 	if e2eBrief.Owner != knowledge.RolePlanner || e2eBrief.Type != "message" {
@@ -395,8 +414,8 @@ func TestLoad_Success(t *testing.T) {
 
 	// 5. Verify Rules
 	rules := k.Rules()
-	if len(rules) < 29 {
-		t.Fatalf("expected at least 29 rules, got %d", len(rules))
+	if len(rules) < 31 {
+		t.Fatalf("expected at least 31 rules, got %d", len(rules))
 	}
 	for _, expected := range []string{
 		"anti-cheating",
@@ -421,6 +440,8 @@ func TestLoad_Success(t *testing.T) {
 		"cartography-zero-context-pollution",
 		"cartography-taste-gate-advisory",
 		"cartography-asynchronous-decoupling",
+		"cartography-brief-self-sufficiency",
+		"cartography-clarification-inquiry",
 		"peer-session-transport-primacy",
 		"e2e-sandbox-isolation",
 		"e2e-zero-log-pollution",

@@ -463,7 +463,7 @@
   {
     "name": "diagram-brief",
     "title": "Diagram Brief",
-    "description": "Structured specification message dispatched to Cartographer defining visual requirements, target path, semantics, and summary takeaways.",
+    "description": "Self-contained structured specification message dispatched to Cartographer defining visual requirements, target path, complete architectural semantics, and summary takeaways without requiring exploratory codebase/doc reading.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -485,7 +485,7 @@
       {
         "name": "semantic_spec",
         "required": true,
-        "description": "Semantic architectural specification, components, relationships, and data flows to visualize."
+        "description": "Self-contained semantic architectural specification providing all entities/nodes, relationships, directional flows, labels, and boundary groupings required for visual synthesis without codebase exploration."
       },
       {
         "name": "focal_nodes",
@@ -525,6 +525,39 @@
         "name": "statistics",
         "required": true,
         "description": "Node and edge count statistics and layout dimensions."
+      }
+    ]
+  },
+  {
+    "name": "diagram-clarification-request",
+    "title": "Diagram Clarification Request",
+    "description": "Structured clarification inquiry message dispatched by Cartographer to Planner requesting targeted disambiguation of brief entities, flows, or boundary constraints without exploratory codebase exploration.",
+    "owner": "cartographer",
+    "visibility": [
+      "planner",
+      "cartographer"
+    ],
+    "type": "message",
+    "fields": [
+      {
+        "name": "brief_title",
+        "required": true,
+        "description": "Title of the referenced diagram-brief under inquiry."
+      },
+      {
+        "name": "ambiguity_context",
+        "required": true,
+        "description": "Specific entity, relationship, or boundary exhibiting ambiguity or contradiction."
+      },
+      {
+        "name": "identified_gap",
+        "required": true,
+        "description": "Concrete architectural missing piece or conflicting constraint preventing visual layout computation."
+      },
+      {
+        "name": "clarification_question",
+        "required": true,
+        "description": "Exact targeted question for Planner regarding intended entities, flows, or directions."
       }
     ]
   },

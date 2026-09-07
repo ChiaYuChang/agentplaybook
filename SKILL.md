@@ -89,9 +89,19 @@ sh "<skill-dir>/scripts/run-agentplaybook.sh" role cartographer
 
 ### Visual Boundaries & Protocols
 - **Path-Scoping & Security (`cartographer-visual-architect-boundary`)**: Write authority is strictly restricted to `docs/diagrams/<safe-name>.html` (rejecting directory traversal `..`, leading slashes, and external writes). Cartographer never modifies application source code or `AGENTS.md`.
-- **Taste Gate & Complexity Budget (`cartography-taste-gate-advisory`)**: Cartographer enforces a **Taste Gate** assessment (≤12 nodes for structural diagrams, ≤12 transitions for sequence flows). When tabular or prose representation is superior, Cartographer issues an advisory pushback (`ADVISORY_ISSUED`) directly to Step 5 without rendering markup.
+- **Taste Gate & Complexity Budget (`cartography-taste-gate-advisory`)**: Cartographer enforces a **Taste Gate** assessment (≤12 nodes for structural diagrams, ≤12 transitions for sequence flows). When tabular or prose representation is superior, Cartographer issues an advisory pushback (`ADVISORY_ISSUED`) directly to Step 6 without rendering markup.
 - **Zero Context Pollution (`cartography-zero-context-pollution`)**: Raw HTML/SVG markup remains confined to Cartographer's isolated session. Handoff to callers uses the lightweight `diagram-completion` message artifact (<100 tokens evaluated by deterministic subword estimator EstimateTokenCount, <=250 chars, <=60 words, single-sentence digest, zero inline markup), containing persistent file URI, single-sentence plain text summary digest, and node/edge statistics with zero inline HTML/SVG markup.
 - **Asynchronous Decoupling (`cartography-asynchronous-decoupling`)**: Callers dispatch `diagram-brief` artifacts asynchronously in fire-and-forget mode; blocking loops or polling on Cartographer completion are strictly prohibited.
+- **Brief Self-Sufficiency (`cartography-brief-self-sufficiency`)**: Planner provides fully self-contained declarative architectural semantics in `diagram-brief` (WHAT to visualize: entities, relationships, labels, boundaries). Cartographer determines HOW to lay out and render. Cartographer is strictly relieved and prohibited from exploratory reading of application source code or documentation to deduce architecture, preserving context window and preventing semantic divergence.
+- **Clarification Inquiry & Anti-Guessing (`cartography-clarification-inquiry`)**: Cartographer must never guess, infer, or backfill missing architectural semantics. Upon encountering ambiguous, incomplete, or contradictory brief semantics, Cartographer dispatches a structured `diagram-clarification-request` message artifact to Planner (`CLARIFICATION_REQUIRED` -> Step 4) and awaits an amended brief (`CLARIFICATION_RESOLVED` -> Step 3).
+
+### Cartography Flow (`flow cartography`)
+1. Planner identifies visualization requirement and formulates self-contained `diagram-brief`.
+2. Planner dispatches `diagram-brief` message artifact to Cartographer.
+3. Cartographer evaluates visual suitability, brief completeness, and complexity budget under Taste Gate criteria (`CLARIFICATION_REQUIRED` -> Step 4, `DIAGRAM_APPROVED` -> Step 5, `ADVISORY_ISSUED` -> Step 6).
+4. Cartographer dispatches structured `diagram-clarification-request` to Planner detailing ambiguities and awaits amended brief (`CLARIFICATION_RESOLVED` -> Step 3).
+5. Cartographer calculates layout geometry, renders HTML/SVG, and performs conceptual visual validation.
+6. Cartographer persists diagram to `docs/diagrams/<safe-name>.html` (or records advisory proposal) and emits lightweight `diagram-completion` message artifact to commissioner.
 
 ## Verifier Role & Out-of-Tree E2E Sandbox Isolation
 

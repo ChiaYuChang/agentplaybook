@@ -125,11 +125,12 @@ func Validate(k *Knowledge) error {
 		"diagram-completion":    true,
 	}
 	allowedCartographerArtifacts := map[string]bool{
-		"agents-md":             true,
-		"sub-review-resolution": true,
-		"review-resolution":     true,
-		"diagram-brief":         true,
-		"diagram-completion":    true,
+		"agents-md":                     true,
+		"sub-review-resolution":         true,
+		"review-resolution":             true,
+		"diagram-brief":                 true,
+		"diagram-completion":            true,
+		"diagram-clarification-request": true,
 	}
 	allowedVerifierArtifacts := map[string]bool{
 		"agents-md":             true,
@@ -154,8 +155,8 @@ func Validate(k *Knowledge) error {
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be user", a.Name))
 		} else if a.Owner == RoleNavigator {
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role navigator", a.Name))
-		} else if a.Owner == RoleCartographer && a.Name != "diagram-completion" {
-			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role cartographer (permitted exclusively for diagram-completion)", a.Name))
+		} else if a.Owner == RoleCartographer && a.Name != "diagram-completion" && a.Name != "diagram-clarification-request" {
+			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role cartographer (permitted exclusively for diagram-completion and diagram-clarification-request)", a.Name))
 		} else if a.Owner == RoleVerifier && a.Name != "e2e-report" {
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be role verifier (permitted exclusively for e2e-report)", a.Name))
 		} else if !roleNames[a.Owner] {

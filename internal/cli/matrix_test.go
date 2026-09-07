@@ -92,6 +92,8 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"flow", "cartography"},
 		{"flow", "cartography", "--step", "1"},
 		{"flow", "cartography", "--step", "3"},
+		{"flow", "cartography", "--step", "4"},
+		{"flow", "cartography", "--step", "6"},
 		{"flow", "e2e"},
 		{"flow", "e2e", "--step", "1"},
 		{"flow", "e2e", "--step", "5"},
@@ -107,6 +109,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"artifact", "review-resolution"},
 		{"artifact", "diagram-brief"},
 		{"artifact", "diagram-completion"},
+		{"artifact", "diagram-clarification-request"},
 		{"artifact", "e2e-brief"},
 		{"artifact", "e2e-report"},
 		{"rule", "list"},
@@ -136,6 +139,8 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "cartography-zero-context-pollution"},
 		{"rule", "explain", "cartography-taste-gate-advisory"},
 		{"rule", "explain", "cartography-asynchronous-decoupling"},
+		{"rule", "explain", "cartography-brief-self-sufficiency"},
+		{"rule", "explain", "cartography-clarification-inquiry"},
 		{"rule", "explain", "peer-session-transport-primacy"},
 		{"rule", "explain", "e2e-sandbox-isolation"},
 		{"rule", "explain", "e2e-zero-log-pollution"},
@@ -2003,21 +2008,28 @@ func TestCLI_V032_CartographerAndVisualGovernance(t *testing.T) {
 		if err := json.Unmarshal(queryJSON("flow", "cartography"), &cartFlow); err != nil {
 			t.Fatalf("failed to decode cartography flow: %v", err)
 		}
-		if len(cartFlow.Steps) != 5 {
-			t.Fatalf("expected cartography flow to have 5 steps, got %d", len(cartFlow.Steps))
+		if len(cartFlow.Steps) != 6 {
+			t.Fatalf("expected cartography flow to have 6 steps, got %d", len(cartFlow.Steps))
 		}
 		if cartFlow.Steps[0].Actor != knowledge.RolePlanner || cartFlow.Steps[1].Actor != knowledge.RolePlanner {
 			t.Errorf("expected cartography flow steps 1-2 actor to be planner")
 		}
-		if cartFlow.Steps[2].Actor != knowledge.RoleCartographer || cartFlow.Steps[3].Actor != knowledge.RoleCartographer || cartFlow.Steps[4].Actor != knowledge.RoleCartographer {
-			t.Errorf("expected cartography flow steps 3-5 actor to be cartographer")
+		if cartFlow.Steps[2].Actor != knowledge.RoleCartographer || cartFlow.Steps[3].Actor != knowledge.RoleCartographer || cartFlow.Steps[4].Actor != knowledge.RoleCartographer || cartFlow.Steps[5].Actor != knowledge.RoleCartographer {
+			t.Errorf("expected cartography flow steps 3-6 actor to be cartographer")
 		}
 		step3Conds := make(map[string]int)
 		for _, c := range cartFlow.Steps[2].Conditions {
 			step3Conds[c.When] = c.Then
 		}
-		if step3Conds["DIAGRAM_APPROVED"] != 4 || step3Conds["ADVISORY_ISSUED"] != 5 {
+		if step3Conds["CLARIFICATION_REQUIRED"] != 4 || step3Conds["DIAGRAM_APPROVED"] != 5 || step3Conds["ADVISORY_ISSUED"] != 6 {
 			t.Errorf("unexpected cartography step 3 conditions: %v", step3Conds)
+		}
+		step4Conds := make(map[string]int)
+		for _, c := range cartFlow.Steps[3].Conditions {
+			step4Conds[c.When] = c.Then
+		}
+		if step4Conds["CLARIFICATION_RESOLVED"] != 3 {
+			t.Errorf("unexpected cartography step 4 conditions: %v", step4Conds)
 		}
 	}
 
@@ -2231,6 +2243,238 @@ func TestCLI_V034_InitMinimalCaveman(t *testing.T) {
 			} {
 				if !strings.Contains(docStr, required) {
 					t.Errorf("expected doc file %q to contain v0.3.4 term %q", docPath, required)
+				}
+			}
+		}
+	}
+}
+
+func TestCLI_V036_CartographyBriefSelfSufficiency(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "dev"); err != nil {
+			t.Fatalf("cli.Execute(%v) failed: %v\nStderr: %s", args, err, stderr.String())
+		}
+		return stdout.Bytes()
+	}
+
+	// 1. Rule Verification: cartography-brief-self-sufficiency
+	{
+		var rules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "cartography-brief-self-sufficiency"), &rules); err != nil {
+			t.Fatalf("failed to decode cartography-brief-self-sufficiency: %v", err)
+		}
+		if len(rules) != 1 {
+			t.Fatalf("expected 1 rule, got %d", len(rules))
+		}
+		r := rules[0]
+		if r.ID != "cartography-brief-self-sufficiency" || r.Category != "protocol" {
+			t.Errorf("unexpected rule ID/category: %s / %s", r.ID, r.Category)
+		}
+		if !strings.Contains(r.Summary, "self-contained with declarative architectural semantics") {
+			t.Errorf("unexpected rule summary: %q", r.Summary)
+		}
+		for _, req := range []string{
+			"Planner must provide a completely self-contained semantic architectural specification",
+			"Planner defines WHAT to visualize; Cartographer autonomously determines HOW to lay out and render",
+			"Cartographer is strictly prohibited from traversing or reading application source code",
+			"Zero unnecessary codebase exploration preserves Cartographer's context window",
+		} {
+			found := false
+			for _, g := range r.Guidelines {
+				if strings.Contains(g, req) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("expected guideline containing %q", req)
+			}
+		}
+
+		for _, forbidden := range []string{"jj ", "git ", "curl ", "sh "} {
+			if strings.Contains(r.Summary, forbidden) || strings.Contains(r.Details, forbidden) {
+				t.Errorf("catalog rule data contains raw command syntax %q", forbidden)
+			}
+		}
+	}
+
+	// 2. Rule Verification: cartography-clarification-inquiry
+	{
+		var rules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "cartography-clarification-inquiry"), &rules); err != nil {
+			t.Fatalf("failed to decode cartography-clarification-inquiry: %v", err)
+		}
+		if len(rules) != 1 {
+			t.Fatalf("expected 1 rule, got %d", len(rules))
+		}
+		r := rules[0]
+		if r.ID != "cartography-clarification-inquiry" || r.Category != "protocol" {
+			t.Errorf("unexpected rule ID/category: %s / %s", r.ID, r.Category)
+		}
+		if !strings.Contains(r.Summary, "anti-guessing") && !strings.Contains(r.Summary, "diagram-clarification-request") {
+			t.Errorf("unexpected rule summary: %q", r.Summary)
+		}
+		for _, req := range []string{
+			"Cartographer must never guess, infer, or backfill missing architectural semantics",
+			"mandates dispatching a diagram-clarification-request message to Planner",
+			"brief title, ambiguity context, identified gap, and targeted question",
+			"CLARIFICATION_RESOLVED and resetting evaluation at Step 3",
+		} {
+			found := false
+			for _, g := range r.Guidelines {
+				if strings.Contains(g, req) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("expected guideline containing %q", req)
+			}
+		}
+
+		for _, forbidden := range []string{"jj ", "git ", "curl ", "sh "} {
+			if strings.Contains(r.Summary, forbidden) || strings.Contains(r.Details, forbidden) {
+				t.Errorf("catalog rule data contains raw command syntax %q", forbidden)
+			}
+		}
+	}
+
+	// 3. Artifact Verification: diagram-clarification-request
+	{
+		var a knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "diagram-clarification-request"), &a); err != nil {
+			t.Fatalf("failed to decode diagram-clarification-request: %v", err)
+		}
+		if a.Name != "diagram-clarification-request" {
+			t.Errorf("unexpected artifact name: %q", a.Name)
+		}
+		if a.Type != "message" {
+			t.Errorf("expected type 'message', got %q", a.Type)
+		}
+		if a.Owner != knowledge.RoleCartographer {
+			t.Errorf("expected owner 'cartographer', got %q", a.Owner)
+		}
+		if len(a.Visibility) != 2 || !slices.Contains(a.Visibility, knowledge.RolePlanner) || !slices.Contains(a.Visibility, knowledge.RoleCartographer) {
+			t.Errorf("expected visibility strictly [planner, cartographer], got %v", a.Visibility)
+		}
+		reqFields := make(map[string]bool)
+		for _, f := range a.Fields {
+			if f.Required {
+				reqFields[f.Name] = true
+			}
+		}
+		for _, expectedField := range []string{"brief_title", "ambiguity_context", "identified_gap", "clarification_question"} {
+			if !reqFields[expectedField] {
+				t.Errorf("expected required field %q in diagram-clarification-request", expectedField)
+			}
+		}
+	}
+
+	// 4. Flow Verification: cartography 6 steps and step 3/4 conditions
+	{
+		var cartFlow knowledge.Flow
+		if err := json.Unmarshal(queryJSON("flow", "cartography"), &cartFlow); err != nil {
+			t.Fatalf("failed to decode cartography flow: %v", err)
+		}
+		if len(cartFlow.Steps) != 6 {
+			t.Fatalf("expected 6 steps in cartography flow, got %d", len(cartFlow.Steps))
+		}
+		// Step 3 (index 3)
+		step3 := cartFlow.Steps[2]
+		step3Conds := make(map[string]int)
+		for _, c := range step3.Conditions {
+			step3Conds[c.When] = c.Then
+		}
+		if step3Conds["CLARIFICATION_REQUIRED"] != 4 {
+			t.Errorf("expected CLARIFICATION_REQUIRED -> 4, got %d", step3Conds["CLARIFICATION_REQUIRED"])
+		}
+		if step3Conds["DIAGRAM_APPROVED"] != 5 {
+			t.Errorf("expected DIAGRAM_APPROVED -> 5, got %d", step3Conds["DIAGRAM_APPROVED"])
+		}
+		if step3Conds["ADVISORY_ISSUED"] != 6 {
+			t.Errorf("expected ADVISORY_ISSUED -> 6, got %d", step3Conds["ADVISORY_ISSUED"])
+		}
+
+		// Step 4 (index 4)
+		step4 := cartFlow.Steps[3]
+		if step4.Actor != knowledge.RoleCartographer {
+			t.Errorf("expected step 4 actor to be cartographer, got %q", step4.Actor)
+		}
+		step4Conds := make(map[string]int)
+		for _, c := range step4.Conditions {
+			step4Conds[c.When] = c.Then
+		}
+		if step4Conds["CLARIFICATION_RESOLVED"] != 3 {
+			t.Errorf("expected CLARIFICATION_RESOLVED -> 3, got %d", step4Conds["CLARIFICATION_RESOLVED"])
+		}
+	}
+
+	// 5. Role Boundary & Responsibility Verification
+	{
+		var planner knowledge.RoleDefinition
+		if err := json.Unmarshal(queryJSON("role", "planner"), &planner); err != nil {
+			t.Fatalf("failed to decode planner role: %v", err)
+		}
+		foundPlannerBrief := false
+		foundPlannerClarify := false
+		for _, r := range planner.Responsibilities {
+			if strings.Contains(r, "self-contained") && strings.Contains(r, "diagram-brief") {
+				foundPlannerBrief = true
+			}
+			if strings.Contains(r, "diagram-clarification-request") {
+				foundPlannerClarify = true
+			}
+		}
+		if !foundPlannerBrief {
+			t.Errorf("expected planner responsibility to mention self-contained diagram-brief")
+		}
+		if !foundPlannerClarify {
+			t.Errorf("expected planner responsibility to mention diagram-clarification-request")
+		}
+
+		var cart knowledge.RoleDefinition
+		if err := json.Unmarshal(queryJSON("role", "cartographer"), &cart); err != nil {
+			t.Fatalf("failed to decode cartographer role: %v", err)
+		}
+		foundCartBoundaryExploration := false
+		foundCartBoundaryGuessing := false
+		for _, b := range cart.Boundaries {
+			if strings.Contains(b, "exploratory reading") {
+				foundCartBoundaryExploration = true
+			}
+			if strings.Contains(b, "DO NOT guess") || strings.Contains(b, "anti-guessing") {
+				foundCartBoundaryGuessing = true
+			}
+		}
+		if !foundCartBoundaryExploration {
+			t.Errorf("expected cartographer boundary to mention exploratory reading")
+		}
+		if !foundCartBoundaryGuessing {
+			t.Errorf("expected cartographer boundary to mention anti-guessing")
+		}
+	}
+
+	// 6. Documentation Assertions for v0.3.6
+	{
+		for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+			content, err := os.ReadFile(docPath)
+			if err != nil {
+				t.Fatalf("failed to read doc file %q: %v", docPath, err)
+			}
+			docStr := string(content)
+			for _, required := range []string{
+				"cartography-brief-self-sufficiency",
+				"cartography-clarification-inquiry",
+				"diagram-clarification-request",
+				"CLARIFICATION_REQUIRED",
+				"CLARIFICATION_RESOLVED",
+			} {
+				if !strings.Contains(docStr, required) {
+					t.Errorf("expected doc file %q to contain v0.3.6 term %q", docPath, required)
 				}
 			}
 		}

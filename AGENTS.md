@@ -2,10 +2,10 @@
 
 ## Architectural Topology & Jurisdictions
 
-- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook` v0.3.5). Roles: `planner`, `reviewer`, `builder`, `scout`, `verifier` (category: `core`), `navigator`, `cartographer` (category: `companion`). Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`, `cartography`, `session-handoff`, `e2e`. Memory: living `AGENTS.md`.
+- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook` v0.3.6). Roles: `planner`, `reviewer`, `builder`, `scout`, `verifier` (category: `core`), `navigator`, `cartographer` (category: `companion`). Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`, `cartography`, `session-handoff`, `e2e`. Memory: living `AGENTS.md`.
 - **External Interfaces**: Go CLI (`agentplaybook`) discovery commands (`role`, `flow`, `artifact`, `rule`) and scaffolding (`init`) with JSON/markdown output.
-- **Artifact Governance**: Hierarchical structure with `blueprint-plan` (`<slug>.blueprint.md`), `sub-build-plan` (`sub/<slug>.build.md`), `sub-review-plan` (`sub/<slug>.review.md`), `sub-review-resolution` (`sub/<slug>.resolution.md`), top-level `review-resolution` (`<slug>.resolution.md`), `diagram-brief`, `diagram-completion`, `e2e-brief`, and `e2e-report`.
-- **Blind Barrier, Scout Isolation & Companion/Verifier Allowlists**: `review-findings` strictly restricted to `["planner", "reviewer"]`; Builder receives only Planner-sanitized remediation instructions. Scout strictly excluded from all task in-flight artifacts (`build-plan`, `review-plan`, `blueprint-plan`, `sub-*`, `review-findings`). Navigator, Cartographer, and Verifier visibility strictly constrained by Settled-Artifact Allowlist (`agents-md`, `review-resolution`, `sub-review-resolution`); in-flight draft plans and review artifacts strictly exclude companions and verifier. Navigator is never an artifact owner or flow actor; Cartographer owns only `diagram-completion` and acts only in `cartography` flow; Verifier owns only `e2e-report` and acts only in `e2e` flow.
+- **Artifact Governance**: Hierarchical structure with `blueprint-plan` (`<slug>.blueprint.md`), `sub-build-plan` (`sub/<slug>.build.md`), `sub-review-plan` (`sub/<slug>.review.md`), `sub-review-resolution` (`sub/<slug>.resolution.md`), top-level `review-resolution` (`<slug>.resolution.md`), `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, and `e2e-report`.
+- **Blind Barrier, Scout Isolation & Companion/Verifier Allowlists**: `review-findings` strictly restricted to `["planner", "reviewer"]`; Builder receives only Planner-sanitized remediation instructions. Scout strictly excluded from all task in-flight artifacts (`build-plan`, `review-plan`, `blueprint-plan`, `sub-*`, `review-findings`). Navigator, Cartographer, and Verifier visibility strictly constrained by Settled-Artifact Allowlist (`agents-md`, `review-resolution`, `sub-review-resolution`); in-flight draft plans and review artifacts strictly exclude companions and verifier. Navigator is never an artifact owner or flow actor; Cartographer owns only `diagram-completion` and `diagram-clarification-request` and acts only in `cartography` flow; Verifier owns only `e2e-report` and acts only in `e2e` flow.
 - **Verifier Role & Out-of-Tree E2E Isolation**:
   - System Verifier: Specialized runner executing heavy end-to-end, multi-service, and scenario suites in an isolated out-of-tree sandbox/clone (`mktemp -d /tmp/e2e-XXXXXX` or test mirror).
   - Zero Working Copy Pollution (`e2e-sandbox-isolation`): Strictly prohibited from running test suites in the primary working tree to protect Jujutsu's live `@` commit from automatic dirty-state amendments.
@@ -19,6 +19,8 @@
   - Target-State Gated Inquiry: Queries gated strictly to eligible states (`idle` or `done`); non-eligible states prohibit dispatch; recipient discard on arrival, no retry/queue, admission limits (max 1 in-flight, <500 chars payload, fallback to static artifacts).
 - **Cartographer Companion Governance**:
   - Specialized Visual Architect: Transforms architectural semantics, system topology, and execution flows into self-contained HTML/inline SVG diagrams under the editorial design system (`docs/diagrams/<safe-name>.html`).
+  - Brief Self-Sufficiency & Anti-Exploration: Planner defines WHAT (entities, flows, labels, groupings); Cartographer determines HOW (geometry, grid, rendering). Cartographer is strictly relieved and prohibited from exploratory reading or traversal of application code or documentation to deduce architecture.
+  - Clarification Inquiry Protocol & Anti-Guessing: Prohibits guessing or backfilling missing semantics from codebase searches. Encountering ambiguous or incomplete brief semantics mandates dispatching a structured `diagram-clarification-request` message artifact to Planner; Planner's amended `diagram-brief` serves as explicit observable event satisfying `CLARIFICATION_RESOLVED`.
   - Zero Context Pollution: Isolates raw markup within Cartographer session; returns strictly the lightweight `diagram-completion` message artifact (<100 tokens evaluated by deterministic subword estimator EstimateTokenCount, <=250 chars, <=60 words, single-sentence digest, zero inline markup) containing persistent file URI, single-sentence plain text summary digest, and node/edge statistics.
   - Taste Gate & Advisory Pushback: Enforces visual suitability and strict complexity budgets (<=12 nodes, <=12 transitions); issues advisory pushback (`ADVISORY_ISSUED`) recommending tables/prose when superior.
   - Asynchronous Fire-and-Forget Decoupling: Commissioners dispatch `diagram-brief` asynchronously without blocking or active polling; pipeline flows never gate on cartography operations.
@@ -71,8 +73,8 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-09-06T01:00:00Z @ 2071fbfa`
-- **Dirty Status**: `clean` (v0.3.5 committed locally to `main*`)
-- **Milestone**: AgentPlaybook v0.3.5 Verifier Role & Out-of-Tree E2E Sandbox Isolation Governance - `ACCEPTED`
-- **Next Pickup Item**: Awaiting user intent or remote push authorization (`main*` ahead of `origin`).
+- **Observed-At**: `2026-09-08T05:55:35Z @ working-copy`
+- **Dirty Status**: Modified implementation/test/doc files for v0.3.6 Cartography Brief Self-Sufficiency & Clarification Inquiry Protocol; resolution artifact synthesized by Planner.
+- **Milestone**: AgentPlaybook v0.3.6 Cartography Brief Self-Sufficiency & Clarification Inquiry Protocol - `REVIEW_PASS` (`RESOLVED_PASS`).
+- **Next Pickup Item**: Seek operator commit authorization, execute commit flow via Jujutsu (`jj describe` / `jj new`), advance `main` bookmark, and seek remote push authorization.
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

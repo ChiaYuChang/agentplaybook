@@ -605,7 +605,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Identify visualization requirement and formulate structured diagram-brief artifact."
+        "action": "Formulate self-contained diagram-brief specifying WHAT to draw (all entities, relationships, labels, groupings) without requiring codebase exploration."
       },
       {
         "index": 2,
@@ -615,25 +615,40 @@
       {
         "index": 3,
         "actor": "cartographer",
-        "action": "Evaluate visual type, complexity budget (≤12 nodes), and suitability under Taste Gate criteria.",
+        "action": "Evaluate visual type, complexity budget (≤12 nodes), and brief semantic completeness under Taste Gate criteria.",
         "conditions": [
           {
-            "when": "DIAGRAM_APPROVED",
+            "when": "CLARIFICATION_REQUIRED",
             "then": 4
           },
           {
-            "when": "ADVISORY_ISSUED",
+            "when": "DIAGRAM_APPROVED",
             "then": 5
+          },
+          {
+            "when": "ADVISORY_ISSUED",
+            "then": 6
           }
         ]
       },
       {
         "index": 4,
         "actor": "cartographer",
-        "action": "Calculate layout geometry, render self-contained HTML/SVG, and delegate visual validation to the active diagramming capability."
+        "action": "Dispatch structured diagram-clarification-request message to Planner and await resolution; Planner's amended diagram-brief provides the explicit source of CLARIFICATION_RESOLVED.",
+        "conditions": [
+          {
+            "when": "CLARIFICATION_RESOLVED",
+            "then": 3
+          }
+        ]
       },
       {
         "index": 5,
+        "actor": "cartographer",
+        "action": "Calculate layout geometry, determine HOW to render (4px grid, orthogonal elbow routing), generate self-contained HTML/SVG, and delegate visual validation to the active diagramming capability."
+      },
+      {
+        "index": 6,
         "actor": "cartographer",
         "action": "Persist diagram to docs/diagrams/<safe-name>.html (or record advisory proposal) and emit lightweight diagram-completion message to commissioner."
       }

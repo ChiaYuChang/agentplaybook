@@ -431,6 +431,7 @@ func TestCLI_Init_Minimal_Invariants(t *testing.T) {
 		"static fallback",
 		"docs/diagrams/<safe-name>.html",
 		"traversal prohibited",
+		"Owns: diagram-completion, diagram-clarification-request",
 		"diagram-completion",
 		"file URI",
 		"single-sentence digest",
@@ -470,7 +471,7 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 
 	// 2. Verify mandatory structural strings
 	requiredStrings := []string{
-		"AgentPlaybook v0.3.5 Living Memory Blueprint",
+		"AgentPlaybook v0.3.6 Living Memory Blueprint",
 		"Peer-Session Primacy over Subagents",
 		"invoke_subagent",
 		"Blind Barrier",
