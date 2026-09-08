@@ -106,10 +106,10 @@ func TestLoad_Success(t *testing.T) {
 
 	// 3. Verify Flows
 	flows := k.Flows()
-	if len(flows) != 9 {
-		t.Fatalf("expected 9 flows, got %d", len(flows))
+	if len(flows) != 10 {
+		t.Fatalf("expected 10 flows, got %d", len(flows))
 	}
-	for _, expected := range []string{"init", "plan", "blueprint", "build", "review", "commit", "session-handoff", "cartography", "e2e"} {
+	for _, expected := range []string{"init", "plan", "blueprint", "build", "review", "commit", "session-handoff", "cartography", "e2e", "navigator-cartography"} {
 		f, ok := k.Flow(expected)
 		if !ok {
 			t.Errorf("expected flow %q to exist", expected)
@@ -294,6 +294,35 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("unexpected cartography step 4 conditions: %v", cartStep4Conditions)
 	}
 
+	// Verify navigator-cartography flow (6 steps)
+	navCartFlow, ok := k.Flow("navigator-cartography")
+	if !ok {
+		t.Fatalf("expected navigator-cartography flow to exist")
+	}
+	if len(navCartFlow.Steps) != 6 {
+		t.Fatalf("expected 6 steps in navigator-cartography flow, got %d", len(navCartFlow.Steps))
+	}
+	if navCartFlow.Steps[0].Actor != knowledge.RoleNavigator || navCartFlow.Steps[1].Actor != knowledge.RoleNavigator {
+		t.Errorf("expected navigator-cartography steps 1 and 2 actor to be navigator")
+	}
+	if navCartFlow.Steps[2].Actor != knowledge.RoleCartographer || navCartFlow.Steps[3].Actor != knowledge.RoleCartographer || navCartFlow.Steps[4].Actor != knowledge.RoleCartographer || navCartFlow.Steps[5].Actor != knowledge.RoleCartographer {
+		t.Errorf("expected navigator-cartography steps 3, 4, 5, 6 actor to be cartographer")
+	}
+	navCartStep3Conditions := make(map[string]int)
+	for _, c := range navCartFlow.Steps[2].Conditions {
+		navCartStep3Conditions[c.When] = c.Then
+	}
+	if navCartStep3Conditions["CLARIFICATION_REQUIRED"] != 4 || navCartStep3Conditions["DIAGRAM_APPROVED"] != 5 || navCartStep3Conditions["ADVISORY_ISSUED"] != 6 {
+		t.Errorf("unexpected navigator-cartography step 3 conditions: %v", navCartStep3Conditions)
+	}
+	navCartStep4Conditions := make(map[string]int)
+	for _, c := range navCartFlow.Steps[3].Conditions {
+		navCartStep4Conditions[c.When] = c.Then
+	}
+	if navCartStep4Conditions["CLARIFICATION_RESOLVED"] != 3 {
+		t.Errorf("unexpected navigator-cartography step 4 conditions: %v", navCartStep4Conditions)
+	}
+
 	// Verify e2e flow (12 steps)
 	e2eFlow, ok := k.Flow("e2e")
 	if !ok {
@@ -429,8 +458,8 @@ func TestLoad_Success(t *testing.T) {
 	if diagramClarification.Owner != knowledge.RoleCartographer || diagramClarification.Type != "message" {
 		t.Errorf("unexpected diagram-clarification-request metadata: %+v", diagramClarification)
 	}
-	if len(diagramClarification.Visibility) != 2 || diagramClarification.Visibility[0] != knowledge.RolePlanner || diagramClarification.Visibility[1] != knowledge.RoleCartographer {
-		t.Errorf("expected diagram-clarification-request visibility [planner cartographer], got %v", diagramClarification.Visibility)
+	if len(diagramClarification.Visibility) != 3 || diagramClarification.Visibility[0] != knowledge.RolePlanner || diagramClarification.Visibility[1] != knowledge.RoleNavigator || diagramClarification.Visibility[2] != knowledge.RoleCartographer {
+		t.Errorf("expected diagram-clarification-request visibility [planner navigator cartographer], got %v", diagramClarification.Visibility)
 	}
 	if len(diagramClarification.Fields) != 4 {
 		t.Errorf("expected diagram-clarification-request to have 4 fields, got %d", len(diagramClarification.Fields))
@@ -1824,6 +1853,89 @@ func TestValidateE2EReport(t *testing.T) {
 		}
 		if err := knowledge.ValidateE2EReport(brief, report, covExecuted); err == nil {
 			t.Error("expected error for EvidenceURI UNAVAILABLE when scenarios_passed > 0")
+		}
+	}
+}
+
+func TestValidate_NavigatorCartographyFlowActors(t *testing.T) {
+	t.Parallel()
+
+	k, err := knowledge.Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	// 1. Positive: default loaded knowledge is completely valid
+	if err := knowledge.Validate(k); err != nil {
+		t.Fatalf("expected loaded knowledge with navigator-cartography to be valid: %v", err)
+	}
+
+	// 2. Negative: Navigator actor in any other flow fails validation
+	for _, f := range k.Flows() {
+		if f.Name == "navigator-cartography" {
+			continue
+		}
+		invalid := *k
+		flows := append([]knowledge.Flow(nil), k.Flows()...)
+		for i, fl := range flows {
+			if fl.Name == f.Name {
+				flows[i].Steps = append(flows[i].Steps, knowledge.FlowStep{
+					Index:  len(fl.Steps) + 1,
+					Actor:  knowledge.RoleNavigator,
+					Action: "Unauthorized action by navigator",
+				})
+			}
+		}
+		setFlows(&invalid, flows)
+		err := knowledge.Validate(&invalid)
+		if err == nil {
+			t.Errorf("expected error when Navigator is an actor in flow %q", f.Name)
+		} else if !strings.Contains(err.Error(), "actor cannot be companion role navigator (permitted exclusively in navigator-cartography flow)") {
+			t.Errorf("expected error for flow %q to contain specific navigator error, got: %v", f.Name, err)
+		}
+	}
+
+	// 3. Negative: Cartographer actor in any flow other than cartography and navigator-cartography fails validation
+	for _, f := range k.Flows() {
+		if f.Name == "cartography" || f.Name == "navigator-cartography" {
+			continue
+		}
+		invalid := *k
+		flows := append([]knowledge.Flow(nil), k.Flows()...)
+		for i, fl := range flows {
+			if fl.Name == f.Name {
+				flows[i].Steps = append(flows[i].Steps, knowledge.FlowStep{
+					Index:  len(fl.Steps) + 1,
+					Actor:  knowledge.RoleCartographer,
+					Action: "Unauthorized action by cartographer",
+				})
+			}
+		}
+		setFlows(&invalid, flows)
+		err := knowledge.Validate(&invalid)
+		if err == nil {
+			t.Errorf("expected error when Cartographer is an actor in flow %q", f.Name)
+		} else if !strings.Contains(err.Error(), "actor cannot be companion role cartographer (permitted exclusively in cartography and navigator-cartography flows)") {
+			t.Errorf("expected error for flow %q to contain specific cartographer error, got: %v", f.Name, err)
+		}
+	}
+
+	// 4. Artifact allowlist: Navigator visibility with unallowed artifact fails validation
+	{
+		invalid := *k
+		artifacts := append([]knowledge.Artifact(nil), k.Artifacts()...)
+		artifacts = append(artifacts, knowledge.Artifact{
+			Name:        "unallowed-for-navigator",
+			Title:       "Unallowed Artifact",
+			Description: "Artifact unallowed for navigator",
+			Owner:       knowledge.RolePlanner,
+			Visibility:  []knowledge.Role{knowledge.RolePlanner, knowledge.RoleNavigator},
+			Type:        "document",
+			Sections:    []knowledge.ArtifactSection{{Name: "Content", Required: true, Description: "Content"}},
+		})
+		setArtifacts(&invalid, artifacts)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when Navigator is in non-allowlisted artifact visibility")
 		}
 	}
 }

@@ -94,6 +94,11 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"flow", "cartography", "--step", "3"},
 		{"flow", "cartography", "--step", "4"},
 		{"flow", "cartography", "--step", "6"},
+		{"flow", "navigator-cartography"},
+		{"flow", "navigator-cartography", "--step", "1"},
+		{"flow", "navigator-cartography", "--step", "3"},
+		{"flow", "navigator-cartography", "--step", "4"},
+		{"flow", "navigator-cartography", "--step", "6"},
 		{"flow", "e2e"},
 		{"flow", "e2e", "--step", "1"},
 		{"flow", "e2e", "--step", "5"},
@@ -1659,7 +1664,7 @@ func TestCLI_V031_NavigatorAndCompanionGovernance(t *testing.T) {
 		for _, requiredBoundary := range []string{
 			"Strictly read-only; DO NOT modify, create, or delete repository files, test suites, or configuration.",
 			"DO NOT edit AGENTS.md directly; enforce the Single-Writer Principle.",
-			"Strictly prohibited from relaying instructions, authoring plans, or initiating task dispatches (fixed handoff: 'Please send this requirement directly to Planner').",
+			"Strictly prohibited from relaying instructions, authoring plans, or initiating task dispatches (fixed handoff: 'Please send this requirement directly to Planner'); permitted exclusively to commission diagrams via navigator-cartography.",
 			"Enforce strict star topology: communicate strictly with user, planner, and cartographer; communication with Builder, Reviewer, or Scout remains strictly forbidden.",
 			"Gated strictly to eligible states (idle or done) before sending Planner inquiries; send-or-drop policy prohibits inquiry when Planner is in non-eligible states (running, busy, waiting_for_input).",
 			"Enforce admission controls: maximum 1 in-flight inquiry to Planner, payload strictly under 500 characters, fallback to static artifacts if unanswered.",
@@ -2288,8 +2293,8 @@ func TestCLI_V036_CartographyBriefSelfSufficiency(t *testing.T) {
 			t.Errorf("unexpected rule summary: %q", r.Summary)
 		}
 		for _, req := range []string{
-			"Planner must provide a completely self-contained semantic architectural specification",
-			"Planner defines WHAT to visualize; Cartographer autonomously determines HOW to lay out and render",
+			"must provide a completely self-contained semantic architectural specification",
+			"defines WHAT to visualize; Cartographer autonomously determines HOW to lay out and render",
 			"Cartographer is strictly prohibited from traversing or reading application source code",
 			"Zero unnecessary codebase exploration preserves Cartographer's context window",
 		} {
@@ -2330,7 +2335,7 @@ func TestCLI_V036_CartographyBriefSelfSufficiency(t *testing.T) {
 		}
 		for _, req := range []string{
 			"Cartographer must never guess, infer, or backfill missing architectural semantics",
-			"mandates dispatching a diagram-clarification-request message to Planner",
+			"mandates dispatching a diagram-clarification-request message to commissioner",
 			"brief title, ambiguity context, identified gap, and targeted question",
 			"CLARIFICATION_RESOLVED and resetting evaluation at Step 3",
 		} {
@@ -2368,8 +2373,8 @@ func TestCLI_V036_CartographyBriefSelfSufficiency(t *testing.T) {
 		if a.Owner != knowledge.RoleCartographer {
 			t.Errorf("expected owner 'cartographer', got %q", a.Owner)
 		}
-		if len(a.Visibility) != 2 || !slices.Contains(a.Visibility, knowledge.RolePlanner) || !slices.Contains(a.Visibility, knowledge.RoleCartographer) {
-			t.Errorf("expected visibility strictly [planner, cartographer], got %v", a.Visibility)
+		if len(a.Visibility) != 3 || !slices.Contains(a.Visibility, knowledge.RolePlanner) || !slices.Contains(a.Visibility, knowledge.RoleNavigator) || !slices.Contains(a.Visibility, knowledge.RoleCartographer) {
+			t.Errorf("expected visibility strictly [planner, navigator, cartographer], got %v", a.Visibility)
 		}
 		reqFields := make(map[string]bool)
 		for _, f := range a.Fields {
@@ -2893,8 +2898,8 @@ func TestCLI_SubPlan02_LifecycleAndAcceptanceIntegration(t *testing.T) {
 	// 5. Living memory templates version and budget check
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.0") {
-			t.Errorf("expected default template to contain v0.4.0")
+		if !strings.Contains(def, "v0.4.0") && !strings.Contains(def, "v0.4.1") {
+			t.Errorf("expected default template to contain v0.4.0 or v0.4.1")
 		}
 		min := cli.MinimalLivingMemoryTemplate()
 		lines := strings.Split(strings.TrimSpace(min), "\n")
@@ -2924,6 +2929,196 @@ func TestCLI_SubPlan02_LifecycleAndAcceptanceIntegration(t *testing.T) {
 			} {
 				if !strings.Contains(docStr, required) {
 					t.Errorf("expected doc file %q to contain v0.4.0 term %q", docPath, required)
+				}
+			}
+		}
+	}
+}
+
+func TestCLI_NavigatorCartographyIntegration(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "dev"); err != nil {
+			t.Fatalf("cli.Execute(%v) failed: %v\nStderr: %s", args, err, stderr.String())
+		}
+		return stdout.Bytes()
+	}
+
+	// 1. Flow Verification: navigator-cartography (6 steps, actors, conditions)
+	{
+		var f knowledge.Flow
+		if err := json.Unmarshal(queryJSON("flow", "navigator-cartography"), &f); err != nil {
+			t.Fatalf("failed to decode flow navigator-cartography: %v", err)
+		}
+		if f.Name != "navigator-cartography" {
+			t.Errorf("expected flow name 'navigator-cartography', got %q", f.Name)
+		}
+		if len(f.Steps) != 6 {
+			t.Fatalf("expected 6 steps in navigator-cartography, got %d", len(f.Steps))
+		}
+
+		// Steps 1 & 2: actor navigator
+		if f.Steps[0].Actor != knowledge.RoleNavigator || f.Steps[1].Actor != knowledge.RoleNavigator {
+			t.Errorf("expected steps 1 and 2 actor to be navigator, got %s and %s", f.Steps[0].Actor, f.Steps[1].Actor)
+		}
+
+		// Steps 3, 4, 5, 6: actor cartographer
+		for i := 2; i < 6; i++ {
+			if f.Steps[i].Actor != knowledge.RoleCartographer {
+				t.Errorf("expected step %d actor to be cartographer, got %s", i+1, f.Steps[i].Actor)
+			}
+		}
+
+		// Step 3 Taste Gate conditions
+		step3Conds := make(map[string]int)
+		for _, c := range f.Steps[2].Conditions {
+			step3Conds[c.When] = c.Then
+		}
+		if step3Conds["CLARIFICATION_REQUIRED"] != 4 {
+			t.Errorf("expected CLARIFICATION_REQUIRED -> 4, got %d", step3Conds["CLARIFICATION_REQUIRED"])
+		}
+		if step3Conds["DIAGRAM_APPROVED"] != 5 {
+			t.Errorf("expected DIAGRAM_APPROVED -> 5, got %d", step3Conds["DIAGRAM_APPROVED"])
+		}
+		if step3Conds["ADVISORY_ISSUED"] != 6 {
+			t.Errorf("expected ADVISORY_ISSUED -> 6, got %d", step3Conds["ADVISORY_ISSUED"])
+		}
+
+		// Step 4 Clarification Inquiry condition
+		step4Conds := make(map[string]int)
+		for _, c := range f.Steps[3].Conditions {
+			step4Conds[c.When] = c.Then
+		}
+		if step4Conds["CLARIFICATION_RESOLVED"] != 3 {
+			t.Errorf("expected CLARIFICATION_RESOLVED -> 3, got %d", step4Conds["CLARIFICATION_RESOLVED"])
+		}
+	}
+
+	// 2. Artifact Verification: diagram-clarification-request visibility
+	{
+		var a knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "diagram-clarification-request"), &a); err != nil {
+			t.Fatalf("failed to decode diagram-clarification-request: %v", err)
+		}
+		if a.Owner != knowledge.RoleCartographer {
+			t.Errorf("expected diagram-clarification-request owner to be cartographer, got %s", a.Owner)
+		}
+		expectedVis := []knowledge.Role{knowledge.RolePlanner, knowledge.RoleNavigator, knowledge.RoleCartographer}
+		if len(a.Visibility) != len(expectedVis) {
+			t.Fatalf("expected visibility length %d, got %d: %v", len(expectedVis), len(a.Visibility), a.Visibility)
+		}
+		for _, r := range expectedVis {
+			if !slices.Contains(a.Visibility, r) {
+				t.Errorf("expected visibility to contain %s, got: %v", r, a.Visibility)
+			}
+		}
+	}
+
+	// 3. Role Responsibilities & Boundaries: navigator and cartographer
+	{
+		var nav knowledge.RoleDefinition
+		if err := json.Unmarshal(queryJSON("role", "navigator"), &nav); err != nil {
+			t.Fatalf("failed to decode navigator role: %v", err)
+		}
+		foundCommission := false
+		for _, r := range nav.Responsibilities {
+			if strings.Contains(r, "navigator-cartography") {
+				foundCommission = true
+				break
+			}
+		}
+		if !foundCommission {
+			t.Errorf("expected navigator responsibility to mention commissioning diagrams via navigator-cartography")
+		}
+		foundBoundary := false
+		for _, b := range nav.Boundaries {
+			if strings.Contains(b, "prohibited from authoring plans") || strings.Contains(b, "initiating task dispatches") {
+				foundBoundary = true
+				break
+			}
+		}
+		if !foundBoundary {
+			t.Errorf("expected navigator boundary to prohibit authoring plans or initiating task dispatches")
+		}
+
+		var cart knowledge.RoleDefinition
+		if err := json.Unmarshal(queryJSON("role", "cartographer"), &cart); err != nil {
+			t.Fatalf("failed to decode cartographer role: %v", err)
+		}
+		foundCommissioner := false
+		for _, r := range cart.Responsibilities {
+			if strings.Contains(strings.ToLower(r), "commissioner (planner or navigator)") {
+				foundCommissioner = true
+				break
+			}
+		}
+		if !foundCommissioner {
+			t.Errorf("expected cartographer responsibility to reference commissioner (Planner or Navigator)")
+		}
+	}
+
+	// 4. Rule Explanations: generalized commissioner
+	{
+		for _, ruleID := range []string{"cartography-brief-self-sufficiency", "cartography-clarification-inquiry"} {
+			var rules []knowledge.Rule
+			if err := json.Unmarshal(queryJSON("rule", "explain", ruleID), &rules); err != nil {
+				t.Fatalf("failed to decode rule %s: %v", ruleID, err)
+			}
+			if len(rules) == 0 {
+				t.Fatalf("expected rule %s to be returned", ruleID)
+			}
+			r := rules[0]
+			if !strings.Contains(r.Details, "Planner or Navigator") {
+				t.Errorf("expected rule %s details to reference '(Planner or Navigator)', got: %s", ruleID, r.Details)
+			}
+		}
+	}
+
+	// 5. Living Memory Templates version, content, and budget
+	{
+		def := cli.DefaultLivingMemoryTemplate()
+		if !strings.Contains(def, "v0.4.1") {
+			t.Errorf("expected default template to contain v0.4.1")
+		}
+		if !strings.Contains(def, "navigator-cartography") {
+			t.Errorf("expected default template to contain navigator-cartography")
+		}
+
+		min := cli.MinimalLivingMemoryTemplate()
+		if !strings.Contains(min, "navigator-cartography") {
+			t.Errorf("expected minimal template to contain navigator-cartography")
+		}
+		lines := strings.Split(strings.TrimSpace(min), "\n")
+		if len(lines) > 50 {
+			t.Errorf("minimal template lines %d exceeds 50", len(lines))
+		}
+		if len([]byte(min)) > 2500 {
+			t.Errorf("minimal template bytes %d exceeds 2500", len([]byte(min)))
+		}
+		for i, b := range []byte(min) {
+			if b > 127 {
+				t.Fatalf("minimal template byte at %d is non-ASCII: %d", i, b)
+			}
+		}
+	}
+
+	// 6. Documentation Assertions for v0.4.1
+	{
+		for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+			content, err := os.ReadFile(docPath)
+			if err != nil {
+				t.Fatalf("failed to read doc file %q: %v", docPath, err)
+			}
+			docStr := string(content)
+			for _, required := range []string{
+				"navigator-cartography",
+				"dual-commissioner",
+			} {
+				if !strings.Contains(docStr, required) {
+					t.Errorf("expected doc file %q to contain v0.4.1 term %q", docPath, required)
 				}
 			}
 		}

@@ -20,7 +20,7 @@ func TestFlow_BareDiscovery(t *testing.T) {
 	}
 
 	out := stdout.String()
-	for _, expected := range []string{"init", "plan", "blueprint", "build", "review", "commit", "cartography", "session-handoff", "e2e"} {
+	for _, expected := range []string{"init", "plan", "blueprint", "build", "review", "commit", "cartography", "session-handoff", "e2e", "navigator-cartography"} {
 		if !strings.Contains(out, expected) {
 			t.Errorf("expected flow %q in discovery output, got: %s", expected, out)
 		}
@@ -257,6 +257,51 @@ func TestFlow_QueryFull(t *testing.T) {
 			t.Errorf("expected step 12 to be terminal with zero conditions, got: %+v", f.Steps[11])
 		}
 	}
+
+	// 10. navigator-cartography flow
+	{
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"flow", "navigator-cartography"}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("querying flow navigator-cartography failed: %v", err)
+		}
+
+		var f knowledge.Flow
+		if err := json.Unmarshal(stdout.Bytes(), &f); err != nil {
+			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
+		}
+
+		if f.Name != "navigator-cartography" {
+			t.Errorf("expected flow name 'navigator-cartography', got %q", f.Name)
+		}
+		if len(f.Steps) != 6 {
+			t.Fatalf("expected 6 steps in navigator-cartography, got %d", len(f.Steps))
+		}
+		if f.Steps[0].Actor != knowledge.RoleNavigator || f.Steps[1].Actor != knowledge.RoleNavigator {
+			t.Errorf("expected steps 1 and 2 actor navigator, got %s and %s", f.Steps[0].Actor, f.Steps[1].Actor)
+		}
+		if f.Steps[2].Actor != knowledge.RoleCartographer || f.Steps[3].Actor != knowledge.RoleCartographer || f.Steps[4].Actor != knowledge.RoleCartographer || f.Steps[5].Actor != knowledge.RoleCartographer {
+			t.Errorf("expected steps 3-6 actor cartographer")
+		}
+
+		// Step 3 Taste Gate conditions
+		step3Conditions := make(map[string]int)
+		for _, c := range f.Steps[2].Conditions {
+			step3Conditions[c.When] = c.Then
+		}
+		if step3Conditions["CLARIFICATION_REQUIRED"] != 4 || step3Conditions["DIAGRAM_APPROVED"] != 5 || step3Conditions["ADVISORY_ISSUED"] != 6 {
+			t.Errorf("unexpected step 3 conditions: %v", step3Conditions)
+		}
+
+		// Step 4 Clarification Inquiry condition
+		step4Conditions := make(map[string]int)
+		for _, c := range f.Steps[3].Conditions {
+			step4Conditions[c.When] = c.Then
+		}
+		if step4Conditions["CLARIFICATION_RESOLVED"] != 3 {
+			t.Errorf("unexpected step 4 conditions: %v", step4Conditions)
+		}
+	}
 }
 
 func TestFlow_StepFlag(t *testing.T) {
@@ -327,7 +372,37 @@ func TestFlow_StepFlag(t *testing.T) {
 		}
 	}
 
-	// 4. Out of range step
+	// 4. navigator-cartography flow steps: step 1, 2, 3, 4, 5, 6
+	for _, tc := range []struct {
+		step     string
+		actor    knowledge.Role
+		terminal bool
+	}{
+		{"1", knowledge.RoleNavigator, false},
+		{"2", knowledge.RoleNavigator, false},
+		{"3", knowledge.RoleCartographer, false},
+		{"4", knowledge.RoleCartographer, false},
+		{"5", knowledge.RoleCartographer, false},
+		{"6", knowledge.RoleCartographer, false},
+	} {
+		var stdout, stderr bytes.Buffer
+		err := cli.Execute([]string{"flow", "navigator-cartography", "--step", tc.step}, &stdout, &stderr, "dev")
+		if err != nil {
+			t.Fatalf("navigator-cartography --step %s failed: %v", tc.step, err)
+		}
+		var s knowledge.FlowStep
+		if err := json.Unmarshal(stdout.Bytes(), &s); err != nil {
+			t.Fatalf("failed to decode step %s JSON: %v", tc.step, err)
+		}
+		if s.Actor != tc.actor {
+			t.Errorf("navigator-cartography step %s actor mismatch: expected %s, got %s", tc.step, tc.actor, s.Actor)
+		}
+		if s.Terminal != tc.terminal {
+			t.Errorf("navigator-cartography step %s terminal mismatch: expected %v, got %v", tc.step, tc.terminal, s.Terminal)
+		}
+	}
+
+	// 5. Out of range step
 	{
 		var stdout, stderr bytes.Buffer
 		err := cli.Execute([]string{"flow", "init", "--step", "999"}, &stdout, &stderr, "dev")
@@ -339,7 +414,7 @@ func TestFlow_StepFlag(t *testing.T) {
 		}
 	}
 
-	// 5. Step flag without flow name
+	// 6. Step flag without flow name
 	{
 		var stdout, stderr bytes.Buffer
 		err := cli.Execute([]string{"flow", "--step", "1"}, &stdout, &stderr, "dev")

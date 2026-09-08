@@ -551,10 +551,11 @@
   {
     "name": "diagram-clarification-request",
     "title": "Diagram Clarification Request",
-    "description": "Structured clarification inquiry message dispatched by Cartographer to Planner requesting targeted disambiguation of brief entities, flows, or boundary constraints without exploratory codebase exploration.",
+    "description": "Structured clarification inquiry message dispatched by Cartographer to commissioner (Planner or Navigator) requesting targeted disambiguation of brief entities, flows, or boundary constraints without exploratory codebase exploration.",
     "owner": "cartographer",
     "visibility": [
       "planner",
+      "navigator",
       "cartographer"
     ],
     "type": "message",
@@ -577,7 +578,7 @@
       {
         "name": "clarification_question",
         "required": true,
-        "description": "Exact targeted question for Planner regarding intended entities, flows, or directions."
+        "description": "Exact targeted question for commissioner (Planner or Navigator) regarding intended entities, flows, or directions."
       }
     ]
   },

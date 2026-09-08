@@ -14,7 +14,7 @@ Instead of stuffing massive, static role prompts into every agent turn—wasting
 - **Read-Only Collaboration Manual & Opt-In Scaffolding**: AgentPlaybook remains an evidence-based, read-only guidance manual; the 'agentplaybook init' command is an explicit, opt-in local scaffolding utility executed strictly upon operator invocation to generate baseline AGENTS.md, with zero background mutation, network downloads, or daemon processes.
 - **5 Orthogonal Knowledge Domains**:
   - `role`: Core and companion participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`, `scout`, `navigator`, `cartographer`, `verifier`).
-  - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `blueprint`, `build`, `review`, `commit`, `session-handoff`, `cartography`, `e2e`).
+  - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `blueprint`, `build`, `review`, `commit`, `session-handoff`, `cartography`, `e2e`, `navigator-cartography`).
   - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-report`, `e2e-test-spec`, `e2e-clarification-request`).
   - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`, `navigator-read-only-companion`, `companion-query-zero-side-effect`, `planner-source-restricted-response`, `target-state-gated-inquiry`, `cartographer-visual-architect-boundary`, `cartography-zero-context-pollution`, `cartography-taste-gate-advisory`, `cartography-asynchronous-decoupling`, `cartography-brief-self-sufficiency`, `cartography-clarification-inquiry`, `peer-session-transport-primacy`, `e2e-sandbox-isolation`, `e2e-zero-log-pollution`, `e2e-package-self-sufficiency`, `e2e-clarification-inquiry`, `e2e-immutable-evidence-binding`, `e2e-lifecycle-admission`).
   - `config`: Supported languages, prefix templates, and transport settings.
@@ -146,6 +146,7 @@ agentplaybook flow session-handoff
 agentplaybook flow commit
 agentplaybook flow cartography
 agentplaybook flow e2e
+agentplaybook flow navigator-cartography
 
 # Isolated single step query
 agentplaybook flow blueprint --step 2
@@ -153,6 +154,7 @@ agentplaybook flow build --step 2
 agentplaybook flow session-handoff --step 1
 agentplaybook flow commit --step 5
 agentplaybook flow e2e --step 5
+agentplaybook flow navigator-cartography --step 3
 ```
 
 ### 4. Inspecting Artifact Contracts
@@ -277,9 +279,9 @@ The `cartographer` companion role (`category: "companion"`) is a specialized vis
 4. **Asynchronous Decoupling (`cartography-asynchronous-decoupling`)**:
    Commissioners dispatch `diagram-brief` artifacts asynchronously in fire-and-forget mode. Synchronous waiting loops or sleep polling on Cartographer completion are strictly prohibited, ensuring active engineering pipelines are never blocked by diagram synthesis.
 5. **Brief Self-Sufficiency & Anti-Exploration Invariant (`cartography-brief-self-sufficiency`)**:
-   Planner must formulate a completely self-contained semantic architectural specification (`diagram-brief`) providing all entities, relationships, labels, and boundaries (WHAT to visualize). Cartographer autonomously determines HOW to lay out and render under the editorial design system. Cartographer is strictly relieved and prohibited from exploratory reading or traversal of application source code, test suites, or documentation to deduce architecture, preserving context window and preventing semantic divergence.
+   Commissioner (Planner or Navigator) must formulate a completely self-contained semantic architectural specification (`diagram-brief`) providing all entities, relationships, labels, and boundaries (WHAT to visualize). Cartographer autonomously determines HOW to lay out and render under the editorial design system. Cartographer is strictly relieved and prohibited from exploratory reading or traversal of application source code, test suites, or documentation to deduce architecture, preserving context window and preventing semantic divergence.
 6. **Clarification Inquiry & Anti-Guessing Protocol (`cartography-clarification-inquiry`)**:
-   Cartographer must never guess, infer, or backfill missing or contradictory architectural semantics from codebase searches. When ambiguous, incomplete, or contradictory brief semantics are encountered during Taste Gate evaluation, Cartographer dispatches a structured `diagram-clarification-request` message artifact to Planner (`CLARIFICATION_REQUIRED` -> Step 4) detailing the brief title, ambiguity context, identified gap, and targeted question. Planner resolves inquiries by emitting an amended `diagram-brief`, satisfying `CLARIFICATION_RESOLVED` and resetting evaluation at Step 3.
+   Cartographer must never guess, infer, or backfill missing or contradictory architectural semantics from codebase searches. When ambiguous, incomplete, or contradictory brief semantics are encountered during Taste Gate evaluation, Cartographer dispatches a structured `diagram-clarification-request` message artifact to commissioner (Planner or Navigator) (`CLARIFICATION_REQUIRED` -> Step 4) detailing the brief title, ambiguity context, identified gap, and targeted question. Commissioner resolves inquiries by emitting an amended `diagram-brief`, satisfying `CLARIFICATION_RESOLVED` and resetting evaluation at Step 3.
 
 #### Cartography Flow (`flow cartography`)
 1. Planner identifies visualization requirement and formulates self-contained `diagram-brief`.
@@ -288,6 +290,15 @@ The `cartographer` companion role (`category: "companion"`) is a specialized vis
 4. Cartographer dispatches structured `diagram-clarification-request` to Planner detailing ambiguities and awaits amended brief (`CLARIFICATION_RESOLVED` -> Step 3).
 5. Cartographer calculates layout geometry, renders HTML/SVG, and performs conceptual visual validation.
 6. Cartographer persists diagram to `docs/diagrams/<safe-name>.html` (or records advisory proposal) and emits lightweight `diagram-completion` message artifact to commissioner.
+
+#### Navigator Cartography Flow (`flow navigator-cartography`)
+Under the dual-commissioner protocol, Navigator can independently commission Cartographer to render exploratory or comprehension diagrams directly:
+1. Navigator identifies visualization requirement and formulates self-contained `diagram-brief`.
+2. Navigator dispatches `diagram-brief` message artifact to Cartographer.
+3. Cartographer evaluates visual suitability, brief completeness, and complexity budget under Taste Gate criteria (`CLARIFICATION_REQUIRED` -> Step 4, `DIAGRAM_APPROVED` -> Step 5, `ADVISORY_ISSUED` -> Step 6).
+4. Cartographer dispatches structured `diagram-clarification-request` to Navigator detailing ambiguities and awaits amended brief (`CLARIFICATION_RESOLVED` -> Step 3).
+5. Cartographer calculates layout geometry, renders HTML/SVG, and performs conceptual visual validation.
+6. Cartographer persists diagram to `docs/diagrams/<safe-name>.html` (or records advisory proposal) and emits lightweight `diagram-completion` message artifact to Navigator.
 
 ### Verifier Role & Out-of-Tree E2E Sandbox Isolation
 

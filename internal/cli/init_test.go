@@ -417,7 +417,7 @@ func TestCLI_Init_Minimal_Invariants(t *testing.T) {
 		"Blind Barrier",
 		"herdr",
 		"planner", "reviewer", "builder", "scout", "verifier", "navigator", "cartographer",
-		"init", "plan", "blueprint", "build", "review", "commit", "cartography", "session-handoff", "e2e",
+		"init", "plan", "blueprint", "build", "review", "commit", "cartography", "session-handoff", "e2e", "navigator-cartography",
 		"sub-review-resolution",
 		"e2e-brief", "e2e-report", "e2e-test-spec", "e2e-clarification-request",
 		"E2E Sandbox",
@@ -449,6 +449,8 @@ func TestCLI_Init_Minimal_Invariants(t *testing.T) {
 		"PLAN_PASS",
 		"REVIEW_PASS",
 		"IMPLEMENTATION_REVIEW_PASS",
+		"plus diagram messages",
+		"Navigator to Cartographer for diagrams",
 	}
 
 	for _, s := range requiredStrings {
@@ -472,7 +474,7 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 
 	// 2. Verify mandatory structural strings
 	requiredStrings := []string{
-		"AgentPlaybook v0.4.0 Living Memory Blueprint",
+		"AgentPlaybook v0.4.1 Living Memory Blueprint",
 		"Peer-Session Primacy over Subagents",
 		"invoke_subagent",
 		"Blind Barrier",
@@ -487,11 +489,14 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 		"commit",
 		"cartography",
 		"e2e",
+		"navigator-cartography",
 		"planner",
 		"reviewer",
 		"builder",
 		"scout",
 		"verifier",
+		"plus authorized diagram message artifacts",
+		"Navigator-Cartographer communication permitted exclusively for `navigator-cartography` flow",
 	}
 
 	for _, s := range requiredStrings {

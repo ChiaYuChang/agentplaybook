@@ -118,11 +118,12 @@ func Validate(k *Knowledge) error {
 
 	// 3. Validate Artifacts
 	allowedNavigatorArtifacts := map[string]bool{
-		"agents-md":             true,
-		"sub-review-resolution": true,
-		"review-resolution":     true,
-		"diagram-brief":         true,
-		"diagram-completion":    true,
+		"agents-md":                     true,
+		"sub-review-resolution":         true,
+		"review-resolution":             true,
+		"diagram-brief":                 true,
+		"diagram-completion":            true,
+		"diagram-clarification-request": true,
 	}
 	allowedCartographerArtifacts := map[string]bool{
 		"agents-md":                     true,
@@ -226,10 +227,10 @@ func Validate(k *Knowledge) error {
 
 			if s.Actor == RoleUser {
 				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be user", f.Name, s.Index))
-			} else if s.Actor == RoleNavigator {
-				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be companion role navigator", f.Name, s.Index))
-			} else if s.Actor == RoleCartographer && f.Name != "cartography" {
-				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be companion role cartographer (permitted exclusively in cartography flow)", f.Name, s.Index))
+			} else if s.Actor == RoleNavigator && f.Name != "navigator-cartography" {
+				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be companion role navigator (permitted exclusively in navigator-cartography flow)", f.Name, s.Index))
+			} else if s.Actor == RoleCartographer && f.Name != "cartography" && f.Name != "navigator-cartography" {
+				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be companion role cartographer (permitted exclusively in cartography and navigator-cartography flows)", f.Name, s.Index))
 			} else if s.Actor == RoleVerifier && f.Name != "e2e" {
 				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be role verifier (permitted exclusively in e2e flow)", f.Name, s.Index))
 			} else if !roleNames[s.Actor] {

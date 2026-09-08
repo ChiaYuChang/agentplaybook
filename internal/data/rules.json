@@ -396,25 +396,25 @@
     "title": "Cartography Brief Self-Sufficiency & Anti-Exploration Invariant",
     "category": "protocol",
     "summary": "Mandates that diagram-brief messages be completely self-contained with declarative architectural semantics (WHAT to visualize); strictly relieves and prohibits Cartographer from exploratory reading of application source code or documentation to deduce architecture.",
-    "details": "Planner defines WHAT; Cartographer determines HOW. Planner holds the overarching architectural mental model and must formulate a self-contained diagram-brief providing all entities, components, relationships, directional flows, labels, boundary groupings, and focal nodes required for visualization. Cartographer is responsible strictly for visual layout geometry, 4px grid alignment, orthogonal elbow connectors (r=8), clearance masks, and SVG rendering. Cartographer is strictly prohibited from exploratory traversal or reading of application source code, test suites, or documentation to deduce architectural semantics, preventing semantic divergence, misinterpretation, and context window exhaustion.",
+    "details": "Commissioner (Planner or Navigator) defines WHAT; Cartographer determines HOW. Commissioner holds the overarching architectural mental model and must formulate a self-contained diagram-brief providing all entities, components, relationships, directional flows, labels, boundary groupings, and focal nodes required for visualization. Cartographer is responsible strictly for visual layout geometry, 4px grid alignment, orthogonal elbow connectors (r=8), clearance masks, and SVG rendering. Cartographer is strictly prohibited from exploratory traversal or reading of application source code, test suites, or documentation to deduce architectural semantics, preventing semantic divergence, misinterpretation, and context window exhaustion.",
     "guidelines": [
-      "Planner must provide a completely self-contained semantic architectural specification (diagram-brief) containing all entities, relationships, labels, and boundaries.",
-      "Planner defines WHAT to visualize; Cartographer autonomously determines HOW to lay out and render the diagram under the editorial design system.",
+      "Commissioner (Planner or Navigator) must provide a completely self-contained semantic architectural specification (diagram-brief) containing all entities, relationships, labels, and boundaries.",
+      "Commissioner defines WHAT to visualize; Cartographer autonomously determines HOW to lay out and render the diagram under the editorial design system.",
       "Cartographer is strictly prohibited from traversing or reading application source code, test suites, or documentation to discover architecture.",
-      "Zero unnecessary codebase exploration preserves Cartographer's context window and prevents semantic divergence from Planner's architectural intent."
+      "Zero unnecessary codebase exploration preserves Cartographer's context window and prevents semantic divergence from Commissioner's architectural intent."
     ]
   },
   {
     "id": "cartography-clarification-inquiry",
     "title": "Cartography Clarification Inquiry & Anti-Guessing Protocol",
     "category": "protocol",
-    "summary": "Prohibits Cartographer from guessing or inferring missing semantics; mandates dispatch of diagram-clarification-request upon encountering ambiguities, and defines Planner's amended diagram-brief as the observable event satisfying CLARIFICATION_RESOLVED.",
-    "details": "When Cartographer encounters ambiguous, incomplete, or contradictory semantics in a diagram-brief during Taste Gate evaluation, Cartographer is strictly prohibited from guessing, inventing architectural details, or searching the repository to resolve gaps. Cartographer must dispatch a structured diagram-clarification-request message artifact to Planner specifying the brief title, ambiguity context, identified gap, and targeted clarification question. Cartographer then awaits Planner's resolution. Planner resolves the inquiry by emitting an amended diagram-brief, which serves as the explicit observable event satisfying CLARIFICATION_RESOLVED and resetting the evaluation loop at Step 3.",
+    "summary": "Prohibits Cartographer from guessing or inferring missing semantics; mandates dispatch of diagram-clarification-request upon encountering ambiguities, and defines commissioner's (Planner or Navigator) amended diagram-brief as the observable event satisfying CLARIFICATION_RESOLVED.",
+    "details": "When Cartographer encounters ambiguous, incomplete, or contradictory semantics in a diagram-brief during Taste Gate evaluation, Cartographer is strictly prohibited from guessing, inventing architectural details, or searching the repository to resolve gaps. Cartographer must dispatch a structured diagram-clarification-request message artifact to the commissioning role (Planner or Navigator) specifying the brief title, ambiguity context, identified gap, and targeted clarification question. Cartographer then awaits commissioner's resolution. The commissioner resolves the inquiry by emitting an amended diagram-brief, which serves as the explicit observable event satisfying CLARIFICATION_RESOLVED and resetting the evaluation loop at Step 3.",
     "guidelines": [
       "Cartographer must never guess, infer, or backfill missing architectural semantics from codebase searches.",
-      "Encountering ambiguous, incomplete, or contradictory brief semantics mandates dispatching a diagram-clarification-request message to Planner.",
+      "Encountering ambiguous, incomplete, or contradictory brief semantics mandates dispatching a diagram-clarification-request message to commissioner (Planner or Navigator).",
       "The clarification inquiry must explicitly detail the brief title, ambiguity context, identified gap, and targeted question.",
-      "Planner resolves inquiries by emitting an amended diagram-brief, which serves as the explicit observable event satisfying CLARIFICATION_RESOLVED and resetting evaluation at Step 3."
+      "The commissioner resolves inquiries by emitting an amended diagram-brief, which serves as the explicit observable event satisfying CLARIFICATION_RESOLVED and resetting evaluation at Step 3."
     ]
   },
   {
