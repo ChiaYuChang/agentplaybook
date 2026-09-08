@@ -457,5 +457,56 @@
       "Upon test failure, the failure_digest must contain only the failing assertion, scenario name, and minimal reproduction command, omitting passing scenario output.",
       "Planner and Reviewer inspect high-level pass/fail evidence; detailed log files are accessed out-of-band via persistent sandbox URIs only when debugging."
     ]
+  },
+  {
+    "id": "e2e-package-self-sufficiency",
+    "title": "E2E Execution Package Self-Sufficiency & Anti-Exploration Protocol",
+    "category": "protocol",
+    "summary": "E2E tests must be packaged under e2e/<test-name>/ with self-contained spec.md, environment definitions, and test.sh; Verifier reads only declared package materials and is strictly prohibited from exploratory codebase searching or architecture reverse-engineering.",
+    "details": "All end-to-end tests must be structured as self-contained execution packages under e2e/<test-name>/ containing an e2e-test-spec (spec.md), environment definitions, test scripts, and cleanup routines. Verifier operates strictly on the declared package materials and brief instructions provided by Planner. Verifier is strictly relieved and prohibited from conducting exploratory codebase traversal, source code analysis, or architectural reverse-engineering to discover how to run tests or determine expected behavior.",
+    "guidelines": [
+      "E2E test packages must be completely self-contained under e2e/<test-name>/ with spec.md, harness scripts, and cleanup routines.",
+      "Verifier reads only declared package materials and the e2e-brief provided by Planner.",
+      "Verifier is strictly prohibited from conducting exploratory searches across application source code or architecture documentation.",
+      "Zero codebase exploration preserves Verifier's execution focus and context window while enforcing modular test packaging."
+    ]
+  },
+  {
+    "id": "e2e-clarification-inquiry",
+    "title": "E2E Clarification Inquiry & Anti-Guessing Protocol",
+    "category": "protocol",
+    "summary": "When Verifier encounters missing, ambiguous, or contradictory execution instructions, Verifier must dispatch e2e-clarification-request to Planner; autonomous guessing, ad-hoc workarounds, or codebase backfilling is strictly prohibited.",
+    "details": "When Verifier encounters missing environment parameters, ambiguous test arguments, unresolvable package dependencies, or contradictory execution instructions, Verifier is strictly prohibited from guessing, inventing configuration defaults, or applying ad-hoc workarounds. Verifier must emit a structured e2e-clarification-request message artifact to Planner detailing the run identifier, referenced package, missing instruction, and targeted question, halting execution until Planner provides clarified instructions.",
+    "guidelines": [
+      "Verifier must never guess, assume undocumented flags, or invent environment configurations when execution instructions are incomplete.",
+      "Encountering ambiguous, missing, or contradictory setup or execution instructions mandates dispatching an e2e-clarification-request message artifact to Planner.",
+      "The inquiry message must specify run_id, test_package, missing_instruction, and clarification_question.",
+      "Verifier halts execution and awaits Planner resolution rather than applying speculative workarounds."
+    ]
+  },
+  {
+    "id": "e2e-immutable-evidence-binding",
+    "title": "E2E Immutable Candidate & Evidence Provenance Binding",
+    "category": "protocol",
+    "summary": "E2E runs and reports must strictly bind to immutable repository candidate SHAs, unique run IDs, and verified package paths; mutable refs, ambient primary-tree binaries, and stale evidence are strictly inadmissible.",
+    "details": "End-to-end verification must bind immutably to exact repository states and traceable evidence artifacts. Every E2E run and report must explicitly correlate to an immutable 40-character candidate commit SHA, unique run identifier, and verified package path. Using mutable branch heads, unpinned working copy binaries, or cached results from differing revisions is strictly prohibited. Reports must provide verified persistent sandbox evidence URIs or explicit sentinel markers, guaranteeing unambiguous traceability across multi-agent handoffs.",
+    "guidelines": [
+      "Every E2E verification brief and report must bind strictly to an immutable 40-character repository candidate commit SHA.",
+      "Reports must explicitly carry correlated unique run IDs matching the dispatched brief.",
+      "Testing against mutable branch names, ambient primary-tree binaries, or floating tags is strictly prohibited.",
+      "All verification reports must link to persistent sandbox evidence URIs with verified artifact digests, strictly rejecting untracked or ambient test outputs."
+    ]
+  },
+  {
+    "id": "e2e-lifecycle-admission",
+    "title": "E2E Lifecycle Admission & Gate Governance",
+    "category": "protocol",
+    "summary": "Enforces strict lifecycle ordering where implementation review emits IMPLEMENTATION_REVIEW_PASS, required E2E execution gates on frozen candidate identity, and final REVIEW_PASS or FEATURE_REVIEW_PASS requires admitted E2E evidence or reviewed exemption before commit flow admission.",
+    "details": "Implementation review emits IMPLEMENTATION_REVIEW_PASS and never final REVIEW_PASS while required E2E remains unresolved. Required E2E verification executes in an isolated sandbox against the frozen candidate revision. Planner evaluates the Verifier report against admission criteria (identity match, scenario coverage, allowed skips, artifact digest provenance, token budget); only E2E_EVIDENCE_ADMITTED permits advancement to final review. Unresolved, stale, or failed E2E strictly blocks final acceptance and commit flow admission. When E2E is not required, explicit planning rationale must be reviewed and admitted before final REVIEW_PASS.",
+    "guidelines": [
+      "Implementation review emits IMPLEMENTATION_REVIEW_PASS; final REVIEW_PASS or FEATURE_REVIEW_PASS requires admitted E2E evidence or reviewed exemption.",
+      "Required E2E execution gates on a frozen immutable candidate revision; stale or drifted candidate evidence is strictly inadmissible.",
+      "Unresolved, failed, timed-out, or incomplete E2E verification strictly blocks final review acceptance and commit flow admission."
+    ]
   }
 ]

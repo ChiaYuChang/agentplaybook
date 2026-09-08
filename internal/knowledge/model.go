@@ -55,6 +55,7 @@ type FlowStep struct {
 	Index      int         `json:"index"`
 	Actor      Role        `json:"actor"`
 	Action     string      `json:"action"`
+	Terminal   bool        `json:"terminal,omitempty"`
 	Conditions []Condition `json:"conditions,omitempty"`
 }
 

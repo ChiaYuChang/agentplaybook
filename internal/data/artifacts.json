@@ -88,6 +88,11 @@
         "name": "Local Verification Commands",
         "required": true,
         "description": "Exact test commands Builder must execute and pass locally before submission."
+      },
+      {
+        "name": "E2E Verification",
+        "required": true,
+        "description": "Explicit declaration of E2E verification requirements (required vs not-required with rationale), mode, package path, scenario IDs with Given/When/Then, environments, timeout, skip policy, and acceptance criteria."
       }
     ]
   },
@@ -131,6 +136,11 @@
         "name": "Track B Definition",
         "required": false,
         "description": "Optional specification of complete action boundary defining exact fields: action, boundary, baseline_identity, environment, metrics, sampling, and criteria for performance-quality or supply-chain differential verification."
+      },
+      {
+        "name": "E2E Coverage",
+        "required": true,
+        "description": "Independent mapping of every public scenario and acceptance criterion to a review verification path, or independent verification of the documented not-required rationale."
       }
     ]
   },
@@ -219,6 +229,11 @@
         "name": "Local Verification Commands",
         "required": true,
         "description": "Exact test commands Builder must execute and pass locally before handoff."
+      },
+      {
+        "name": "E2E Verification",
+        "required": true,
+        "description": "Explicit declaration of sub-plan E2E verification requirements (required vs not-required with rationale), mode, package path, scenario IDs with Given/When/Then, environments, timeout, skip policy, and acceptance criteria."
       }
     ]
   },
@@ -262,6 +277,11 @@
         "name": "Track B Definition",
         "required": false,
         "description": "Optional specification of complete action boundary defining exact fields: action, boundary, baseline_identity, environment, metrics, sampling, and criteria for performance-quality or supply-chain differential verification."
+      },
+      {
+        "name": "E2E Coverage",
+        "required": true,
+        "description": "Independent mapping of every public sub-plan scenario and acceptance criterion to a review verification path, or independent verification of the documented not-required rationale."
       }
     ]
   },
@@ -564,7 +584,7 @@
   {
     "name": "e2e-brief",
     "title": "E2E Verification Brief",
-    "description": "Structured specification message dispatched by Planner to Verifier defining candidate revision, target scenarios, environment parameters, and execution timeouts.",
+    "description": "Structured specification message dispatched by Planner to Verifier defining candidate revision, test package, execution mode, and timeout.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -573,29 +593,34 @@
     "type": "message",
     "fields": [
       {
+        "name": "run_id",
+        "required": true,
+        "description": "Correlated unique E2E run identifier."
+      },
+      {
+        "name": "repo_ref",
+        "required": true,
+        "description": "Repository path or origin identity."
+      },
+      {
         "name": "candidate_ref",
         "required": true,
-        "description": "Target commit hash, change ID, or revision identifier to verify."
+        "description": "Immutable repository candidate commit SHA (40-character hex)."
       },
       {
-        "name": "test_scope",
+        "name": "test_package",
         "required": true,
-        "description": "Test suite identifier, tag, or target directory."
+        "description": "Repository-relative path to execution package under e2e/<test-name>/."
       },
       {
-        "name": "scenarios",
+        "name": "mode",
         "required": true,
-        "description": "List or filter pattern of specific end-to-end scenarios to execute."
+        "description": "Execution mode enum: 'build-and-run' or 'run-only'."
       },
       {
-        "name": "environment_spec",
-        "required": false,
-        "description": "Environment variables, mock configuration, or container dependencies."
-      },
-      {
-        "name": "timeout_seconds",
-        "required": false,
-        "description": "Maximum allowed execution duration before timeout failure."
+        "name": "timeout_ms",
+        "required": true,
+        "description": "Total execution timeout in milliseconds as an integer string (e.g. '180000')."
       }
     ]
   },
@@ -612,39 +637,151 @@
     "type": "message",
     "fields": [
       {
-        "name": "outcome",
+        "name": "run_id",
         "required": true,
-        "description": "Execution outcome token: PASS, FAIL, or ENV_ERROR."
+        "description": "Correlated unique E2E run identifier."
       },
       {
-        "name": "scenarios_total",
+        "name": "candidate_ref",
         "required": true,
-        "description": "Total count of executed scenarios."
+        "description": "Immutable repository candidate commit SHA (40-character hex)."
+      },
+      {
+        "name": "stage_outcome",
+        "required": true,
+        "description": "Overall stage outcome enum: PASS, BUILD_FAILURE, PRODUCT_FAILURE, ENV_BLOCKED, CLARIFICATION_REQUIRED, TIMEOUT, CANCELLED, INVALID_EVIDENCE."
+      },
+      {
+        "name": "build_outcome",
+        "required": true,
+        "description": "Build stage outcome enum: PASS, FAIL, NOT_RUN, ENV_ERROR, TIMEOUT, CANCELLED."
+      },
+      {
+        "name": "execution_outcome",
+        "required": true,
+        "description": "Execution stage outcome enum: PASS, FAIL, NOT_RUN, ENV_ERROR, TIMEOUT, CANCELLED, INVALID_EVIDENCE."
+      },
+      {
+        "name": "scenarios_selected",
+        "required": true,
+        "description": "Total scenarios selected for run as an integer string."
       },
       {
         "name": "scenarios_passed",
         "required": true,
-        "description": "Count of passing scenarios."
+        "description": "Total scenarios passed as an integer string."
       },
       {
         "name": "scenarios_failed",
         "required": true,
-        "description": "Count of failing scenarios."
+        "description": "Total scenarios failed as an integer string."
+      },
+      {
+        "name": "scenarios_skipped",
+        "required": true,
+        "description": "Total scenarios skipped as an integer string."
+      },
+      {
+        "name": "result_completeness",
+        "required": true,
+        "description": "Execution result completeness enum: COMPLETE, PARTIAL, NONE."
+      },
+      {
+        "name": "tested_artifact_ref",
+        "required": true,
+        "description": "Tested binary/artifact SHA-256 digest and provenance descriptor (format: 'sha256:<hex> [<provenance-or-uri>]'; strictly reserved 'NONE' only when run terminated before artifact was produced/provisioned; 'N/A' or untracked run-only artifacts are strictly prohibited)."
       },
       {
         "name": "duration_ms",
         "required": true,
-        "description": "Total test execution time in milliseconds."
+        "description": "Total execution duration in milliseconds as an integer string."
       },
       {
-        "name": "sandbox_uri",
+        "name": "diagnostic",
         "required": true,
-        "description": "Local path or URI to the isolated sandbox where detailed raw logs are stored."
+        "description": "Bounded error diagnostic message or single-sentence outcome summary."
       },
       {
-        "name": "failure_digest",
-        "required": false,
-        "description": "Minimized reproduction trace and failing assertion summary (populated only on FAIL)."
+        "name": "evidence_uri",
+        "required": true,
+        "description": "Persistent sandbox evidence URI (e.g. file:///tmp/e2e-.../evidence.tar.gz), or explicit sentinel 'UNAVAILABLE' when run terminates prior to sandbox/evidence provisioning."
+      }
+    ]
+  },
+  {
+    "name": "e2e-test-spec",
+    "title": "E2E Test Specification",
+    "description": "Public execution specification and contract defining scenario matrix, environments, Given/When/Then criteria, and cleanup obligations for an E2E package.",
+    "owner": "builder",
+    "visibility": [
+      "planner",
+      "reviewer",
+      "builder",
+      "verifier"
+    ],
+    "path": "e2e/{test_name}/spec.md",
+    "path_variables": {
+      "test_name": "Kebab-case E2E test package directory name under e2e/"
+    },
+    "type": "document",
+    "sections": [
+      {
+        "name": "Scenario Matrix & Given/When/Then",
+        "required": true,
+        "description": "Scenarios with stable IDs and Given/When/Then acceptance criteria."
+      },
+      {
+        "name": "Execution Mode & Platform Targets",
+        "required": true,
+        "description": "Target OS, container/platform constraints, and execution mode (build-and-run vs run-only)."
+      },
+      {
+        "name": "Environment & Dependency Bindings",
+        "required": true,
+        "description": "Pinned dependency declarations, compose/nix references, and isolated resource names."
+      },
+      {
+        "name": "Result Paths & Cleanup Obligations",
+        "required": true,
+        "description": "Locations of machine-readable test outputs and self-contained cleanup requirements."
+      },
+      {
+        "name": "Timeout & Allowed Skip Policy",
+        "required": true,
+        "description": "Execution bounds, timeout limits, and explicit permitted skip conditions."
+      }
+    ]
+  },
+  {
+    "name": "e2e-clarification-request",
+    "title": "E2E Clarification Request",
+    "description": "Structured inquiry message emitted by Verifier to Planner when execution instructions are missing, ambiguous, or contradictory.",
+    "owner": "verifier",
+    "visibility": [
+      "planner",
+      "verifier"
+    ],
+    "type": "message",
+    "fields": [
+      {
+        "name": "run_id",
+        "required": true,
+        "description": "Correlated E2E run identifier."
+      },
+      {
+        "name": "test_package",
+        "required": true,
+        "description": "Referenced package path under e2e/."
+      },
+      {
+        "name": "missing_instruction",
+        "required": true,
+        "description": "Ambiguous, missing, or contradictory setup/execution detail."
+      },
+      {
+        "name": "clarification_question",
+        "required": true,
+        "description": "Targeted question for Planner regarding intended execution configuration."
       }
     ]
   }

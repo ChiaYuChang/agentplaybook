@@ -419,7 +419,7 @@ func TestCLI_Init_Minimal_Invariants(t *testing.T) {
 		"planner", "reviewer", "builder", "scout", "verifier", "navigator", "cartographer",
 		"init", "plan", "blueprint", "build", "review", "commit", "cartography", "session-handoff", "e2e",
 		"sub-review-resolution",
-		"e2e-brief", "e2e-report",
+		"e2e-brief", "e2e-report", "e2e-test-spec", "e2e-clarification-request",
 		"E2E Sandbox",
 		"Please send this requirement directly to Planner",
 		"[Source: <path> | Observed: <rev> @ <timestamp>]",
@@ -448,6 +448,7 @@ func TestCLI_Init_Minimal_Invariants(t *testing.T) {
 		"diagram-design",
 		"PLAN_PASS",
 		"REVIEW_PASS",
+		"IMPLEMENTATION_REVIEW_PASS",
 	}
 
 	for _, s := range requiredStrings {
@@ -471,7 +472,7 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 
 	// 2. Verify mandatory structural strings
 	requiredStrings := []string{
-		"AgentPlaybook v0.3.6 Living Memory Blueprint",
+		"AgentPlaybook v0.4.0 Living Memory Blueprint",
 		"Peer-Session Primacy over Subagents",
 		"invoke_subagent",
 		"Blind Barrier",

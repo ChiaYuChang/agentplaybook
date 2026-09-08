@@ -15,8 +15,8 @@ Instead of stuffing massive, static role prompts into every agent turn—wasting
 - **5 Orthogonal Knowledge Domains**:
   - `role`: Core and companion participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`, `scout`, `navigator`, `cartographer`, `verifier`).
   - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `blueprint`, `build`, `review`, `commit`, `session-handoff`, `cartography`, `e2e`).
-  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-report`).
-  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`, `navigator-read-only-companion`, `companion-query-zero-side-effect`, `planner-source-restricted-response`, `target-state-gated-inquiry`, `cartographer-visual-architect-boundary`, `cartography-zero-context-pollution`, `cartography-taste-gate-advisory`, `cartography-asynchronous-decoupling`, `cartography-brief-self-sufficiency`, `cartography-clarification-inquiry`, `peer-session-transport-primacy`, `e2e-sandbox-isolation`, `e2e-zero-log-pollution`).
+  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-report`, `e2e-test-spec`, `e2e-clarification-request`).
+  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`, `navigator-read-only-companion`, `companion-query-zero-side-effect`, `planner-source-restricted-response`, `target-state-gated-inquiry`, `cartographer-visual-architect-boundary`, `cartography-zero-context-pollution`, `cartography-taste-gate-advisory`, `cartography-asynchronous-decoupling`, `cartography-brief-self-sufficiency`, `cartography-clarification-inquiry`, `peer-session-transport-primacy`, `e2e-sandbox-isolation`, `e2e-zero-log-pollution`, `e2e-package-self-sufficiency`, `e2e-clarification-inquiry`, `e2e-immutable-evidence-binding`, `e2e-lifecycle-admission`).
   - `config`: Supported languages, prefix templates, and transport settings.
 - **Progressive Disclosure UX**: Bare discovery commands output concise catalogs (Exit 0); specific queries return clean, indented JSON.
 - **Built for AI Agents**: Automatic self-caching runner script, compatible with [skills.sh](https://skills.sh) across 17+ agent harnesses.
@@ -133,7 +133,7 @@ Navigator operates under a strict star topology communicating only with the user
 ### 3. Inspecting Flows & Step SOPs
 The `init` flow has 9 steps and an optional Scout reconnaissance branch. Step 1 begins with active workspace peer-session discovery through the active harness transport, prioritizing dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents, resolves active Tier 2 VCS capability, then routes `SCOUT_RECON_REQUIRED` to Step 2, where Scout returns a `scout-survey`; `DIRECT_SURVEY` routes directly to Step 3, where Planner validates evidence or surveys the repository before drafting `AGENTS.md`. Reviewer and Builder inquiry convergence then proceeds through Steps 4-8, and Planner finalizes the artifact in Step 9.
 
-The `blueprint` flow defines a 12-step deterministic hierarchical feature lifecycle: Planner authors `<slug>.blueprint.md` (Step 1), Reviewer executes the Blueprint Gate (Step 2), Planner authors JIT sub-plan pairs `sub/<slug>.build.md` and `sub/<slug>.review.md` (Step 3), Reviewer executes the Sub-Plan Gate (Step 4), Builder implements the sub-build plan (Step 5), Reviewer inspects diffs and reports findings (Step 6), Planner mediates and sanitizes findings (Step 7), Planner synthesizes `sub/<slug>.resolution.md` (Step 8), Reviewer verifies sub-resolution (Step 9), Planner synthesizes master composition `<slug>.resolution.md` (Step 10), Reviewer executes the Feature Composition Gate (Step 11), and Planner triggers Governed Milestone Acceptance (Step 12).
+The `blueprint` flow defines a 12-step deterministic hierarchical feature lifecycle: Planner authors `<slug>.blueprint.md` (Step 1), Reviewer executes the Blueprint Gate (Step 2), Planner authors JIT sub-plan pairs `sub/<slug>.build.md` (with mandatory `E2E Verification`) and `sub/<slug>.review.md` (with mandatory `E2E Coverage`) (Step 3), Reviewer executes the Sub-Plan Gate (Step 4), Builder implements the sub-build plan (Step 5), Reviewer inspects diffs and reports findings (Step 6), Planner mediates and sanitizes findings (Step 7), Planner synthesizes `sub/<slug>.resolution.md` (Step 8), Reviewer verifies sub-resolution (Step 9), Planner synthesizes master composition `<slug>.resolution.md` (Step 10), Reviewer executes the Feature Composition Gate confirming `FEATURE_REVIEW_PASS` only after required admitted E2E evidence or reviewed exemption (Step 11), and Planner triggers Governed Milestone Acceptance (Step 12).
 
 The `session-handoff` flow defines an 8-step protocol for session transition, anchor capture, and takeover readiness verification. Step 1 performs active workspace peer-session discovery through the active harness transport and prioritizes dedicated Reviewer, Builder, or Scout peer sessions rather than spawning nested subagents, then captures the State & Topology Anchor. Step 2 revalidates anchor state against live repository ground truth. Steps 3-5 execute 3 structured readiness audit rounds across all four mandatory dimensions (Plan Understanding, Progress & State Understanding, Architectural & Governance Decisions, and Permissions & Path-Scoping Invariants). Step 6 enforces tool root path-scoping and blind barrier invariants, Step 7 validates Plan-Review Gate independence and release cadence, and Step 8 emits the validated takeover state. The manual provides read-only guidance with no runtime transport mutation.
 
@@ -170,6 +170,8 @@ agentplaybook artifact diagram-brief
 agentplaybook artifact diagram-completion
 agentplaybook artifact e2e-brief
 agentplaybook artifact e2e-report
+agentplaybook artifact e2e-test-spec
+agentplaybook artifact e2e-clarification-request
 ```
 
 ### 5. Inspecting Behavioral Rules
@@ -196,8 +198,8 @@ AgentPlaybook v0.3.0 establishes hierarchical blueprinting and two-tier gating f
    Distinguishes `WORKING != ACCEPTED != PUBLISHED`. Milestone acceptance seals reviewed revisions locally as `ACCEPTED` under Planner VCS governance, strictly upholding Finalization Equivalence ($\text{tree}(\text{Final}) == \text{tree}(\text{Verified})$) with zero unstaged drift. Remote publication (`PUBLISHED`) requires explicit separate human authorization.
 5. **Two-Tier Gating & Composition Review**:
    - `Blueprint Gate`: Reviewer validates architectural coherence, public contracts, and sub-plan boundary definitions before implementation.
-   - `Sub-Plan Gate`: Reviewer validates JIT sub-build and sub-review plan pairs for verification coverage.
-   - `Feature Composition Gate`: Reviewer evaluates global composition across all completed sub-plans, shared contracts, and regression suites before milestone acceptance.
+   - `Sub-Plan Gate`: Reviewer validates JIT sub-build (with mandatory `E2E Verification`) and sub-review (with mandatory `E2E Coverage`) plan pairs for verification coverage.
+   - `Feature Composition Gate`: Reviewer evaluates global composition across all completed sub-plans, shared contracts, regression suites, and required admitted E2E evidence (or reviewed exemption) before milestone acceptance.
 
 ### Session Handoff & Takeover Audit Protocol
 The `session-handoff-audit` rule formalizes session transitions across 3 core handover elements:
@@ -298,22 +300,33 @@ agentplaybook role verifier --boundary
 agentplaybook role verifier --communication
 ```
 
-#### Core E2E Verification Rules & Protocols
-1. **Sandbox Isolation & Working Tree Protection (`e2e-sandbox-isolation`)**:
-   In modern version control systems like Jujutsu (`jj`), the working copy is a live commit (`@`) that automatically amends filesystem additions into candidate revisions. All end-to-end and multi-service test suites must execute within an isolated out-of-tree sandbox or detached clone (`mktemp -d /tmp/e2e-XXXXXX` or dedicated test mirror). Running state-generating E2E suites directly in the primary working tree is strictly forbidden.
-2. **Context Containment & Zero Log Pollution (`e2e-zero-log-pollution`)**:
-   Raw stdout/stderr, browser traces, and daemon outputs remain strictly confined to sandbox disk storage. Verifier emits only the lightweight `e2e-report` message artifact (<150 tokens) containing high-level outcome tokens, scenario counts, duration, sandbox URI, and minimized failure digests.
-3. **Star-Topology Isolation**:
-   Verifier communicates strictly with Planner. Verifier never edits application code, task build plans, or `AGENTS.md`.
+#### Execution Package Convention & Core Protocols
+- **Execution Package Convention**: E2E test suites are structured as self-contained packages under `e2e/<test-name>/` containing `spec.md` (`e2e-test-spec`), environment definitions, and harness test scripts.
+- **Package Self-Sufficiency (`e2e-package-self-sufficiency`)**: Verifier reads only declared package materials and the `e2e-brief`, and is strictly prohibited from exploratory codebase searching or architecture reverse-engineering.
+- **Clarification Inquiry (`e2e-clarification-inquiry`)**: When Verifier encounters missing, ambiguous, or contradictory execution instructions, Verifier dispatches `e2e-clarification-request` to Planner; autonomous guessing, ad-hoc workarounds, or codebase backfilling is strictly prohibited.
+- **Immutable Evidence Binding (`e2e-immutable-evidence-binding`)**: Runs and reports must strictly bind to immutable repository candidate SHAs, unique run IDs, verified package paths, and verified sandbox evidence URIs; mutable refs, ambient binaries, and stale evidence are strictly inadmissible.
+- **Sandbox Isolation & Working Tree Protection (`e2e-sandbox-isolation`)**:
+  In modern version control systems like Jujutsu (`jj`), the working copy is a live commit (`@`) that automatically amends filesystem additions into candidate revisions. All end-to-end and multi-service test suites must execute within an isolated out-of-tree sandbox or detached clone (`mktemp -d /tmp/e2e-XXXXXX` or dedicated test mirror). Running state-generating E2E suites directly in the primary working tree is strictly forbidden.
+- **Context Containment & Zero Log Pollution (`e2e-zero-log-pollution`)**:
+  Raw stdout/stderr, browser traces, and daemon outputs remain strictly confined to sandbox disk storage. Verifier emits only the lightweight `e2e-report` message artifact (<150 tokens) containing high-level outcome tokens, scenario counts, duration, sandbox URI, and minimized failure digests.
+- **Lifecycle Admission & Gate Governance (`e2e-lifecycle-admission`)**:
+  Implementation review emits `IMPLEMENTATION_REVIEW_PASS` and never final `REVIEW_PASS` while required E2E remains unresolved. Required E2E verification gates strictly on a frozen immutable candidate revision (`candidate_ref`). Planner evaluates the Verifier report against admission criteria (identity match, scenario coverage, allowed skips, artifact digest provenance, token budget <150 tokens); only `E2E_EVIDENCE_ADMITTED` permits advancement to final review. Unresolved, stale, failed, timed-out, or incomplete E2E verification strictly blocks final review acceptance and commit flow admission. When E2E is not required, explicit planning rationale must be reviewed and admitted before final `REVIEW_PASS`.
+- **Star-Topology Isolation**:
+  Verifier communicates strictly with Planner. Verifier never edits application code, task build plans, or `AGENTS.md`.
 
 #### E2E Verification Flow (`flow e2e`)
-1. Planner identifies end-to-end verification requirement and formulates `e2e-brief`.
+1. Planner identifies end-to-end verification requirement, requires `IMPLEMENTATION_REVIEW_PASS` before initial dispatch or after any remediation, and formulates structured `e2e-brief`.
 2. Planner dispatches `e2e-brief` message artifact to Verifier.
-3. Verifier provisions isolated out-of-tree sandbox or clone pinned to `candidate_ref`.
-4. Verifier executes test scenarios, redirecting verbose logs to sandbox storage.
-5. Verifier emits compact `e2e-report` message artifact to Planner (`E2E_PASS` -> Step 6, `E2E_FAIL` -> Step 7).
-6. Planner incorporates verified E2E evidence into Feature Composition Gate or Review Resolution.
-7. Planner arbitrates failure, sanitizes defect trace, and dispatches remediation requirements to Builder.
+3. Verifier provisions isolated out-of-tree sandbox or clone pinned strictly to candidate revision and initializes dependencies.
+4. Verifier evaluates execution package (`e2e-test-spec`) and executes test scenarios, redirecting verbose stdout/stderr and trace logs to persistent sandbox disk storage.
+5. Verifier emits lightweight `e2e-report` message artifact to Planner (`E2E_RESULT_PASS` -> Step 6, `E2E_PRODUCT_FAILURE` -> Step 7, `E2E_BUILD_FAILURE` -> Step 7, `E2E_ENV_BLOCKED` -> Step 9, `E2E_CLARIFICATION_REQUIRED` -> Step 9, `E2E_TIMEOUT` -> Step 10, `E2E_CANCELLED` -> Step 10, `E2E_INVALID_EVIDENCE` -> Step 10).
+6. Planner Admission Gate evaluates Verifier report against admission criteria (`E2E_EVIDENCE_ADMITTED` -> Step 11, `E2E_EVIDENCE_STALE` -> Step 1, `E2E_INVALID_EVIDENCE` -> Step 10).
+7. Planner Remediation Dispatch arbitrates product or build failure, sanitizes defect trace into actionable remediation instructions for Builder (strictly withholding review-plan artifacts), and coordinates fixes (`REMEDIATION_DISPATCHED` -> Step 8).
+8. Reviewer Affected Implementation Review independently inspects remediation diffs and updated test packages (`IMPLEMENTATION_REVIEW_PASS` -> Step 1, `FINDINGS_REPORTED` -> Step 7).
+9. Planner Environment/Clarification Resolution resolves environment blockers or answers clarification requests (`E2E_INPUTS_AMENDED` -> Step 1, `CLARIFICATION_RESOLVED` -> Step 1, `PACKAGE_DEFECT_ESCALATED` -> Step 7).
+10. Planner Timeout/Cancellation/Halt Arbitration investigates timeout, cancellation, or invalid evidence (`E2E_RETRY_AUTHORIZED` -> Step 1, `PACKAGE_DEFECT_ESCALATED` -> Step 7, `E2E_EXECUTION_HALTED` -> Step 12).
+11. Planner Evidence Incorporation incorporates verified and admitted E2E evidence into Feature Composition Gate or Review Resolution and advances to final review (`terminal: true`, 0 conditions).
+12. Planner Execution Halted terminates E2E verification without acceptance upon fatal error, unresolvable defect, or cancellation, recording non-acceptance disposition and halting pipeline without admitting candidate to commit flow (`terminal: true`, 0 conditions).
 
 ---
 

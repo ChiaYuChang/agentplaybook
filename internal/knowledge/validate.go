@@ -133,11 +133,13 @@ func Validate(k *Knowledge) error {
 		"diagram-clarification-request": true,
 	}
 	allowedVerifierArtifacts := map[string]bool{
-		"agents-md":             true,
-		"sub-review-resolution": true,
-		"review-resolution":     true,
-		"e2e-brief":             true,
-		"e2e-report":            true,
+		"agents-md":                 true,
+		"sub-review-resolution":     true,
+		"review-resolution":         true,
+		"e2e-brief":                 true,
+		"e2e-report":                true,
+		"e2e-test-spec":             true,
+		"e2e-clarification-request": true,
 	}
 
 	artifactNames := make(map[string]bool, len(k.artifactList))
@@ -157,8 +159,8 @@ func Validate(k *Knowledge) error {
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role navigator", a.Name))
 		} else if a.Owner == RoleCartographer && a.Name != "diagram-completion" && a.Name != "diagram-clarification-request" {
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role cartographer (permitted exclusively for diagram-completion and diagram-clarification-request)", a.Name))
-		} else if a.Owner == RoleVerifier && a.Name != "e2e-report" {
-			errs = append(errs, fmt.Errorf("artifact %q owner cannot be role verifier (permitted exclusively for e2e-report)", a.Name))
+		} else if a.Owner == RoleVerifier && a.Name != "e2e-report" && a.Name != "e2e-clarification-request" {
+			errs = append(errs, fmt.Errorf("artifact %q owner cannot be role verifier (permitted exclusively for e2e-report and e2e-clarification-request)", a.Name))
 		} else if !roleNames[a.Owner] {
 			errs = append(errs, fmt.Errorf("artifact %q owner %q does not exist", a.Name, a.Owner))
 		}
@@ -239,6 +241,10 @@ func Validate(k *Knowledge) error {
 		}
 
 		for _, s := range f.Steps {
+			if s.Terminal && len(s.Conditions) > 0 {
+				errs = append(errs, fmt.Errorf("flow %q step %d is marked terminal but defines %d conditions", f.Name, s.Index, len(s.Conditions)))
+			}
+
 			whens := make(map[string]bool, len(s.Conditions))
 			for _, c := range s.Conditions {
 				if strings.TrimSpace(c.When) == "" {
@@ -254,8 +260,8 @@ func Validate(k *Knowledge) error {
 				}
 			}
 
-			// Sequential validation: if no conditions and not the maximum index, step index + 1 must exist
-			if len(s.Conditions) == 0 && s.Index < maxIdx {
+			// Sequential validation: if no conditions, not terminal, and not the maximum index, step index + 1 must exist
+			if !s.Terminal && len(s.Conditions) == 0 && s.Index < maxIdx {
 				if !stepIndices[s.Index+1] {
 					errs = append(errs, fmt.Errorf("flow %q step %d has no conditions but missing sequential next step %d", f.Name, s.Index, s.Index+1))
 				}

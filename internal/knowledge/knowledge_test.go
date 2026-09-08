@@ -294,10 +294,40 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("unexpected cartography step 4 conditions: %v", cartStep4Conditions)
 	}
 
+	// Verify e2e flow (12 steps)
+	e2eFlow, ok := k.Flow("e2e")
+	if !ok {
+		t.Fatalf("expected e2e flow to exist")
+	}
+	if len(e2eFlow.Steps) != 12 {
+		t.Fatalf("expected 12 steps in e2e flow, got %d", len(e2eFlow.Steps))
+	}
+	if e2eFlow.Steps[0].Actor != knowledge.RolePlanner || e2eFlow.Steps[1].Actor != knowledge.RolePlanner {
+		t.Errorf("expected e2e steps 1-2 actor to be planner")
+	}
+	if e2eFlow.Steps[2].Actor != knowledge.RoleVerifier || e2eFlow.Steps[3].Actor != knowledge.RoleVerifier || e2eFlow.Steps[4].Actor != knowledge.RoleVerifier {
+		t.Errorf("expected e2e steps 3-5 actor to be verifier")
+	}
+	if e2eFlow.Steps[5].Actor != knowledge.RolePlanner || e2eFlow.Steps[6].Actor != knowledge.RolePlanner {
+		t.Errorf("expected e2e steps 6-7 actor to be planner")
+	}
+	if e2eFlow.Steps[7].Actor != knowledge.RoleReviewer {
+		t.Errorf("expected e2e step 8 actor to be reviewer")
+	}
+	if e2eFlow.Steps[8].Actor != knowledge.RolePlanner || e2eFlow.Steps[9].Actor != knowledge.RolePlanner || e2eFlow.Steps[10].Actor != knowledge.RolePlanner || e2eFlow.Steps[11].Actor != knowledge.RolePlanner {
+		t.Errorf("expected e2e steps 9-12 actor to be planner")
+	}
+	if !e2eFlow.Steps[10].Terminal || len(e2eFlow.Steps[10].Conditions) != 0 {
+		t.Errorf("expected e2e step 11 to be terminal: true with 0 conditions")
+	}
+	if !e2eFlow.Steps[11].Terminal || len(e2eFlow.Steps[11].Conditions) != 0 {
+		t.Errorf("expected e2e step 12 to be terminal: true with 0 conditions")
+	}
+
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
-	if len(artifacts) != 15 {
-		t.Fatalf("expected 15 artifacts, got %d", len(artifacts))
+	if len(artifacts) != 17 {
+		t.Fatalf("expected 17 artifacts, got %d", len(artifacts))
 	}
 	for _, expected := range []string{
 		"agents-md",
@@ -315,6 +345,8 @@ func TestLoad_Success(t *testing.T) {
 		"diagram-clarification-request",
 		"e2e-brief",
 		"e2e-report",
+		"e2e-test-spec",
+		"e2e-clarification-request",
 	} {
 		a, ok := k.Artifact(expected)
 		if !ok {
@@ -325,10 +357,25 @@ func TestLoad_Success(t *testing.T) {
 		}
 	}
 
-	// Regression check: build-plan and review-findings visibility
+	// Regression check: plan artifact section counts and visibility
 	buildPlan, _ := k.Artifact("build-plan")
 	if len(buildPlan.Visibility) != 3 {
 		t.Errorf("expected build-plan visibility to have 3 roles, got %v", buildPlan.Visibility)
+	}
+	if len(buildPlan.Sections) != 7 {
+		t.Errorf("expected build-plan to have 7 sections, got %d", len(buildPlan.Sections))
+	}
+	subBuildPlan, _ := k.Artifact("sub-build-plan")
+	if len(subBuildPlan.Sections) != 7 {
+		t.Errorf("expected sub-build-plan to have 7 sections, got %d", len(subBuildPlan.Sections))
+	}
+	reviewPlan, _ := k.Artifact("review-plan")
+	if len(reviewPlan.Sections) != 6 {
+		t.Errorf("expected review-plan to have 6 sections, got %d", len(reviewPlan.Sections))
+	}
+	subReviewPlan, _ := k.Artifact("sub-review-plan")
+	if len(subReviewPlan.Sections) != 6 {
+		t.Errorf("expected sub-review-plan to have 6 sections, got %d", len(subReviewPlan.Sections))
 	}
 	reviewFindings, _ := k.Artifact("review-findings")
 	if len(reviewFindings.Visibility) != 2 || reviewFindings.Visibility[0] != knowledge.RolePlanner || reviewFindings.Visibility[1] != knowledge.RoleReviewer {
@@ -397,8 +444,8 @@ func TestLoad_Success(t *testing.T) {
 	if len(e2eBrief.Visibility) != 2 || e2eBrief.Visibility[0] != knowledge.RolePlanner || e2eBrief.Visibility[1] != knowledge.RoleVerifier {
 		t.Errorf("expected e2e-brief visibility [planner verifier], got %v", e2eBrief.Visibility)
 	}
-	if len(e2eBrief.Fields) != 5 {
-		t.Errorf("expected e2e-brief to have 5 fields, got %d", len(e2eBrief.Fields))
+	if len(e2eBrief.Fields) != 6 {
+		t.Errorf("expected e2e-brief to have 6 fields, got %d", len(e2eBrief.Fields))
 	}
 
 	e2eReport, _ := k.Artifact("e2e-report")
@@ -408,14 +455,37 @@ func TestLoad_Success(t *testing.T) {
 	if len(e2eReport.Visibility) != 3 || e2eReport.Visibility[0] != knowledge.RolePlanner || e2eReport.Visibility[1] != knowledge.RoleVerifier || e2eReport.Visibility[2] != knowledge.RoleReviewer {
 		t.Errorf("expected e2e-report visibility [planner verifier reviewer], got %v", e2eReport.Visibility)
 	}
-	if len(e2eReport.Fields) != 7 {
-		t.Errorf("expected e2e-report to have 7 fields, got %d", len(e2eReport.Fields))
+	if len(e2eReport.Fields) != 14 {
+		t.Errorf("expected e2e-report to have 14 fields, got %d", len(e2eReport.Fields))
+	}
+
+	// Verify e2e-test-spec and e2e-clarification-request metadata
+	e2eTestSpec, _ := k.Artifact("e2e-test-spec")
+	if e2eTestSpec.Owner != knowledge.RoleBuilder || e2eTestSpec.Type != "document" {
+		t.Errorf("unexpected e2e-test-spec metadata: %+v", e2eTestSpec)
+	}
+	if len(e2eTestSpec.Visibility) != 4 || e2eTestSpec.Visibility[0] != knowledge.RolePlanner || e2eTestSpec.Visibility[1] != knowledge.RoleReviewer || e2eTestSpec.Visibility[2] != knowledge.RoleBuilder || e2eTestSpec.Visibility[3] != knowledge.RoleVerifier {
+		t.Errorf("expected e2e-test-spec visibility [planner reviewer builder verifier], got %v", e2eTestSpec.Visibility)
+	}
+	if len(e2eTestSpec.Sections) != 5 {
+		t.Errorf("expected e2e-test-spec to have 5 sections, got %d", len(e2eTestSpec.Sections))
+	}
+
+	e2eClarification, _ := k.Artifact("e2e-clarification-request")
+	if e2eClarification.Owner != knowledge.RoleVerifier || e2eClarification.Type != "message" {
+		t.Errorf("unexpected e2e-clarification-request metadata: %+v", e2eClarification)
+	}
+	if len(e2eClarification.Visibility) != 2 || e2eClarification.Visibility[0] != knowledge.RolePlanner || e2eClarification.Visibility[1] != knowledge.RoleVerifier {
+		t.Errorf("expected e2e-clarification-request visibility [planner verifier], got %v", e2eClarification.Visibility)
+	}
+	if len(e2eClarification.Fields) != 4 {
+		t.Errorf("expected e2e-clarification-request to have 4 fields, got %d", len(e2eClarification.Fields))
 	}
 
 	// 5. Verify Rules
 	rules := k.Rules()
-	if len(rules) < 31 {
-		t.Fatalf("expected at least 31 rules, got %d", len(rules))
+	if len(rules) < 34 {
+		t.Fatalf("expected at least 34 rules, got %d", len(rules))
 	}
 	for _, expected := range []string{
 		"anti-cheating",
@@ -445,6 +515,10 @@ func TestLoad_Success(t *testing.T) {
 		"peer-session-transport-primacy",
 		"e2e-sandbox-isolation",
 		"e2e-zero-log-pollution",
+		"e2e-package-self-sufficiency",
+		"e2e-clarification-inquiry",
+		"e2e-immutable-evidence-binding",
+		"e2e-lifecycle-admission",
 	} {
 		r, ok := k.Rule(expected)
 		if !ok {
@@ -1166,4 +1240,590 @@ func setArtifacts(k *knowledge.Knowledge, artifacts []knowledge.Artifact) {
 
 func setFlows(k *knowledge.Knowledge, flows []knowledge.Flow) {
 	k.SetFlowsForTest(flows)
+}
+
+func TestValidate_TerminalStepsAndReachability(t *testing.T) {
+	t.Parallel()
+
+	k, err := knowledge.Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	// 1. Terminal step declaring conditions must fail validation
+	{
+		invalid := *k
+		flows := append([]knowledge.Flow(nil), k.Flows()...)
+		for i, f := range flows {
+			if f.Name == "review" {
+				steps := append([]knowledge.FlowStep(nil), f.Steps...)
+				for j, s := range steps {
+					if s.Index == 6 {
+						steps[j].Terminal = true
+						steps[j].Conditions = []knowledge.Condition{{When: "INVALID_CONDITION", Then: 7}}
+						break
+					}
+				}
+				flows[i].Steps = steps
+				break
+			}
+		}
+		setFlows(&invalid, flows)
+		if err := knowledge.Validate(&invalid); err == nil {
+			t.Error("expected error when a terminal step defines conditions")
+		}
+	}
+
+	// 2. Synthetic flow test: non-maximum step with Terminal: true suppresses sequential next step requirement; Terminal: false fails
+	{
+		// Valid case: Step 2 has Terminal: true, missing step 3 is permitted
+		valid := *k
+		validFlows := append([]knowledge.Flow(nil), k.Flows()...)
+		validFlows = append(validFlows, knowledge.Flow{
+			Name:        "test-synthetic-terminal",
+			Description: "Synthetic flow to test terminal step sequential suppression",
+			Steps: []knowledge.FlowStep{
+				{Index: 1, Actor: knowledge.RolePlanner, Action: "Initial step"},
+				{Index: 2, Actor: knowledge.RolePlanner, Action: "Terminal intermediate step", Terminal: true},
+				{Index: 4, Actor: knowledge.RolePlanner, Action: "Max step", Terminal: true},
+			},
+		})
+		setFlows(&valid, validFlows)
+		if err := knowledge.Validate(&valid); err != nil {
+			t.Errorf("expected synthetic flow with Terminal: true on intermediate step to pass validation, got: %v", err)
+		}
+
+		// Invalid case: Step 2 has Terminal: false, missing step 3 triggers validation error
+		invalid := *k
+		invalidFlows := append([]knowledge.Flow(nil), k.Flows()...)
+		invalidFlows = append(invalidFlows, knowledge.Flow{
+			Name:        "test-synthetic-terminal",
+			Description: "Synthetic flow to test terminal step sequential suppression",
+			Steps: []knowledge.FlowStep{
+				{Index: 1, Actor: knowledge.RolePlanner, Action: "Initial step"},
+				{Index: 2, Actor: knowledge.RolePlanner, Action: "Non-terminal intermediate step", Terminal: false},
+				{Index: 4, Actor: knowledge.RolePlanner, Action: "Max step", Terminal: true},
+			},
+		})
+		setFlows(&invalid, invalidFlows)
+		err := knowledge.Validate(&invalid)
+		if err == nil {
+			t.Error("expected error when a non-terminal non-maximum step lacks sequential next step")
+		} else if !strings.Contains(err.Error(), "has no conditions but missing sequential next step 3") {
+			t.Errorf("expected error to contain 'has no conditions but missing sequential next step 3', got: %v", err)
+		}
+	}
+
+	// 3. Reachability test: review Step 6 is Terminal: true, has zero conditions, and cannot reach Step 7
+	{
+		reviewFlow, ok := k.Flow("review")
+		if !ok {
+			t.Fatalf("expected review flow to exist")
+		}
+		var step6 *knowledge.FlowStep
+		for _, s := range reviewFlow.Steps {
+			if s.Index == 6 {
+				sCopy := s
+				step6 = &sCopy
+				break
+			}
+		}
+		if step6 == nil {
+			t.Fatalf("expected review step 6 to exist")
+		}
+		if !step6.Terminal {
+			t.Errorf("expected review step 6 to be terminal: true")
+		}
+		if len(step6.Conditions) != 0 {
+			t.Errorf("expected review step 6 to have zero conditions, got %d", len(step6.Conditions))
+		}
+		for _, c := range step6.Conditions {
+			if c.Then == 7 {
+				t.Errorf("review step 6 must not transition to step 7")
+			}
+		}
+	}
+
+	// 4. Reachability test: e2e Step 11 is Terminal: true, has zero conditions, and cannot reach Step 12
+	{
+		e2eFlow, ok := k.Flow("e2e")
+		if !ok {
+			t.Fatalf("expected e2e flow to exist")
+		}
+		var step11 *knowledge.FlowStep
+		for _, s := range e2eFlow.Steps {
+			if s.Index == 11 {
+				sCopy := s
+				step11 = &sCopy
+				break
+			}
+		}
+		if step11 == nil {
+			t.Fatalf("expected e2e step 11 to exist")
+		}
+		if !step11.Terminal {
+			t.Errorf("expected e2e step 11 to be terminal: true")
+		}
+		if len(step11.Conditions) != 0 {
+			t.Errorf("expected e2e step 11 to have zero conditions, got %d", len(step11.Conditions))
+		}
+		for _, c := range step11.Conditions {
+			if c.Then == 12 {
+				t.Errorf("e2e step 11 must not transition to step 12")
+			}
+		}
+	}
+
+	// 5. Reachability test: e2e Step 12 is Terminal: true, has zero conditions, and cannot reach Step 1, 2, or 11
+	{
+		e2eFlow, ok := k.Flow("e2e")
+		if !ok {
+			t.Fatalf("expected e2e flow to exist")
+		}
+		var step12 *knowledge.FlowStep
+		for _, s := range e2eFlow.Steps {
+			if s.Index == 12 {
+				sCopy := s
+				step12 = &sCopy
+				break
+			}
+		}
+		if step12 == nil {
+			t.Fatalf("expected e2e step 12 to exist")
+		}
+		if !step12.Terminal {
+			t.Errorf("expected e2e step 12 to be terminal: true")
+		}
+		if len(step12.Conditions) != 0 {
+			t.Errorf("expected e2e step 12 to have zero conditions, got %d", len(step12.Conditions))
+		}
+		for _, c := range step12.Conditions {
+			if c.Then == 1 || c.Then == 2 || c.Then == 11 {
+				t.Errorf("e2e step 12 must not transition to step %d", c.Then)
+			}
+		}
+	}
+}
+
+func TestValidateE2EReport(t *testing.T) {
+	t.Parallel()
+
+	validBrief := func() knowledge.E2EBriefContext {
+		return knowledge.E2EBriefContext{
+			RunID:        "e2e-run-20260908T220000Z-7f8a9b",
+			CandidateRef: "0123456789abcdef0123456789abcdef01234567",
+			TestPackage:  "e2e/core-flow",
+			Mode:         "build-and-run",
+			TimeoutMS:    180000,
+		}
+	}
+
+	validCoverage := func() knowledge.E2EScenarioCoverageContext {
+		return knowledge.E2EScenarioCoverageContext{
+			SelectedScenarioIDs: []string{"SC-01", "SC-02", "SC-03"},
+			SkippedScenarioIDs:  []string{"SC-03"},
+			AllowedSkipIDs:      []string{"SC-03"},
+		}
+	}
+
+	validReport := func() knowledge.E2EReportPayload {
+		return knowledge.E2EReportPayload{
+			RunID:              "e2e-run-20260908T220000Z-7f8a9b",
+			CandidateRef:       "0123456789abcdef0123456789abcdef01234567",
+			StageOutcome:       "PASS",
+			BuildOutcome:       "PASS",
+			ExecutionOutcome:   "PASS",
+			ScenariosSelected:  3,
+			ScenariosPassed:    2,
+			ScenariosFailed:    0,
+			ScenariosSkipped:   1,
+			ResultCompleteness: "COMPLETE",
+			TestedArtifactRef:  "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 [bin/agentplaybook]",
+			DurationMS:         12500,
+			Diagnostic:         "All 2 selected scenarios passed with 1 authorized skip.",
+			EvidenceURI:        "file:///tmp/e2e-sandbox-7f8a9b/evidence.tar.gz",
+		}
+	}
+
+	// 1. Success test: build-and-run
+	{
+		brief := validBrief()
+		report := validReport()
+		cov := validCoverage()
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err != nil {
+			t.Fatalf("expected valid report to pass: %v", err)
+		}
+		// Deterministic token budget test
+		tokenCount := knowledge.EstimateTokenCount(knowledge.FormatE2EReport(report))
+		if tokenCount >= 150 {
+			t.Errorf("expected token count < 150, got %d", tokenCount)
+		}
+	}
+
+	// 2. Success test: run-only
+	{
+		brief := validBrief()
+		brief.Mode = "run-only"
+		report := validReport()
+		report.BuildOutcome = "NOT_RUN"
+		cov := validCoverage()
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err != nil {
+			t.Fatalf("expected valid run-only report to pass: %v", err)
+		}
+	}
+
+	// 3. Pre-provisioning failure test with UNAVAILABLE evidence and NONE artifact
+	{
+		brief := validBrief()
+		report := validReport()
+		report.StageOutcome = "ENV_BLOCKED"
+		report.BuildOutcome = "ENV_ERROR"
+		report.ExecutionOutcome = "NOT_RUN"
+		report.ResultCompleteness = "NONE"
+		report.TestedArtifactRef = "NONE"
+		report.EvidenceURI = "UNAVAILABLE"
+		report.ScenariosSelected = 1
+		report.ScenariosPassed = 0
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 1
+		cov := knowledge.E2EScenarioCoverageContext{
+			SelectedScenarioIDs: []string{"SC-01"},
+			SkippedScenarioIDs:  []string{"SC-01"},
+			AllowedSkipIDs:      []string{"SC-01"},
+		}
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err != nil {
+			t.Fatalf("expected pre-provisioning failure report to pass: %v", err)
+		}
+	}
+
+	// 4. Mode mismatch: build-and-run mode with build_outcome: NOT_RUN
+	{
+		brief := validBrief()
+		brief.Mode = "build-and-run"
+		report := validReport()
+		report.BuildOutcome = "NOT_RUN"
+		cov := validCoverage()
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for build-and-run mode with build_outcome NOT_RUN")
+		}
+	}
+
+	// 5. Zero selection: scenarios_selected: 0
+	{
+		brief := validBrief()
+		report := validReport()
+		report.ScenariosSelected = 0
+		cov := validCoverage()
+		cov.SelectedScenarioIDs = nil
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for scenarios_selected == 0")
+		}
+	}
+
+	// 6. Count reconciliation mismatch
+	{
+		brief := validBrief()
+		report := validReport()
+		report.ScenariosSelected = 5
+		report.ScenariosPassed = 3
+		report.ScenariosFailed = 1
+		report.ScenariosSkipped = 0 // 3+1+0 != 5
+		cov := validCoverage()
+		cov.SelectedScenarioIDs = []string{"S1", "S2", "S3", "S4", "S5"}
+		cov.SkippedScenarioIDs = nil
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for count reconciliation mismatch")
+		}
+	}
+
+	// 7. Duplicate scenario IDs in SelectedScenarioIDs or SkippedScenarioIDs
+	{
+		brief := validBrief()
+		report := validReport()
+		cov := validCoverage()
+		cov.SelectedScenarioIDs = []string{"SC-01", "SC-01", "SC-02"}
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for duplicate SelectedScenarioIDs")
+		}
+
+		cov2 := validCoverage()
+		cov2.SkippedScenarioIDs = []string{"SC-03", "SC-03"}
+		report.ScenariosSkipped = 2
+		report.ScenariosPassed = 1
+		if err := knowledge.ValidateE2EReport(brief, report, cov2); err == nil {
+			t.Error("expected error for duplicate SkippedScenarioIDs")
+		}
+	}
+
+	// 8. Skipped scenario ID absent from SelectedScenarioIDs
+	{
+		brief := validBrief()
+		report := validReport()
+		cov := validCoverage()
+		cov.SkippedScenarioIDs = []string{"SC-UNKNOWN"}
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error when skipped scenario ID is not in SelectedScenarioIDs")
+		}
+	}
+
+	// 9. Unauthorized skip IDs for stage_outcome == PASS
+	{
+		brief := validBrief()
+		report := validReport()
+		cov := validCoverage()
+		cov.AllowedSkipIDs = []string{"SC-OTHER"} // SC-03 is skipped but not authorized
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for unauthorized skipped scenario with PASS stage outcome")
+		}
+	}
+
+	// 10. BUILD_FAILURE misclassification
+	{
+		// ENV_ERROR misclassified as BUILD_FAILURE
+		brief := validBrief()
+		report := validReport()
+		report.StageOutcome = "BUILD_FAILURE"
+		report.BuildOutcome = "ENV_ERROR"
+		report.ExecutionOutcome = "NOT_RUN"
+		report.TestedArtifactRef = "NONE"
+		cov := validCoverage()
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error when build ENV_ERROR is misclassified as BUILD_FAILURE")
+		}
+
+		// TIMEOUT misclassified as BUILD_FAILURE
+		report.BuildOutcome = "TIMEOUT"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error when build TIMEOUT is misclassified as BUILD_FAILURE")
+		}
+	}
+
+	// 11. Contradictory states
+	{
+		// BUILD_FAILURE with execution_outcome: PASS
+		brief := validBrief()
+		report := validReport()
+		report.StageOutcome = "BUILD_FAILURE"
+		report.BuildOutcome = "FAIL"
+		report.ExecutionOutcome = "PASS"
+		report.TestedArtifactRef = "NONE"
+		cov := validCoverage()
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for BUILD_FAILURE with execution_outcome: PASS")
+		}
+
+		// PRODUCT_FAILURE with scenarios_failed: 0
+		report = validReport()
+		report.StageOutcome = "PRODUCT_FAILURE"
+		report.BuildOutcome = "PASS"
+		report.ExecutionOutcome = "FAIL"
+		report.ScenariosFailed = 0
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for PRODUCT_FAILURE with scenarios_failed: 0")
+		}
+
+		// TIMEOUT with execution_outcome: PASS
+		report = validReport()
+		report.StageOutcome = "TIMEOUT"
+		report.BuildOutcome = "TIMEOUT"
+		report.ExecutionOutcome = "PASS"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for TIMEOUT with execution_outcome: PASS")
+		}
+
+		// CANCELLED with execution_outcome: PASS
+		report = validReport()
+		report.StageOutcome = "CANCELLED"
+		report.BuildOutcome = "CANCELLED"
+		report.ExecutionOutcome = "PASS"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for CANCELLED with execution_outcome: PASS")
+		}
+
+		// ENV_BLOCKED with build_outcome: PASS & execution_outcome: PASS
+		report = validReport()
+		report.StageOutcome = "ENV_BLOCKED"
+		report.BuildOutcome = "PASS"
+		report.ExecutionOutcome = "PASS"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for ENV_BLOCKED with build_outcome: PASS & execution_outcome: PASS")
+		}
+
+		// CLARIFICATION_REQUIRED with execution_outcome: PASS
+		report = validReport()
+		report.StageOutcome = "CLARIFICATION_REQUIRED"
+		report.BuildOutcome = "NOT_RUN"
+		report.ExecutionOutcome = "PASS"
+		report.ResultCompleteness = "NONE"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for CLARIFICATION_REQUIRED with execution_outcome: PASS")
+		}
+
+		// INVALID_EVIDENCE with stage_outcome: PASS
+		report = validReport()
+		report.StageOutcome = "PASS"
+		report.ExecutionOutcome = "INVALID_EVIDENCE"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for INVALID_EVIDENCE with stage_outcome: PASS")
+		}
+	}
+
+	// 12. Identity mismatch
+	{
+		brief := validBrief()
+		report := validReport()
+		cov := validCoverage()
+
+		report.RunID = "different-run-id"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for RunID mismatch")
+		}
+
+		report = validReport()
+		report.CandidateRef = "fedcba9876543210fedcba9876543210fedcba98"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for CandidateRef mismatch")
+		}
+	}
+
+	// 13. Absent provenance (run-only)
+	{
+		brief := validBrief()
+		brief.Mode = "run-only"
+		report := validReport()
+		report.BuildOutcome = "NOT_RUN"
+		cov := validCoverage()
+
+		report.TestedArtifactRef = "N/A"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for tested_artifact_ref: N/A")
+		}
+
+		report.TestedArtifactRef = "bin/agentplaybook" // missing sha256:
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for tested_artifact_ref without sha256 prefix")
+		}
+
+		report.TestedArtifactRef = "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945" // bare digest without provenance descriptor
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for bare digest tested_artifact_ref without provenance descriptor")
+		}
+	}
+
+	// 14. Budget overflow (token count >= 150)
+	{
+		brief := validBrief()
+		report := validReport()
+		cov := validCoverage()
+		report.Diagnostic = strings.Repeat("Extremely verbose diagnostic message detailing multiple failure traces and long logs. ", 15)
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error when diagnostic overflows 150-token budget")
+		}
+	}
+
+	// 15. CandidateRef syntax validation
+	{
+		brief := validBrief()
+		report := validReport()
+		cov := validCoverage()
+
+		// Brief CandidateRef symbolic "main"
+		brief.CandidateRef = "main"
+		report.CandidateRef = "main"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for symbolic CandidateRef 'main'")
+		}
+
+		// Brief CandidateRef short hex
+		brief = validBrief()
+		brief.CandidateRef = "0123456789abcdef"
+		report.CandidateRef = "0123456789abcdef"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for short hex CandidateRef")
+		}
+
+		// Report CandidateRef invalid syntax
+		brief = validBrief()
+		report = validReport()
+		report.CandidateRef = "not-valid-hex-length-and-characters-!!!"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for invalid report CandidateRef syntax")
+		}
+	}
+
+	// 16. TestPackage syntax validation
+	{
+		brief := validBrief()
+		report := validReport()
+		cov := validCoverage()
+
+		brief.TestPackage = "../outside"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for TestPackage directory traversal '../outside'")
+		}
+
+		brief.TestPackage = "pkg/core"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for TestPackage outside e2e/ 'pkg/core'")
+		}
+
+		brief.TestPackage = "e2e/../escape"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for TestPackage traversal in e2e/ 'e2e/../escape'")
+		}
+	}
+
+	// 17. EvidenceURI syntax and UNAVAILABLE sentinel restrictions
+	{
+		brief := validBrief()
+		report := validReport()
+		cov := validCoverage()
+
+		// Invalid EvidenceURI syntax
+		report.EvidenceURI = "not-a-uri"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for invalid EvidenceURI 'not-a-uri'")
+		}
+
+		// UNAVAILABLE prohibited on PASS
+		report = validReport()
+		report.EvidenceURI = "UNAVAILABLE"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for EvidenceURI UNAVAILABLE with PASS")
+		}
+
+		// UNAVAILABLE prohibited on PRODUCT_FAILURE
+		report = validReport()
+		report.StageOutcome = "PRODUCT_FAILURE"
+		report.BuildOutcome = "PASS"
+		report.ExecutionOutcome = "FAIL"
+		report.ScenariosFailed = 1
+		report.ScenariosPassed = 1
+		report.ScenariosSkipped = 1
+		report.EvidenceURI = "UNAVAILABLE"
+		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
+			t.Error("expected error for EvidenceURI UNAVAILABLE with PRODUCT_FAILURE")
+		}
+
+		// UNAVAILABLE prohibited when scenarios were executed (scenarios_passed > 0)
+		report = validReport()
+		report.StageOutcome = "ENV_BLOCKED"
+		report.BuildOutcome = "ENV_ERROR"
+		report.ExecutionOutcome = "ENV_ERROR"
+		report.ResultCompleteness = "NONE"
+		report.TestedArtifactRef = "NONE"
+		report.EvidenceURI = "UNAVAILABLE"
+		report.ScenariosSelected = 2
+		report.ScenariosPassed = 1
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 1
+		covExecuted := knowledge.E2EScenarioCoverageContext{
+			SelectedScenarioIDs: []string{"SC-01", "SC-02"},
+			SkippedScenarioIDs:  []string{"SC-02"},
+			AllowedSkipIDs:      []string{"SC-02"},
+		}
+		if err := knowledge.ValidateE2EReport(brief, report, covExecuted); err == nil {
+			t.Error("expected error for EvidenceURI UNAVAILABLE when scenarios_passed > 0")
+		}
+	}
 }

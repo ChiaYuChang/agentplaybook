@@ -77,7 +77,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Assess feature scope and complexity to branch between Hierarchical Blueprint and Single Plan; author task build-plan (or blueprint-plan) and review-plan with verification paths for every material invariant and optional Track B definitions."
+        "action": "Assess feature scope and complexity to branch between Hierarchical Blueprint and Single Plan; author task build-plan (or blueprint-plan) with mandatory E2E Verification section and review-plan with mandatory E2E Coverage section, with verification paths for every material invariant and optional Track B definitions."
       },
       {
         "index": 2,
@@ -124,7 +124,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Author the blueprint-plan artifact (<slug>.blueprint.md) defining high-level goals, shared interface contracts, invariant boundaries, and ordered sub-plan sequence."
+        "action": "Author the blueprint-plan artifact (<slug>.blueprint.md) defining high-level goals, shared interface contracts, invariant boundaries, feature-level E2E scope and composition obligations, and ordered sub-plan sequence."
       },
       {
         "index": 2,
@@ -144,7 +144,7 @@
       {
         "index": 3,
         "actor": "planner",
-        "action": "Author JIT sub-plan pair: sub-build-plan (sub/<slug>.build.md) and sub-review-plan (sub/<slug>.review.md) for the current sub-plan unit."
+        "action": "Author JIT sub-plan pair: sub-build-plan (sub/<slug>.build.md) with mandatory E2E Verification section and sub-review-plan (sub/<slug>.review.md) with mandatory E2E Coverage section for the current sub-plan unit."
       },
       {
         "index": 4,
@@ -232,7 +232,7 @@
       {
         "index": 11,
         "actor": "reviewer",
-        "action": "Execute Feature Composition Gate across all completed sub-plans, shared contracts, and regression suites.",
+        "action": "Execute Feature Composition Gate across all completed sub-plans, shared contracts, regression suites, and required admitted E2E evidence (or reviewed not-required rationale), emitting FEATURE_REVIEW_PASS only when required E2E evidence is admitted.",
         "conditions": [
           {
             "when": "FEATURE_REVIEW_PASS",
@@ -324,6 +324,10 @@
             "then": 6
           },
           {
+            "when": "IMPLEMENTATION_REVIEW_PASS",
+            "then": 6
+          },
+          {
             "when": "FINDINGS_REPORTED",
             "then": 3
           }
@@ -367,7 +371,8 @@
       {
         "index": 6,
         "actor": "planner",
-        "action": "Summarize review results, verify that unresolved Blockers are resolved or arbitrated and Major findings are resolved or waived (Minor and Other do not block), synthesize a sanitized review-resolution artifact, confirm REVIEW_PASS, and advance to the commit flow."
+        "action": "Planner classifies approved plan: if E2E is required (E2E_REQUIRED), freeze candidate revision and route to e2e flow; if E2E is not required (E2E_NOT_REQUIRED with documented rationale) or admitted E2E evidence is verified, synthesize sanitized review-resolution artifact, confirm REVIEW_PASS, and advance to the commit flow.",
+        "terminal": true
       },
       {
         "index": 7,
@@ -661,7 +666,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Identify end-to-end verification requirement and formulate structured e2e-brief artifact specifying candidate revision."
+        "action": "Formulate structured e2e-brief artifact specifying immutable candidate revision SHA, fresh unique run_id, mode, and package path, requiring IMPLEMENTATION_REVIEW_PASS before initial dispatch or after any remediation."
       },
       {
         "index": 2,
@@ -684,24 +689,133 @@
         "action": "Emit lightweight e2e-report message artifact to Planner.",
         "conditions": [
           {
-            "when": "E2E_PASS",
+            "when": "E2E_RESULT_PASS",
             "then": 6
           },
           {
-            "when": "E2E_FAIL",
+            "when": "E2E_PRODUCT_FAILURE",
             "then": 7
+          },
+          {
+            "when": "E2E_BUILD_FAILURE",
+            "then": 7
+          },
+          {
+            "when": "E2E_ENV_BLOCKED",
+            "then": 9
+          },
+          {
+            "when": "E2E_CLARIFICATION_REQUIRED",
+            "then": 9
+          },
+          {
+            "when": "E2E_TIMEOUT",
+            "then": 10
+          },
+          {
+            "when": "E2E_CANCELLED",
+            "then": 10
+          },
+          {
+            "when": "E2E_INVALID_EVIDENCE",
+            "then": 10
           }
         ]
       },
       {
         "index": 6,
         "actor": "planner",
-        "action": "Incorporate verified E2E evidence into Feature Composition Gate or Review Resolution."
+        "action": "Evaluate Verifier report against admission criteria (candidate SHA match, scenario coverage, allowed skips, artifact digest provenance, and token budget <150 tokens).",
+        "conditions": [
+          {
+            "when": "E2E_EVIDENCE_ADMITTED",
+            "then": 11
+          },
+          {
+            "when": "E2E_EVIDENCE_STALE",
+            "then": 1
+          },
+          {
+            "when": "E2E_INVALID_EVIDENCE",
+            "then": 10
+          }
+        ]
       },
       {
         "index": 7,
         "actor": "planner",
-        "action": "Arbitrate failure, sanitize defect trace, and dispatch remediation requirements to Builder."
+        "action": "Arbitrate product or build failure, sanitize defect trace into actionable remediation instructions for Builder (strictly withholding review-plan artifacts), and coordinate code or package fixes.",
+        "conditions": [
+          {
+            "when": "REMEDIATION_DISPATCHED",
+            "then": 8
+          }
+        ]
+      },
+      {
+        "index": 8,
+        "actor": "reviewer",
+        "action": "Independently inspect remediation diffs and updated test packages; emit IMPLEMENTATION_REVIEW_PASS only when all fixes and regression tests are verified.",
+        "conditions": [
+          {
+            "when": "IMPLEMENTATION_REVIEW_PASS",
+            "then": 1
+          },
+          {
+            "when": "FINDINGS_REPORTED",
+            "then": 7
+          }
+        ]
+      },
+      {
+        "index": 9,
+        "actor": "planner",
+        "action": "Resolve environment blockers or answer clarification requests, formulating amended execution parameters or routing package defects to remediation.",
+        "conditions": [
+          {
+            "when": "E2E_INPUTS_AMENDED",
+            "then": 1
+          },
+          {
+            "when": "CLARIFICATION_RESOLVED",
+            "then": 1
+          },
+          {
+            "when": "PACKAGE_DEFECT_ESCALATED",
+            "then": 7
+          }
+        ]
+      },
+      {
+        "index": 10,
+        "actor": "planner",
+        "action": "Investigate timeout, cancellation, or invalid evidence, arbitrating retry authorization on unchanged candidate, escalating package/code defects to remediation, or halting execution.",
+        "conditions": [
+          {
+            "when": "E2E_RETRY_AUTHORIZED",
+            "then": 1
+          },
+          {
+            "when": "PACKAGE_DEFECT_ESCALATED",
+            "then": 7
+          },
+          {
+            "when": "E2E_EXECUTION_HALTED",
+            "then": 12
+          }
+        ]
+      },
+      {
+        "index": 11,
+        "actor": "planner",
+        "action": "Incorporate verified and admitted E2E evidence into Feature Composition Gate or Review Resolution and advance to final review.",
+        "terminal": true
+      },
+      {
+        "index": 12,
+        "actor": "planner",
+        "action": "Terminate E2E verification without acceptance upon fatal error, unresolvable defect, or cancellation; record non-acceptance disposition and halt pipeline without dispatching further runs or admitting candidate to commit flow.",
+        "terminal": true
       }
     ]
   }
