@@ -434,10 +434,10 @@
     "id": "e2e-sandbox-isolation",
     "title": "End-to-End Sandbox Isolation & Working Tree Protection",
     "category": "protocol",
-    "summary": "Mandates that all end-to-end, multi-service, or heavy integration test suites run exclusively in an isolated out-of-tree clone or workspace to protect the primary working copy and live @ commit from state pollution.",
-    "details": "In modern version control systems such as Jujutsu (jj), the working directory is a live commit (@) that automatically amends uncommitted filesystem additions and side-effects into the candidate revision. Heavy integration and end-to-end test suites routinely produce temporary databases, sockets, caches, logs, and mock artifacts that corrupt clean implementation diffs. To preserve repository integrity and maintain finalization equivalence, all end-to-end, scenario-based, and multi-service test suites must execute exclusively within an isolated out-of-tree sandbox, detached clone, or separate temporary directory (e.g., mktemp -d /tmp/e2e-XXXXXX or dedicated test mirror). Executing state-generating E2E suites directly in the primary working copy is strictly prohibited. Physical cloning and harness provisioning mechanics are delegated to Tier 2 skills.",
+    "summary": "Mandates that all end-to-end, multi-service, or heavy integration test suites run exclusively in an isolated out-of-tree clone or workspace under the E2E scaffolding vault (~/.agentplaybook/e2e/<project>/runs/<run-id>) to protect the primary working copy and live @ commit from state pollution.",
+    "details": "In modern version control systems such as Jujutsu (jj), the working directory is a live commit (@) that automatically amends uncommitted filesystem additions and side-effects into the candidate revision. Heavy integration and end-to-end test suites routinely produce temporary databases, sockets, caches, logs, and mock artifacts that corrupt clean implementation diffs. To preserve repository integrity and maintain finalization equivalence, all end-to-end, scenario-based, and multi-service test suites must execute exclusively within an isolated out-of-tree sandbox, detached clone, or separate temporary directory in the out-of-tree E2E scaffolding vault (~/.agentplaybook/e2e/<project>/runs/<run-id> or dedicated test mirror). Executing state-generating E2E suites directly in the primary working copy is strictly prohibited. Physical cloning and harness provisioning mechanics are delegated to Tier 2 skills.",
     "guidelines": [
-      "All end-to-end, multi-service, and integration test executions must occur within an isolated out-of-tree sandbox or detached clone.",
+      "All end-to-end, multi-service, and integration test executions must occur within an isolated out-of-tree sandbox or detached clone under the E2E scaffolding vault (~/.agentplaybook/e2e/<project>/runs/<run-id>).",
       "Executing state-generating or artifact-producing E2E suites directly in the primary working tree is strictly prohibited to prevent auto-amending pollution into the live @ commit.",
       "The isolated sandbox must be pinned strictly to the candidate revision specified in the e2e-brief.",
       "Background services, containers, and mock servers must be contained within the sandbox lifecycle and terminated upon test completion.",
@@ -507,6 +507,20 @@
       "Implementation review emits IMPLEMENTATION_REVIEW_PASS; final REVIEW_PASS or FEATURE_REVIEW_PASS requires admitted E2E evidence or reviewed exemption.",
       "Required E2E execution gates on a frozen immutable candidate revision; stale or drifted candidate evidence is strictly inadmissible.",
       "Unresolved, failed, timed-out, or incomplete E2E verification strictly blocks final review acceptance and commit flow admission."
+    ]
+  },
+  {
+    "id": "scaffolding-vault-isolation",
+    "title": "Out-of-Tree Shadow Scaffolding Vault Isolation",
+    "category": "protocol",
+    "summary": "Mandates that planning artifacts and heavy E2E execution packages/runs reside strictly in an out-of-tree shadow scaffolding vault (~/.agentplaybook/{plan,e2e}/<project>), keeping the product working copy pure.",
+    "details": "Construction scaffolding (blueprints, build plans, review plans, private review findings, and resolutions) and heavy E2E test execution packages and run outputs represent distinct lifecycle concerns from product source code. To prevent accidental data loss during clean commands (e.g. git clean -fdx), eliminate live working-copy pollution (such as Jujutsu's live @ commit auto-amending ephemeral test databases and logs), and protect private review deliberations from leaking to upstream consumers, all planning and E2E execution artifacts must be persisted strictly within the resolved Out-of-Tree Shadow Scaffolding Vault (~/.agentplaybook/{plan,e2e}/<project>). The product working copy retains strictly product source code, in-tree unit tests, documentation, and living memory (AGENTS.md).",
+    "guidelines": [
+      "All planning documents (*.blueprint.md, *.plan.md, *.review.md, *.resolution.md) must be authored and persisted strictly in ~/.agentplaybook/plan/<project>/.",
+      "All heavy E2E test packages and run outputs (runs/<run-id>/) must reside strictly in ~/.agentplaybook/e2e/<project>/.",
+      "Storing ephemeral planning artifacts, review findings, or E2E run traces inside the product repository working tree is strictly prohibited.",
+      "The product repository contains strictly product source code, in-tree unit/integration tests, documentation, and AGENTS.md.",
+      "Vault binding and canonical repository identity must be validated before persisting scaffolding artifacts."
     ]
   }
 ]

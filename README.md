@@ -16,7 +16,7 @@ Instead of stuffing massive, static role prompts into every agent turn—wasting
   - `role`: Core and companion participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`, `scout`, `navigator`, `cartographer`, `verifier`).
   - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `blueprint`, `build`, `review`, `commit`, `session-handoff`, `cartography`, `e2e`, `navigator-cartography`).
   - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-report`, `e2e-test-spec`, `e2e-clarification-request`).
-  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`, `navigator-read-only-companion`, `companion-query-zero-side-effect`, `planner-source-restricted-response`, `target-state-gated-inquiry`, `cartographer-visual-architect-boundary`, `cartography-zero-context-pollution`, `cartography-taste-gate-advisory`, `cartography-asynchronous-decoupling`, `cartography-brief-self-sufficiency`, `cartography-clarification-inquiry`, `peer-session-transport-primacy`, `e2e-sandbox-isolation`, `e2e-zero-log-pollution`, `e2e-package-self-sufficiency`, `e2e-clarification-inquiry`, `e2e-immutable-evidence-binding`, `e2e-lifecycle-admission`).
+  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `mandatory-alignment`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`, `navigator-read-only-companion`, `companion-query-zero-side-effect`, `planner-source-restricted-response`, `target-state-gated-inquiry`, `cartographer-visual-architect-boundary`, `cartography-zero-context-pollution`, `cartography-taste-gate-advisory`, `cartography-asynchronous-decoupling`, `cartography-brief-self-sufficiency`, `cartography-clarification-inquiry`, `peer-session-transport-primacy`, `e2e-sandbox-isolation`, `e2e-zero-log-pollution`, `e2e-package-self-sufficiency`, `e2e-clarification-inquiry`, `e2e-immutable-evidence-binding`, `e2e-lifecycle-admission`, `scaffolding-vault-isolation`).
   - `config`: Supported languages, prefix templates, and transport settings.
 - **Progressive Disclosure UX**: Bare discovery commands output concise catalogs (Exit 0); specific queries return clean, indented JSON.
 - **Built for AI Agents**: Automatic self-caching runner script, compatible with [skills.sh](https://skills.sh) across 17+ agent harnesses.
@@ -378,7 +378,28 @@ agentplaybook init -f AGENTS.md -F
 
 # Scaffold to custom destination with automatic directory creation
 agentplaybook init --file docs/AGENTS.md
+
+# Initialize living memory and scaffold out-of-tree shadow scaffolding vault
+agentplaybook init --file AGENTS.md --vault
+
+# Explicitly adopt existing vault or rebind on relocation
+agentplaybook init --file AGENTS.md --vault --adopt
+agentplaybook init --file AGENTS.md --vault --rebind
 ```
+
+### Out-of-Tree Shadow Scaffolding Vault (`--vault`, `--adopt`, `--rebind`)
+
+AgentPlaybook v0.4.2 introduces the **Out-of-Tree Shadow Scaffolding Vault** (`scaffolding-vault-isolation`) to guarantee zero in-tree scaffolding pollution:
+- **Strong Convention**: Construction scaffolding files live outside target repositories at `~/.agentplaybook/{plan,e2e}/<project>`.
+  - Plans, design blueprints, and review resolutions reside under `~/.agentplaybook/plan/<project>/`.
+  - End-to-end sandbox execution runs and evidence logs reside under `~/.agentplaybook/e2e/<project>/runs/<run-id>/`.
+- **Zero In-Tree Scaffolding Residue**: Target repositories remain pristine and free of ephemeral construction debris. No `.agentplaybook/`, `plan/`, or `e2e/` scratch directories are created inside product repositories.
+- **Canonical Repository Identification**: Deterministic repository identification normalizes remotes (`host/owner/repo` from HTTPS, SSH, or git URLs with credentials and `.git` stripped) or falls back to `local:<abs_path>` when no remote exists.
+- **Provenance & Safe Migration**: Each vault maintains a `.vault-binding.json` descriptor tracking `repo_id`, `repo_root`, `last_attached_utc`, and `binding_version`. Cross-machine checkouts or relocations are safeguarded:
+  - If a different repository attempts to use an existing vault, initialization fails closed with `VAULT_COLLISION`.
+  - If the same repository root or ID is detected from a new location, `--adopt` (or `AGENTPLAYBOOK_VAULT_ADOPT=1`) securely adopts the vault.
+  - `--rebind` forces updating the recorded root binding when moving local checkouts.
+- **Atomic Operations & Permissions**: Vault directory creation (`0750`) and descriptor writes (`0640`) are atomic and all-or-nothing with automatic rollback on failure. When `--vault` is specified without `--file`, stdout remains clean for piping.
 
 ### Minimal Caveman Living Memory (`--minimal` / `-m`)
 The standard `AGENTS.md` template provides a comprehensive ~250-line handbook. For token-conscious pair programming, use `--minimal` (`-m`) to generate an ultra-dense telegraphic **Caveman** living memory template (≤50 lines, ≤2,500 bytes, >75% size reduction vs standard) that preserves 100% of critical governance invariants, peer-session primacy, and companion contracts.

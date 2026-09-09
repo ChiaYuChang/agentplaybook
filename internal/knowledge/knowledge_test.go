@@ -513,8 +513,8 @@ func TestLoad_Success(t *testing.T) {
 
 	// 5. Verify Rules
 	rules := k.Rules()
-	if len(rules) < 34 {
-		t.Fatalf("expected at least 34 rules, got %d", len(rules))
+	if len(rules) < 35 {
+		t.Fatalf("expected at least 35 rules, got %d", len(rules))
 	}
 	for _, expected := range []string{
 		"anti-cheating",
@@ -548,6 +548,7 @@ func TestLoad_Success(t *testing.T) {
 		"e2e-clarification-inquiry",
 		"e2e-immutable-evidence-binding",
 		"e2e-lifecycle-admission",
+		"scaffolding-vault-isolation",
 	} {
 		r, ok := k.Rule(expected)
 		if !ok {

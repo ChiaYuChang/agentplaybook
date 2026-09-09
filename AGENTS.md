@@ -74,8 +74,9 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-09-09T05:05:00Z @ working-copy`
-- **Dirty Status**: Implemented navigator-cartography flow and dual-commissioner protocol. Reviewer issued formal REVIEW_PASS. All verification checks 100% clean (198 tests passed, 0 races, 0 vet).
-- **Milestone**: `AgentPlaybook v0.4.1 Navigator Cartography Flow - REVIEW_PASS (RESOLVED_PASS)`.
-- **Next Pickup Item**: Seek operator commit authorization and seal working copy via jj.
+- **Observed-At**: `2026-09-10T10:53:03Z @ e17fc54a`
+- **Dirty Status**: Uncommitted. Implementation complete. `REVIEW_PASS` achieved (Round 4). Verified: 241 tests pass, vet clean, secret scan clean.
+- **Milestone**: `out-of-tree-scaffolding-vault` - `RESOLVED_PASS` (v0.4.2).
+- **Scaffolding Vault**: plan: `~/.agentplaybook/plan/<project>` | e2e: `~/.agentplaybook/e2e/<project>`.
+- **Next Pickup Item**: Step 7 commit authorization gate - await explicit user auth to seal via `jj describe` -> `jj new` (push requires separate auth).
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

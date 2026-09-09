@@ -159,6 +159,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "e2e-clarification-inquiry"},
 		{"rule", "explain", "e2e-immutable-evidence-binding"},
 		{"rule", "explain", "e2e-lifecycle-admission"},
+		{"rule", "explain", "scaffolding-vault-isolation"},
 	}
 
 	for _, cmd := range jsonCommands {
@@ -2173,7 +2174,7 @@ func TestCLI_V033_InitScaffoldAndPeerSessionPrimacy(t *testing.T) {
 		if step3.Index != 3 {
 			t.Errorf("expected step 3 index to be 3, got %d", step3.Index)
 		}
-		expectedAction := "Validate survey evidence or survey repository ground truth; upon explicit operator authorization, invoke the initialization scaffolding capability when living memory is absent (requiring explicit force authorization if replacing existing files) to scaffold baseline living memory, and draft comprehensive AGENTS.md."
+		expectedAction := "Validate survey evidence or survey repository ground truth; inquire and confirm out-of-tree shadow scaffolding vault binding; upon explicit operator authorization, invoke initialization scaffolding (with vault scaffolding when confirmed) when living memory is absent (requiring explicit force authorization if replacing existing files) to scaffold baseline living memory and record vault binding in comprehensive AGENTS.md."
 		if step3.Action != expectedAction {
 			t.Errorf("unexpected step 3 action:\nExpected: %s\nGot:      %s", expectedAction, step3.Action)
 		}
@@ -2898,8 +2899,8 @@ func TestCLI_SubPlan02_LifecycleAndAcceptanceIntegration(t *testing.T) {
 	// 5. Living memory templates version and budget check
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.0") && !strings.Contains(def, "v0.4.1") {
-			t.Errorf("expected default template to contain v0.4.0 or v0.4.1")
+		if !strings.Contains(def, "v0.4.0") && !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") {
+			t.Errorf("expected default template to contain v0.4.0, v0.4.1, or v0.4.2")
 		}
 		min := cli.MinimalLivingMemoryTemplate()
 		lines := strings.Split(strings.TrimSpace(min), "\n")
@@ -3080,8 +3081,8 @@ func TestCLI_NavigatorCartographyIntegration(t *testing.T) {
 	// 5. Living Memory Templates version, content, and budget
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.1") {
-			t.Errorf("expected default template to contain v0.4.1")
+		if !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") {
+			t.Errorf("expected default template to contain v0.4.1 or v0.4.2")
 		}
 		if !strings.Contains(def, "navigator-cartography") {
 			t.Errorf("expected default template to contain navigator-cartography")
@@ -3151,5 +3152,119 @@ func TestCLI_GoldenErrorMatrix(t *testing.T) {
 				t.Fatalf("expected command %q to fail with error, got nil", cmdName)
 			}
 		})
+	}
+}
+
+func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.1.0"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	// 1. Verify scaffolding-vault-isolation rule
+	var rules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "scaffolding-vault-isolation"), &rules); err != nil {
+		t.Fatalf("failed to decode scaffolding-vault-isolation rule: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(rules))
+	}
+	rule := rules[0]
+	if rule.ID != "scaffolding-vault-isolation" {
+		t.Errorf("expected ID scaffolding-vault-isolation, got %s", rule.ID)
+	}
+	if rule.Category != "protocol" {
+		t.Errorf("expected category protocol, got %s", rule.Category)
+	}
+	if !strings.Contains(rule.Summary, "~/.agentplaybook/{plan,e2e}/<project>") {
+		t.Errorf("expected summary to reference vault path, got %s", rule.Summary)
+	}
+
+	// 2. Verify e2e-sandbox-isolation update
+	var e2eRules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "e2e-sandbox-isolation"), &e2eRules); err != nil {
+		t.Fatalf("failed to decode e2e-sandbox-isolation rule: %v", err)
+	}
+	if len(e2eRules) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(e2eRules))
+	}
+	if !strings.Contains(e2eRules[0].Summary, "~/.agentplaybook/e2e/<project>/runs/<run-id>") {
+		t.Errorf("expected e2e-sandbox-isolation summary to reference E2E vault path, got %s", e2eRules[0].Summary)
+	}
+
+	// 3. Verify init flow step 3 inquiry/confirmation of vault
+	var initFlow knowledge.Flow
+	if err := json.Unmarshal(queryJSON("flow", "init"), &initFlow); err != nil {
+		t.Fatalf("failed to decode init flow: %v", err)
+	}
+	var step3 *knowledge.FlowStep
+	for i := range initFlow.Steps {
+		if initFlow.Steps[i].Index == 3 {
+			step3 = &initFlow.Steps[i]
+			break
+		}
+	}
+	if step3 == nil {
+		t.Fatal("step 3 missing in init flow")
+	}
+	if !strings.Contains(step3.Action, "out-of-tree shadow scaffolding vault") {
+		t.Errorf("expected init step 3 to reference vault binding, got %s", step3.Action)
+	}
+
+	// 4. Verify Living Memory Templates version, vault content, and budget
+	{
+		def := cli.DefaultLivingMemoryTemplate()
+		if !strings.Contains(def, "v0.4.2") {
+			t.Errorf("expected default template to contain v0.4.2")
+		}
+		if !strings.Contains(def, "~/.agentplaybook/plan/<project>") || !strings.Contains(def, "~/.agentplaybook/e2e/<project>") {
+			t.Errorf("expected default template to reference scaffolding vault paths")
+		}
+
+		min := cli.MinimalLivingMemoryTemplate()
+		if !strings.Contains(min, "~/.agentplaybook/plan/<project>") || !strings.Contains(min, "~/.agentplaybook/e2e/<project>") {
+			t.Errorf("expected minimal template to reference scaffolding vault paths")
+		}
+		lines := strings.Split(strings.TrimSpace(min), "\n")
+		if len(lines) > 50 {
+			t.Errorf("minimal template lines %d exceeds 50", len(lines))
+		}
+		if len([]byte(min)) > 2500 {
+			t.Errorf("minimal template bytes %d exceeds 2500", len([]byte(min)))
+		}
+		for i, b := range []byte(min) {
+			if b > 127 {
+				t.Fatalf("minimal template byte at %d is non-ASCII: %d", i, b)
+			}
+		}
+	}
+
+	// 5. Verify documentation synchronization across README.md and SKILL.md
+	{
+		for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+			content, err := os.ReadFile(docPath)
+			if err != nil {
+				t.Fatalf("failed to read doc file %q: %v", docPath, err)
+			}
+			docStr := string(content)
+			for _, required := range []string{
+				"scaffolding-vault-isolation",
+				"~/.agentplaybook/{plan,e2e}/<project>",
+				"--vault",
+				"--adopt",
+				"--rebind",
+				"Zero In-Tree Scaffolding Residue",
+			} {
+				if !strings.Contains(docStr, required) {
+					t.Errorf("expected doc file %q to contain v0.4.2 term %q", docPath, required)
+				}
+			}
+		}
 	}
 }

@@ -29,6 +29,9 @@ func NewInitCmd(k *knowledge.Knowledge) *cobra.Command {
 		filePath string
 		force    bool
 		minimal  bool
+		vault    bool
+		adopt    bool
+		rebind   bool
 	)
 
 	cmd := &cobra.Command{
@@ -41,7 +44,8 @@ command streams the standard AGENTS.md template to stdout by default (zero files
 When invoked with --file/-f, it acts as an explicit opt-in local scaffolding utility executed
 strictly upon operator invocation to generate baseline AGENTS.md, with zero background
 mutation, network downloads, or daemon processes. Use --minimal/-m for an ultra-compact
-telegraphic Caveman-style template optimized for minimal context budget.`,
+telegraphic Caveman-style template optimized for minimal context budget. Use --vault to scaffold
+the out-of-tree shadow scaffolding vault directories (~/.agentplaybook/{plan,e2e}/<project>).`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -49,7 +53,34 @@ telegraphic Caveman-style template optimized for minimal context budget.`,
 				return fmt.Errorf("--force requires --file")
 			}
 
-			// If no target file is specified, stream template directly to stdout (zero disk writes)
+			// If vault scaffolding, adoption, or rebind is requested, resolve and scaffold vault directories
+			if vault || adopt || rebind {
+				cwd, err := os.Getwd()
+				if err != nil {
+					return fmt.Errorf("failed to get working directory: %w", err)
+				}
+				opts := VaultResolveOptions{
+					Adopt:  adopt,
+					Rebind: rebind,
+				}
+				paths, err := ResolveVault(cwd, opts)
+				if err != nil {
+					return err
+				}
+				repoRoot, err := FindRepoRoot(cwd)
+				if err != nil {
+					repoRoot = cwd
+				}
+				repoID, err := CanonicalRepoID(repoRoot)
+				if err != nil {
+					return err
+				}
+				if err := EnsureVaultDirectories(paths, repoRoot, repoID, opts); err != nil {
+					return err
+				}
+			}
+
+			// If no target file is specified, stream template directly to stdout (zero disk writes when --vault is omitted)
 			if filePath == "" {
 				return WriteLivingMemoryTemplate(cmd.OutOrStdout(), minimal)
 			}
@@ -100,6 +131,9 @@ telegraphic Caveman-style template optimized for minimal context budget.`,
 	cmd.Flags().StringVarP(&filePath, "file", "f", "", "Target file path (if omitted, template is streamed to stdout)")
 	cmd.Flags().BoolVarP(&force, "force", "F", false, "Overwrite target file if it already exists (requires --file)")
 	cmd.Flags().BoolVarP(&minimal, "minimal", "m", false, "Use ultra-compact telegraphic Caveman-style living memory template")
+	cmd.Flags().BoolVar(&vault, "vault", false, "Scaffold out-of-tree shadow scaffolding vault directories")
+	cmd.Flags().BoolVar(&adopt, "adopt", false, "Adopt existing unbound vault directories")
+	cmd.Flags().BoolVar(&rebind, "rebind", false, "Rebind existing vault directories to relocated repository")
 
 	return cmd
 }

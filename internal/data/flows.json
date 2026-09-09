@@ -26,7 +26,7 @@
       {
         "index": 3,
         "actor": "planner",
-        "action": "Validate survey evidence or survey repository ground truth; upon explicit operator authorization, invoke the initialization scaffolding capability when living memory is absent (requiring explicit force authorization if replacing existing files) to scaffold baseline living memory, and draft comprehensive AGENTS.md."
+        "action": "Validate survey evidence or survey repository ground truth; inquire and confirm out-of-tree shadow scaffolding vault binding; upon explicit operator authorization, invoke initialization scaffolding (with vault scaffolding when confirmed) when living memory is absent (requiring explicit force authorization if replacing existing files) to scaffold baseline living memory and record vault binding in comprehensive AGENTS.md."
       },
       {
         "index": 4,
@@ -77,7 +77,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Assess feature scope and complexity to branch between Hierarchical Blueprint and Single Plan; author task build-plan (or blueprint-plan) with mandatory E2E Verification section and review-plan with mandatory E2E Coverage section, with verification paths for every material invariant and optional Track B definitions."
+        "action": "Assess feature scope and complexity to branch between Hierarchical Blueprint and Single Plan; author task build-plan (or blueprint-plan) and review-plan in the resolved plan vault (~/.agentplaybook/plan/<project>/) with mandatory E2E Verification section and review-plan with mandatory E2E Coverage section, with verification paths for every material invariant and optional Track B definitions."
       },
       {
         "index": 2,
@@ -113,7 +113,7 @@
       {
         "index": 5,
         "actor": "planner",
-        "action": "Finalize approved plan artifacts and route to build flow (for single plan) or blueprint flow (for hierarchical blueprint)."
+        "action": "Finalize approved plan artifacts in the plan vault and route to build flow (for single plan) or blueprint flow (for hierarchical blueprint)."
       }
     ]
   },
@@ -124,7 +124,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Author the blueprint-plan artifact (<slug>.blueprint.md) defining high-level goals, shared interface contracts, invariant boundaries, feature-level E2E scope and composition obligations, and ordered sub-plan sequence."
+        "action": "Author the blueprint-plan artifact (<slug>.blueprint.md) in the resolved plan vault (~/.agentplaybook/plan/<project>/) defining high-level goals, shared interface contracts, invariant boundaries, feature-level E2E scope and composition obligations, and ordered sub-plan sequence."
       },
       {
         "index": 2,
@@ -144,7 +144,7 @@
       {
         "index": 3,
         "actor": "planner",
-        "action": "Author JIT sub-plan pair: sub-build-plan (sub/<slug>.build.md) with mandatory E2E Verification section and sub-review-plan (sub/<slug>.review.md) with mandatory E2E Coverage section for the current sub-plan unit."
+        "action": "Author JIT sub-plan pair in the plan vault: sub-build-plan (sub/<slug>.build.md) with mandatory E2E Verification section and sub-review-plan (sub/<slug>.review.md) with mandatory E2E Coverage section for the current sub-plan unit."
       },
       {
         "index": 4,
@@ -203,7 +203,7 @@
       {
         "index": 8,
         "actor": "planner",
-        "action": "Synthesize sanitized sub-review-resolution artifact (sub/<slug>.resolution.md) recording resolved findings, waivers, deviations, and verified evidence."
+        "action": "Synthesize sanitized sub-review-resolution artifact (sub/<slug>.resolution.md) in the plan vault recording resolved findings, waivers, deviations, and verified evidence."
       },
       {
         "index": 9,
@@ -227,7 +227,7 @@
       {
         "index": 10,
         "actor": "planner",
-        "action": "Synthesize master composition review-resolution artifact (<slug>.resolution.md) summarizing global outcomes and cross-plan evidence."
+        "action": "Synthesize master composition review-resolution artifact (<slug>.resolution.md) in the plan vault summarizing global outcomes and cross-plan evidence."
       },
       {
         "index": 11,
@@ -262,7 +262,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Dispatch the approved build-plan artifact to Builder via blind handover, strictly withholding the review-plan artifact."
+        "action": "Dispatch the approved build-plan artifact from the plan vault to Builder via blind handover, strictly withholding the review-plan artifact."
       },
       {
         "index": 2,
@@ -308,7 +308,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Forward verified diff from build flow to Reviewer for code review, strictly withholding the review-plan artifact."
+        "action": "Forward verified diff from build flow to Reviewer for code review, strictly withholding the review-plan artifact in the plan vault."
       },
       {
         "index": 2,
@@ -371,7 +371,7 @@
       {
         "index": 6,
         "actor": "planner",
-        "action": "Planner classifies approved plan: if E2E is required (E2E_REQUIRED), freeze candidate revision and route to e2e flow; if E2E is not required (E2E_NOT_REQUIRED with documented rationale) or admitted E2E evidence is verified, synthesize sanitized review-resolution artifact, confirm REVIEW_PASS, and advance to the commit flow.",
+        "action": "Planner classifies approved plan: if E2E is required (E2E_REQUIRED), freeze candidate revision and route to e2e flow; if E2E is not required (E2E_NOT_REQUIRED with documented rationale) or admitted E2E evidence is verified, synthesize sanitized review-resolution artifact in the plan vault, confirm REVIEW_PASS, and advance to the commit flow.",
         "terminal": true
       },
       {
@@ -732,12 +732,12 @@
       {
         "index": 3,
         "actor": "verifier",
-        "action": "Provision isolated out-of-tree sandbox or detached clone pinned strictly to candidate revision and initialize dependencies."
+        "action": "Provision isolated out-of-tree sandbox or detached clone in the E2E vault (~/.agentplaybook/e2e/<project>/runs/<run-id>) pinned strictly to candidate revision and initialize dependencies."
       },
       {
         "index": 4,
         "actor": "verifier",
-        "action": "Execute test scenarios, redirecting and quarantining verbose stdout/stderr and trace logs to persistent sandbox disk storage."
+        "action": "Execute test scenarios, redirecting and quarantining verbose stdout/stderr and trace logs to persistent E2E vault sandbox disk storage."
       },
       {
         "index": 5,

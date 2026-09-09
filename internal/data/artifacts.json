@@ -45,7 +45,7 @@
   {
     "name": "build-plan",
     "title": "Build Plan",
-    "description": "Task-specific implementation plan provided to Builder upon passing the planning gate.",
+    "description": "Task-specific implementation plan authored and persisted in the out-of-tree plan vault (~/.agentplaybook/plan/<project>/) and provided to Builder upon passing the planning gate.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -99,7 +99,7 @@
   {
     "name": "review-plan",
     "title": "Review Plan",
-    "description": "Reviewer-only verification plan used for independent validation during code review.",
+    "description": "Reviewer-only verification plan persisted in the out-of-tree plan vault (~/.agentplaybook/plan/<project>/) and used for independent validation during code review.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -147,7 +147,7 @@
   {
     "name": "blueprint-plan",
     "title": "Blueprint Plan",
-    "description": "Hierarchical architecture plan defining public goals, shared interface contracts, invariant boundaries, and ordered sub-plan sequence for multi-stage features.",
+    "description": "Hierarchical architecture plan persisted in the out-of-tree plan vault (~/.agentplaybook/plan/<project>/) defining public goals, shared interface contracts, invariant boundaries, and ordered sub-plan sequence for multi-stage features.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -186,7 +186,7 @@
   {
     "name": "sub-build-plan",
     "title": "Sub-Build Plan",
-    "description": "Task-specific implementation plan for an individual sub-plan unit dispatched to Builder upon passing the Sub-Plan Gate.",
+    "description": "Task-specific implementation plan for an individual sub-plan unit persisted in the out-of-tree plan vault (~/.agentplaybook/plan/<project>/sub/) and dispatched to Builder upon passing the Sub-Plan Gate.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -240,7 +240,7 @@
   {
     "name": "sub-review-plan",
     "title": "Sub-Review Plan",
-    "description": "Reviewer-only verification plan used for independent validation during sub-plan code review.",
+    "description": "Reviewer-only verification plan persisted in the out-of-tree plan vault (~/.agentplaybook/plan/<project>/sub/) and used for independent validation during sub-plan code review.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -288,7 +288,7 @@
   {
     "name": "sub-review-resolution",
     "title": "Sub-Review Resolution",
-    "description": "Planner-owned post-review synthesis for an individual sub-plan capturing review outcomes, resolved findings, deviations, residual risks, and verification evidence. Visible to Planner, Builder, Reviewer, and Navigator only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
+    "description": "Planner-owned post-review synthesis for an individual sub-plan persisted in the out-of-tree plan vault (~/.agentplaybook/plan/<project>/sub/) capturing review outcomes, resolved findings, deviations, residual risks, and verification evidence. Visible to Planner, Builder, Reviewer, and Navigator only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -335,7 +335,7 @@
   {
     "name": "review-findings",
     "title": "Review Findings",
-    "description": "Structured findings reported by Reviewer to Planner upon identifying review issues.",
+    "description": "Structured findings reported by Reviewer to Planner upon identifying review issues; quarantined within private review communication and out-of-tree plan vault (~/.agentplaybook/plan/<project>/).",
     "owner": "reviewer",
     "visibility": [
       "planner",
@@ -388,7 +388,7 @@
   {
     "name": "review-resolution",
     "title": "Review Resolution",
-    "description": "Planner-owned post-review synthesis capturing master composition review outcomes, resolved findings, deviations, residual risks, and verification evidence across all completed sub-plans. Visible to Planner, Builder, Reviewer, and Navigator only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
+    "description": "Planner-owned post-review synthesis persisted in the out-of-tree plan vault (~/.agentplaybook/plan/<project>/) capturing master composition review outcomes, resolved findings, deviations, residual risks, and verification evidence across all completed sub-plans. Visible to Planner, Builder, Reviewer, and Navigator only after Planner sanitization; shared resolution content strictly excludes review-plan criteria, hidden test fixtures, and private inspection methods.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -585,7 +585,7 @@
   {
     "name": "e2e-brief",
     "title": "E2E Verification Brief",
-    "description": "Structured specification message dispatched by Planner to Verifier defining candidate revision, test package, execution mode, and timeout.",
+    "description": "Structured specification message dispatched by Planner to Verifier defining candidate revision, execution package under the out-of-tree E2E vault (~/.agentplaybook/e2e/<project>/), execution mode, and timeout.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -628,7 +628,7 @@
   {
     "name": "e2e-report",
     "title": "E2E Verification Report",
-    "description": "Lightweight verification summary emitted by Verifier containing execution status, scenario metrics, sandbox URI, and sanitized failure digest; strictly prohibits raw test log dumps.",
+    "description": "Lightweight verification summary emitted by Verifier containing execution status, scenario metrics, persistent E2E vault sandbox URI (~/.agentplaybook/e2e/<project>/runs/<run-id>), and sanitized failure digest; strictly prohibits raw test log dumps.",
     "owner": "verifier",
     "visibility": [
       "planner",
@@ -712,7 +712,7 @@
   {
     "name": "e2e-test-spec",
     "title": "E2E Test Specification",
-    "description": "Public execution specification and contract defining scenario matrix, environments, Given/When/Then criteria, and cleanup obligations for an E2E package.",
+    "description": "Public execution specification and contract persisted in the out-of-tree E2E vault (~/.agentplaybook/e2e/<project>/packages/<test-name>/spec.md) defining scenario matrix, environments, Given/When/Then criteria, and cleanup obligations for an E2E package.",
     "owner": "builder",
     "visibility": [
       "planner",

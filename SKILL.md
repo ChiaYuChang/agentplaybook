@@ -169,7 +169,28 @@ sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file AGENTS.md --force
 
 # Scaffold to custom destination with automatic directory creation
 sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file path/to/AGENTS.md
+
+# Initialize living memory and scaffold out-of-tree shadow scaffolding vault
+sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file AGENTS.md --vault
+
+# Explicitly adopt existing vault or rebind on relocation
+sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file AGENTS.md --vault --adopt
+sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file AGENTS.md --vault --rebind
 ```
+
+### Out-of-Tree Shadow Scaffolding Vault Governance (`scaffolding-vault-isolation`)
+
+AgentPlaybook v0.4.2 establishes the **Out-of-Tree Shadow Scaffolding Vault** (`scaffolding-vault-isolation`) ensuring physical separation between product repositories and ephemeral construction scaffolding:
+- **Strong Convention**: Scaffolding files live outside target repositories under `~/.agentplaybook/{plan,e2e}/<project>`.
+  - Planning and review artifacts reside under `~/.agentplaybook/plan/<project>/`.
+  - End-to-end sandbox execution runs and evidence logs reside under `~/.agentplaybook/e2e/<project>/runs/<run-id>/`.
+- **Zero In-Tree Scaffolding Residue**: Target repositories remain pristine and free of ephemeral construction debris. No `.agentplaybook/`, `plan/`, or `e2e/` scratch directories are created inside product repositories.
+- **Canonical Repository Identification**: Deterministic repository identification normalizes remotes (`host/owner/repo` from HTTPS, SSH, or git URLs with credentials and `.git` stripped) or falls back to `local:<abs_path>` when no remote exists.
+- **Provenance & Safe Migration**: Each vault maintains a `.vault-binding.json` descriptor tracking `repo_id`, `repo_root`, `last_attached_utc`, and `binding_version`. Cross-machine checkouts or relocations are safeguarded:
+  - If a different repository attempts to use an existing vault, initialization fails closed with `VAULT_COLLISION`.
+  - If the same repository root or ID is detected from a new location, `--adopt` (or `AGENTPLAYBOOK_VAULT_ADOPT=1`) securely adopts the vault.
+  - `--rebind` forces updating the recorded root binding when moving local checkouts.
+- **Atomic Operations & Permissions**: Vault directory creation (`0750`) and descriptor writes (`0640`) are atomic and all-or-nothing with automatic rollback on failure. When `--vault` is specified without `--file`, stdout remains clean for piping.
 
 ### Minimal Caveman Living Memory (`--minimal` / `-m`)
 Use `--minimal` (`-m`) for an ultra-dense telegraphic **Caveman** living memory template (≤50 lines, ≤2,500 bytes, >75% size reduction vs standard) that preserves 100% of critical governance invariants, peer-session primacy, and companion contracts.

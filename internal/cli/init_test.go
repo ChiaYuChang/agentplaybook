@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -451,6 +452,7 @@ func TestCLI_Init_Minimal_Invariants(t *testing.T) {
 		"IMPLEMENTATION_REVIEW_PASS",
 		"plus diagram messages",
 		"Navigator to Cartographer for diagrams",
+		"Vault: plan: ~/.agentplaybook/plan/<project>",
 	}
 
 	for _, s := range requiredStrings {
@@ -474,7 +476,7 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 
 	// 2. Verify mandatory structural strings
 	requiredStrings := []string{
-		"AgentPlaybook v0.4.1 Living Memory Blueprint",
+		"AgentPlaybook v0.4.2 Living Memory Blueprint",
 		"Peer-Session Primacy over Subagents",
 		"invoke_subagent",
 		"Blind Barrier",
@@ -497,6 +499,8 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 		"verifier",
 		"plus authorized diagram message artifacts",
 		"Navigator-Cartographer communication permitted exclusively for `navigator-cartography` flow",
+		"Scaffolding Vault",
+		"~/.agentplaybook/plan/<project>",
 	}
 
 	for _, s := range requiredStrings {
@@ -514,5 +518,156 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 	expectedHeader := "AgentPlaybook " + currentVer + " Living Memory Blueprint"
 	if !strings.Contains(template, expectedHeader) {
 		t.Errorf("template does not contain synchronized release header %q", expectedHeader)
+	}
+}
+
+func TestCLI_Init_ZeroWriteStdout(t *testing.T) {
+	tempHome := t.TempDir()
+	vaultRoot := filepath.Join(tempHome, ".agentplaybook")
+	t.Setenv("HOME", tempHome)
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	t.Chdir(t.TempDir())
+
+	// 1. Standard init without --file: 0 writes, vault non-existent
+	var stdout, stderr bytes.Buffer
+	err := cli.Execute([]string{"init"}, &stdout, &stderr, "dev")
+	if err != nil {
+		t.Fatalf("init stdout failed: %v", err)
+	}
+	if stdout.String() != cli.DefaultLivingMemoryTemplate() {
+		t.Errorf("expected stdout to match DefaultLivingMemoryTemplate exactly")
+	}
+	if _, err := os.Stat("AGENTS.md"); !os.IsNotExist(err) {
+		t.Errorf("expected AGENTS.md not to exist on disk")
+	}
+	if _, err := os.Stat(vaultRoot); !os.IsNotExist(err) {
+		t.Errorf("expected vault root %s not to exist on disk in zero-write mode", vaultRoot)
+	}
+
+	// 2. Minimal init without --file: 0 writes, vault non-existent
+	stdout.Reset()
+	stderr.Reset()
+	err = cli.Execute([]string{"init", "--minimal"}, &stdout, &stderr, "dev")
+	if err != nil {
+		t.Fatalf("init --minimal stdout failed: %v", err)
+	}
+	if stdout.String() != cli.MinimalLivingMemoryTemplate() {
+		t.Errorf("expected stdout to match MinimalLivingMemoryTemplate exactly")
+	}
+	if _, err := os.Stat(vaultRoot); !os.IsNotExist(err) {
+		t.Errorf("expected vault root %s not to exist on disk in minimal zero-write mode", vaultRoot)
+	}
+}
+
+func TestCLI_Init_TargetOnly(t *testing.T) {
+	tempHome := t.TempDir()
+	vaultRoot := filepath.Join(tempHome, ".agentplaybook")
+	t.Setenv("HOME", tempHome)
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	workDir := t.TempDir()
+	t.Chdir(workDir)
+
+	var stdout, stderr bytes.Buffer
+	err := cli.Execute([]string{"init", "--file", "AGENTS.md"}, &stdout, &stderr, "dev")
+	if err != nil {
+		t.Fatalf("init --file failed: %v", err)
+	}
+
+	// AGENTS.md created
+	if _, err := os.Stat(filepath.Join(workDir, "AGENTS.md")); err != nil {
+		t.Fatalf("expected AGENTS.md to be created: %v", err)
+	}
+
+	// Vault remains non-existent
+	if _, err := os.Stat(vaultRoot); !os.IsNotExist(err) {
+		t.Errorf("expected vault root %s not to exist when --vault is omitted", vaultRoot)
+	}
+}
+
+func TestCLI_Init_ExplicitVault(t *testing.T) {
+	tempHome := t.TempDir()
+	vaultRoot := filepath.Join(tempHome, ".agentplaybook")
+	t.Setenv("HOME", tempHome)
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	workDir := t.TempDir()
+	t.Chdir(workDir)
+	projectName := filepath.Base(workDir)
+
+	var stdout, stderr bytes.Buffer
+	// Omit --file so stdout template is streamed, but include --vault
+	err := cli.Execute([]string{"init", "--vault"}, &stdout, &stderr, "dev")
+	if err != nil {
+		t.Fatalf("init --vault failed: %v\nStderr: %s", err, stderr.String())
+	}
+
+	// Pure stdout stream: matches template byte-for-byte
+	if stdout.String() != cli.DefaultLivingMemoryTemplate() {
+		t.Errorf("expected stdout to remain pure template stream when --vault is used without --file")
+	}
+
+	// Vault plan and e2e directories created
+	planDir := filepath.Join(vaultRoot, "plan", projectName)
+	e2eDir := filepath.Join(vaultRoot, "e2e", projectName)
+
+	if fi, err := os.Stat(planDir); err != nil || fi.Mode().Perm() != 0750 {
+		t.Errorf("expected plan dir %s with mode 0750, err=%v", planDir, err)
+	}
+	if fi, err := os.Stat(e2eDir); err != nil || fi.Mode().Perm() != 0750 {
+		t.Errorf("expected e2e dir %s with mode 0750, err=%v", e2eDir, err)
+	}
+
+	// Verify .vault-binding.json exists in both
+	if _, err := os.Stat(filepath.Join(planDir, ".vault-binding.json")); err != nil {
+		t.Errorf("plan .vault-binding.json missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(e2eDir, ".vault-binding.json")); err != nil {
+		t.Errorf("e2e .vault-binding.json missing: %v", err)
+	}
+}
+
+func TestCLI_Init_ExplicitRebind(t *testing.T) {
+	vaultRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+
+	oldRepo := t.TempDir()
+	newRepo := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "rebind-cli-test")
+
+	// 1. Initialize vault for old repo
+	t.Chdir(oldRepo)
+	var stdout, stderr bytes.Buffer
+	if err := cli.Execute([]string{"init", "--vault"}, &stdout, &stderr, "dev"); err != nil {
+		t.Fatalf("initial init --vault failed: %v", err)
+	}
+
+	// 2. In new repo without --rebind: fails with collision
+	t.Chdir(newRepo)
+	stdout.Reset()
+	stderr.Reset()
+	err := cli.Execute([]string{"init", "--vault"}, &stdout, &stderr, "dev")
+	if err == nil {
+		t.Fatal("expected collision error without --rebind, got nil")
+	}
+
+	// 3. In new repo with --rebind: succeeds
+	stdout.Reset()
+	stderr.Reset()
+	err = cli.Execute([]string{"init", "--vault", "--rebind"}, &stdout, &stderr, "dev")
+	if err != nil {
+		t.Fatalf("init --vault --rebind failed: %v\nStderr: %s", err, stderr.String())
+	}
+
+	// Verify descriptor in planDir has newRepo root
+	planDescPath := filepath.Join(vaultRoot, "plan", "rebind-cli-test", ".vault-binding.json")
+	data, err := os.ReadFile(planDescPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var desc cli.VaultBindingDescriptor
+	if err := json.Unmarshal(data, &desc); err != nil {
+		t.Fatal(err)
+	}
+	if desc.RepositoryRoot != newRepo {
+		t.Errorf("rebound RepositoryRoot = %q; want %q", desc.RepositoryRoot, newRepo)
 	}
 }

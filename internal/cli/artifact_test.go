@@ -48,7 +48,7 @@ func TestArtifact_BareDiscovery(t *testing.T) {
 		{"review-plan", "planner", "document", "Reviewer-only verification plan"},
 		{"blueprint-plan", "planner", "document", "Hierarchical architecture plan"},
 		{"sub-build-plan", "planner", "document", "Task-specific implementation plan for an individual sub-plan unit"},
-		{"sub-review-plan", "planner", "document", "Reviewer-only verification plan used for independent validation during sub-plan"},
+		{"sub-review-plan", "planner", "document", "Reviewer-only verification plan"},
 		{"sub-review-resolution", "planner", "document", "Planner-owned post-review synthesis for an individual sub-plan"},
 		{"review-findings", "reviewer", "message", "Structured findings reported by Reviewer"},
 		{"review-resolution", "planner", "document", "Planner-owned post-review synthesis"},
