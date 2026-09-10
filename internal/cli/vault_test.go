@@ -378,22 +378,42 @@ func TestResolveVault_ProjectSlugValidation(t *testing.T) {
 	}
 }
 
+func TestResolveVault_ProjectFirstLayout(t *testing.T) {
+	vaultRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "prism")
+
+	projectDir := t.TempDir()
+	paths, err := cli.ResolveVault(projectDir, cli.VaultResolveOptions{})
+	if err != nil {
+		t.Fatalf("ResolveVault failed: %v", err)
+	}
+	if paths.ProjectDir != filepath.Join(vaultRoot, "prism") {
+		t.Errorf("ProjectDir = %q; want %q", paths.ProjectDir, filepath.Join(vaultRoot, "prism"))
+	}
+	if paths.PlanDir != filepath.Join(vaultRoot, "prism", "plan") {
+		t.Errorf("PlanDir = %q; want Join(vaultRoot, name, plan)", paths.PlanDir)
+	}
+	if paths.E2EDir != filepath.Join(vaultRoot, "prism", "e2e") {
+		t.Errorf("E2EDir = %q; want Join(vaultRoot, name, e2e)", paths.E2EDir)
+	}
+}
+
 func TestEnsureVaultDirectories_AtomicRollback(t *testing.T) {
 	vaultRoot := t.TempDir()
 	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
 
+	// Block project directory creation with a regular file: root write must fail.
+	projectDir := filepath.Join(vaultRoot, "atomic-test")
+	if err := os.WriteFile(projectDir, []byte("blocker"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	paths := &cli.VaultPaths{
 		VaultRoot:   vaultRoot,
 		ProjectName: "atomic-test",
-		PlanDir:     filepath.Join(vaultRoot, "plan", "atomic-test"),
-		// Force E2EDir to fail by creating a regular file at its parent location
-		E2EDir: filepath.Join(vaultRoot, "e2e-blocked-file", "atomic-test"),
-	}
-
-	// Create a regular file where directory is supposed to be
-	blockedParent := filepath.Join(vaultRoot, "e2e-blocked-file")
-	if err := os.WriteFile(blockedParent, []byte("blocker"), 0644); err != nil {
-		t.Fatal(err)
+		ProjectDir:  projectDir,
+		PlanDir:     filepath.Join(projectDir, "plan"),
+		E2EDir:      filepath.Join(projectDir, "e2e"),
 	}
 
 	err := cli.EnsureVaultDirectories(paths, "local:/test/repo", "local:/test/repo", cli.VaultResolveOptions{})
@@ -401,9 +421,13 @@ func TestEnsureVaultDirectories_AtomicRollback(t *testing.T) {
 		t.Fatal("expected EnsureVaultDirectories to fail, got nil")
 	}
 
-	// Verify PlanDir was rolled back and does not exist on disk
-	if _, err := os.Stat(paths.PlanDir); !os.IsNotExist(err) {
+	// Verify no vault directories were created (any stat error means absent).
+	if _, err := os.Stat(paths.PlanDir); err == nil {
 		t.Errorf("expected PlanDir %s to be rolled back, but it exists", paths.PlanDir)
+	}
+	// ProjectDir path remains the blocker file, not a directory.
+	if fi, err := os.Stat(projectDir); err != nil || fi.IsDir() {
+		t.Errorf("expected ProjectDir blocker file to remain, stat err=%v", err)
 	}
 }
 
@@ -441,11 +465,20 @@ func TestEnsureVaultDirectories_PermissionsAndBinding(t *testing.T) {
 		t.Errorf("E2EDir mode = %o; want 0750", e2eInfo.Mode().Perm())
 	}
 
-	// Verify descriptor in plan directory
-	planDescPath := filepath.Join(paths.PlanDir, ".vault-binding.json")
-	data, err := os.ReadFile(planDescPath)
+	// Verify project directory mode 0750
+	projInfo, err := os.Stat(paths.ProjectDir)
 	if err != nil {
-		t.Fatalf("failed to read plan descriptor: %v", err)
+		t.Fatalf("failed to stat ProjectDir: %v", err)
+	}
+	if projInfo.Mode().Perm() != 0750 {
+		t.Errorf("ProjectDir mode = %o; want 0750", projInfo.Mode().Perm())
+	}
+
+	// Verify single root descriptor; no child descriptors.
+	rootDescPath := filepath.Join(paths.ProjectDir, ".vault-binding.json")
+	data, err := os.ReadFile(rootDescPath)
+	if err != nil {
+		t.Fatalf("failed to read root descriptor: %v", err)
 	}
 	var desc cli.VaultBindingDescriptor
 	if err := json.Unmarshal(data, &desc); err != nil {
@@ -456,6 +489,12 @@ func TestEnsureVaultDirectories_PermissionsAndBinding(t *testing.T) {
 	}
 	if desc.RepositoryRoot != repoRoot {
 		t.Errorf("descriptor.RepositoryRoot = %q; want %q", desc.RepositoryRoot, repoRoot)
+	}
+	if _, err := os.Stat(filepath.Join(paths.PlanDir, ".vault-binding.json")); !os.IsNotExist(err) {
+		t.Errorf("expected no child descriptor under plan dir")
+	}
+	if _, err := os.Stat(filepath.Join(paths.E2EDir, ".vault-binding.json")); !os.IsNotExist(err) {
+		t.Errorf("expected no child descriptor under e2e dir")
 	}
 
 	// Verify idempotency: running again succeeds without error
@@ -470,11 +509,11 @@ func TestResolveVault_UnboundAndAdopt(t *testing.T) {
 	projectDir := t.TempDir()
 	projectName := filepath.Base(projectDir)
 
-	planDir := filepath.Join(vaultRoot, "plan", projectName)
-	if err := os.MkdirAll(planDir, 0750); err != nil {
+	projVaultDir := filepath.Join(vaultRoot, projectName)
+	if err := os.MkdirAll(projVaultDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	// PlanDir exists without .vault-binding.json
+	// ProjectDir exists without .vault-binding.json
 
 	// 1. Without adopt: fails closed with ErrVaultUnbound
 	_, err := cli.ResolveVault(projectDir, cli.VaultResolveOptions{Adopt: false})
@@ -543,8 +582,8 @@ func TestResolveVault_Relocation(t *testing.T) {
 		t.Fatal("expected non-nil paths")
 	}
 
-	// Verify descriptor was updated to newRepoRoot
-	descData, err := os.ReadFile(filepath.Join(pathsNew.PlanDir, ".vault-binding.json"))
+	// Verify single root descriptor was updated to newRepoRoot
+	descData, err := os.ReadFile(filepath.Join(pathsNew.ProjectDir, ".vault-binding.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -598,7 +637,7 @@ func TestResolveVault_CollisionAndRebind(t *testing.T) {
 	}
 
 	newID := "local:" + newLocalRepo
-	descData, err := os.ReadFile(filepath.Join(pathsRebound.PlanDir, ".vault-binding.json"))
+	descData, err := os.ReadFile(filepath.Join(pathsRebound.ProjectDir, ".vault-binding.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -614,120 +653,520 @@ func TestResolveVault_CollisionAndRebind(t *testing.T) {
 	}
 }
 
-func TestUpdateVaultDescriptors_PairedRollback(t *testing.T) {
+func TestUpdateVaultDescriptors_SingleRollback(t *testing.T) {
 	vaultRoot := t.TempDir()
 	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
 
+	projectDir := filepath.Join(vaultRoot, "rollback-test")
 	paths := &cli.VaultPaths{
 		VaultRoot:   vaultRoot,
 		ProjectName: "rollback-test",
-		PlanDir:     filepath.Join(vaultRoot, "plan", "rollback-test"),
-		E2EDir:      filepath.Join(vaultRoot, "e2e", "rollback-test"),
+		ProjectDir:  projectDir,
+		PlanDir:     filepath.Join(projectDir, "plan"),
+		E2EDir:      filepath.Join(projectDir, "e2e"),
 	}
 
 	if err := cli.EnsureVaultDirectories(paths, "/initial/repo", "local:/initial/repo", cli.VaultResolveOptions{}); err != nil {
 		t.Fatal(err)
 	}
 
-	planDescPath := filepath.Join(paths.PlanDir, ".vault-binding.json")
-	initialPlanBytes, err := os.ReadFile(planDescPath)
+	rootDescPath := filepath.Join(projectDir, ".vault-binding.json")
+	initialRootBytes, err := os.ReadFile(rootDescPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Replace E2E descriptor with a directory: causes a non-NotExist read error.
-	// With the new fail-closed pre-read, UpdateVaultDescriptors returns before any mutation.
-	e2eDescPath := filepath.Join(paths.E2EDir, ".vault-binding.json")
-	_ = os.Remove(e2eDescPath)
-	if err := os.MkdirAll(e2eDescPath, 0755); err != nil {
+	// Successful update changes root binding.
+	if err := cli.UpdateVaultDescriptors(paths, "/updated/repo", "local:/updated/repo"); err != nil {
+		t.Fatalf("UpdateVaultDescriptors failed: %v", err)
+	}
+	updatedBytes, err := os.ReadFile(rootDescPath)
+	if err != nil {
 		t.Fatal(err)
 	}
+	if string(updatedBytes) == string(initialRootBytes) {
+		t.Errorf("expected root descriptor to change after update")
+	}
 
-	err = cli.UpdateVaultDescriptors(paths, "/updated/repo", "local:/updated/repo")
+	// Replace root descriptor with a directory: fail-closed pre-read, zero mutation.
+	_ = os.Remove(rootDescPath)
+	if err := os.MkdirAll(rootDescPath, 0755); err != nil {
+		t.Fatal(err)
+	}
+	err = cli.UpdateVaultDescriptors(paths, "/blocked/repo", "local:/blocked/repo")
 	if err == nil {
 		t.Fatal("expected UpdateVaultDescriptors to fail, got nil")
 	}
-
-	// Assert Plan descriptor was NOT mutated (fail-early: no writes occurred)
-	currentPlanBytes, err := os.ReadFile(planDescPath)
+	info, err := os.Stat(rootDescPath)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("root blocker entry was removed after fail-early: %v", err)
 	}
-	if string(currentPlanBytes) != string(initialPlanBytes) {
-		t.Errorf("PlanDir descriptor was mutated despite fail-early!\ngot:\n%s\nwant:\n%s", string(currentPlanBytes), string(initialPlanBytes))
-	}
-
-	// Assert E2E blocker entry (directory) is still intact — zero mutation occurred
-	e2eInfo, err := os.Stat(e2eDescPath)
-	if err != nil {
-		t.Fatalf("E2E blocker entry was removed or inaccessible after fail-early: %v", err)
-	}
-	if !e2eInfo.IsDir() {
-		t.Errorf("E2E blocker entry is no longer a directory; unexpected mutation occurred")
+	if !info.IsDir() {
+		t.Errorf("root blocker entry is no longer a directory; unexpected mutation occurred")
 	}
 }
 
-func TestEnsureVaultDirectories_RollbackPreservesExistingPlanDescriptor(t *testing.T) {
+func TestEnsureVaultDirectories_RollbackPreservesRootDescriptor(t *testing.T) {
 	vaultRoot := t.TempDir()
 	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
 
+	projectDir := filepath.Join(vaultRoot, "preserve-test")
 	paths := &cli.VaultPaths{
 		VaultRoot:   vaultRoot,
 		ProjectName: "preserve-test",
-		PlanDir:     filepath.Join(vaultRoot, "plan", "preserve-test"),
-		E2EDir:      filepath.Join(vaultRoot, "e2e", "preserve-test"),
+		ProjectDir:  projectDir,
+		PlanDir:     filepath.Join(projectDir, "plan"),
+		E2EDir:      filepath.Join(projectDir, "e2e"),
 	}
 
-	// 1. Initial setup: successfully bind PlanDir and E2EDir with original descriptor
 	initialRepo := "/original/repo"
 	initialID := "local:" + initialRepo
 	if err := cli.EnsureVaultDirectories(paths, initialRepo, initialID, cli.VaultResolveOptions{}); err != nil {
 		t.Fatalf("initial EnsureVaultDirectories failed: %v", err)
 	}
 
-	planDescPath := filepath.Join(paths.PlanDir, ".vault-binding.json")
-	originalPlanBytes, err := os.ReadFile(planDescPath)
+	rootDescPath := filepath.Join(projectDir, ".vault-binding.json")
+	originalRootBytes, err := os.ReadFile(rootDescPath)
 	if err != nil {
-		t.Fatalf("failed to read original plan descriptor: %v\n", err)
+		t.Fatalf("failed to read original root descriptor: %v\n", err)
 	}
 
-	// 2. Induce failure on reading the E2E descriptor:
-	// Replace E2E descriptor file with a directory so os.ReadFile fails (not-exist → is-dir error).
-	// This triggers the new fail-closed pre-read path, ensuring no mutation occurs.
-	e2eDescPath := filepath.Join(paths.E2EDir, ".vault-binding.json")
-	_ = os.Remove(e2eDescPath)
-	if err := os.MkdirAll(e2eDescPath, 0755); err != nil {
-		t.Fatalf("failed to create blocker directory at e2eDescPath: %v", err)
+	// Block root descriptor with a directory: pre-read fails closed.
+	_ = os.Remove(rootDescPath)
+	if err := os.MkdirAll(rootDescPath, 0755); err != nil {
+		t.Fatalf("failed to create blocker directory: %v", err)
 	}
 
-	// 3. Attempt EnsureVaultDirectories with new repo values; must fail because E2E descriptor
-	// cannot be safely read for backup (directory at descriptor path → non-NotExist error).
-	newRepo := "/attempted/repo"
-	newID := "local:" + newRepo
-	err = cli.EnsureVaultDirectories(paths, newRepo, newID, cli.VaultResolveOptions{})
+	err = cli.EnsureVaultDirectories(paths, "/attempted/repo", "local:/attempted/repo", cli.VaultResolveOptions{})
 	if err == nil {
-		t.Fatal("expected EnsureVaultDirectories to fail when E2E descriptor is blocked, got nil")
+		t.Fatal("expected EnsureVaultDirectories to fail when root descriptor is blocked, got nil")
 	}
 
-	// 4. Assert that the pre-existing Plan descriptor was NOT destroyed or removed,
-	// and was preserved with its exact original content (fail-early: no writes occurred).
-	preservedPlanBytes, err := os.ReadFile(planDescPath)
+	info, err := os.Stat(rootDescPath)
 	if err != nil {
-		t.Fatalf("pre-existing plan descriptor was destroyed or missing after fail-early: %v", err)
+		t.Fatalf("root blocker entry was removed: %v", err)
 	}
-	if string(preservedPlanBytes) != string(originalPlanBytes) {
-		t.Errorf("Plan descriptor was modified despite fail-early!\ngot:\n%s\nwant original:\n%s",
-			string(preservedPlanBytes), string(originalPlanBytes))
+	if !info.IsDir() {
+		t.Errorf("root blocker entry is no longer a directory; unexpected mutation occurred")
+	}
+	_ = originalRootBytes
+}
+
+func writeLegacyBinding(t *testing.T, dir, repoID, repoRoot string) []byte {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	desc := cli.VaultBindingDescriptor{RepositoryID: repoID, RepositoryRoot: repoRoot, UpdatedAt: "2026-01-01T00:00:00Z"}
+	data, err := json.MarshalIndent(desc, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = append(data, '\n')
+	if err := os.WriteFile(filepath.Join(dir, ".vault-binding.json"), data, 0640); err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func TestMigrateLegacy_MatchMatch(t *testing.T) {
+	vaultRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	repoRoot := t.TempDir()
+	repoID := "local:" + repoRoot
+	t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "prism")
+
+	legacyPlan := filepath.Join(vaultRoot, "plan", "prism")
+	legacyE2E := filepath.Join(vaultRoot, "e2e", "prism")
+	writeLegacyBinding(t, legacyPlan, repoID, repoRoot)
+	writeLegacyBinding(t, legacyE2E, repoID, repoRoot)
+	if err := os.WriteFile(filepath.Join(legacyPlan, "notes.txt"), []byte("plan-content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(legacyE2E, "data.db"), []byte("e2e-content"), 0644); err != nil {
+		t.Fatal(err)
 	}
 
-	// 5. Assert that the E2E blocker (directory we planted) is still a directory — no mutation occurred.
-	e2eInfo, err := os.Stat(e2eDescPath)
+	paths, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
 	if err != nil {
-		t.Fatalf("E2E blocker entry was removed or became inaccessible: %v", err)
+		t.Fatalf("ResolveVault migration failed: %v", err)
 	}
-	if !e2eInfo.IsDir() {
-		t.Errorf("E2E blocker entry is no longer a directory; unexpected mutation occurred")
+	if paths.ProjectDir != filepath.Join(vaultRoot, "prism") {
+		t.Errorf("ProjectDir = %q", paths.ProjectDir)
 	}
+	// Legacy dirs gone, project-first present.
+	if _, err := os.Stat(legacyPlan); !os.IsNotExist(err) {
+		t.Errorf("expected legacy plan dir to be migrated away")
+	}
+	if _, err := os.Stat(legacyE2E); !os.IsNotExist(err) {
+		t.Errorf("expected legacy e2e dir to be migrated away")
+	}
+	if _, err := os.Stat(filepath.Join(vaultRoot, "prism", "plan", "notes.txt")); err != nil {
+		t.Errorf("migrated plan content missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(vaultRoot, "prism", "e2e", "data.db")); err != nil {
+		t.Errorf("migrated e2e content missing: %v", err)
+	}
+	// Single root binding, no child descriptors.
+	if _, err := os.Stat(filepath.Join(vaultRoot, "prism", ".vault-binding.json")); err != nil {
+		t.Errorf("root binding missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(vaultRoot, "prism", "plan", ".vault-binding.json")); !os.IsNotExist(err) {
+		t.Errorf("expected no child descriptor under plan")
+	}
+	if _, err := os.Stat(filepath.Join(vaultRoot, "prism", "e2e", ".vault-binding.json")); !os.IsNotExist(err) {
+		t.Errorf("expected no child descriptor under e2e")
+	}
+}
+
+func TestMigrateLegacy_MatchMismatch(t *testing.T) {
+	vaultRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	repoRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "prism")
+
+	writeLegacyBinding(t, filepath.Join(vaultRoot, "plan", "prism"), "github.com/o/a", "/old/a")
+	writeLegacyBinding(t, filepath.Join(vaultRoot, "e2e", "prism"), "github.com/o/b", "/old/b")
+
+	_, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+	if err == nil {
+		t.Fatal("expected disagreement failure, got nil")
+	}
+	if !errors.Is(err, cli.ErrVaultCollision) {
+		t.Errorf("expected ErrVaultCollision, got: %v", err)
+	}
+	// Zero mutation.
+	if _, err := os.Stat(filepath.Join(vaultRoot, "prism")); !os.IsNotExist(err) {
+		t.Errorf("expected no project dir after disagreement")
+	}
+	if _, err := os.Stat(filepath.Join(vaultRoot, "plan", "prism")); err != nil {
+		t.Errorf("legacy plan dir must remain: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(vaultRoot, "e2e", "prism")); err != nil {
+		t.Errorf("legacy e2e dir must remain: %v", err)
+	}
+}
+
+func TestMigrateLegacy_ValidMalformed(t *testing.T) {
+	vaultRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	repoRoot := t.TempDir()
+	repoID := "local:" + repoRoot
+	t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "prism")
+
+	writeLegacyBinding(t, filepath.Join(vaultRoot, "plan", "prism"), repoID, repoRoot)
+	badDir := filepath.Join(vaultRoot, "e2e", "prism")
+	if err := os.MkdirAll(badDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(badDir, ".vault-binding.json"), []byte("{bad json"), 0640); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+	if err == nil {
+		t.Fatal("expected ErrVaultUnbound without adopt, got nil")
+	}
+	if !errors.Is(err, cli.ErrVaultUnbound) {
+		t.Errorf("expected ErrVaultUnbound, got: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(vaultRoot, "prism")); !os.IsNotExist(err) {
+		t.Errorf("expected zero mutation without adopt")
+	}
+
+	paths, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{Adopt: true})
+	if err != nil {
+		t.Fatalf("adopt migration failed: %v", err)
+	}
+	if paths.ProjectDir != filepath.Join(vaultRoot, "prism") {
+		t.Errorf("ProjectDir = %q", paths.ProjectDir)
+	}
+}
+
+func TestMigrateLegacy_ValidMissing(t *testing.T) {
+	vaultRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	repoRoot := t.TempDir()
+	repoID := "local:" + repoRoot
+	t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "prism")
+
+	writeLegacyBinding(t, filepath.Join(vaultRoot, "plan", "prism"), repoID, repoRoot)
+	if err := os.MkdirAll(filepath.Join(vaultRoot, "e2e", "prism"), 0750); err != nil {
+		t.Fatal(err)
+	}
+	// e2e dir exists without descriptor.
+
+	_, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+	if err == nil {
+		t.Fatal("expected ErrVaultUnbound without adopt, got nil")
+	}
+	if _, err := os.Stat(filepath.Join(vaultRoot, "prism")); !os.IsNotExist(err) {
+		t.Errorf("expected zero mutation without adopt")
+	}
+
+	if _, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{Adopt: true}); err != nil {
+		t.Fatalf("adopt migration failed: %v", err)
+	}
+}
+
+func TestMigrateLegacy_MismatchVsCurrent(t *testing.T) {
+	vaultRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	repoRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "prism")
+
+	writeLegacyBinding(t, filepath.Join(vaultRoot, "plan", "prism"), "github.com/o/other", "/elsewhere")
+	writeLegacyBinding(t, filepath.Join(vaultRoot, "e2e", "prism"), "github.com/o/other", "/elsewhere")
+
+	_, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+	if err == nil {
+		t.Fatal("expected collision without rebind, got nil")
+	}
+	if !errors.Is(err, cli.ErrVaultCollision) {
+		t.Errorf("expected ErrVaultCollision, got: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(vaultRoot, "prism")); !os.IsNotExist(err) {
+		t.Errorf("expected zero mutation without rebind")
+	}
+
+	paths, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{Rebind: true})
+	if err != nil {
+		t.Fatalf("rebind migration failed: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(paths.ProjectDir, ".vault-binding.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var desc cli.VaultBindingDescriptor
+	if err := json.Unmarshal(data, &desc); err != nil {
+		t.Fatal(err)
+	}
+	if desc.RepositoryRoot != repoRoot {
+		t.Errorf("rebound root = %q; want %q", desc.RepositoryRoot, repoRoot)
+	}
+}
+
+func TestMigrateLegacy_SingleSide(t *testing.T) {
+	vaultRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	repoRoot := t.TempDir()
+	repoID := "local:" + repoRoot
+	t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "solo")
+
+	writeLegacyBinding(t, filepath.Join(vaultRoot, "plan", "solo"), repoID, repoRoot)
+
+	paths, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+	if err != nil {
+		t.Fatalf("single-side migration failed: %v", err)
+	}
+	if _, err := os.Stat(paths.PlanDir); err != nil {
+		t.Errorf("migrated plan dir missing: %v", err)
+	}
+	if _, err := os.Stat(paths.E2EDir); err != nil {
+		t.Errorf("fresh e2e dir missing: %v", err)
+	}
+}
+
+func TestMigrateLegacy_SplitBrain(t *testing.T) {
+	vaultRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	repoRoot := t.TempDir()
+	repoID := "local:" + repoRoot
+	t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "prism")
+
+	projDir := filepath.Join(vaultRoot, "prism")
+	if err := os.MkdirAll(filepath.Join(projDir, "plan"), 0750); err != nil {
+		t.Fatal(err)
+	}
+	writeLegacyBinding(t, projDir, repoID, repoRoot)
+	legacyPlan := filepath.Join(vaultRoot, "plan", "prism")
+	writeLegacyBinding(t, legacyPlan, repoID, repoRoot)
+	origRoot, _ := os.ReadFile(filepath.Join(projDir, ".vault-binding.json"))
+
+	_, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+	if err == nil {
+		t.Fatal("expected SPLIT_BRAIN failure, got nil")
+	}
+	if !strings.Contains(err.Error(), "SPLIT_BRAIN") {
+		t.Errorf("expected SPLIT_BRAIN error, got: %v", err)
+	}
+	cur, _ := os.ReadFile(filepath.Join(projDir, ".vault-binding.json"))
+	if string(cur) != string(origRoot) {
+		t.Errorf("root binding mutated during split-brain")
+	}
+	if _, err := os.Stat(legacyPlan); err != nil {
+		t.Errorf("legacy dir must remain: %v", err)
+	}
+}
+
+func TestMigrateLegacy_SymlinkSources(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping symlink tests on windows")
+	}
+	t.Run("legacy plan symlink", func(t *testing.T) {
+		vaultRoot := t.TempDir()
+		t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+		t.Setenv("AGENTPLAYBOOK_VAULT_MIGRATION_FAULT", "")
+		repoRoot := t.TempDir()
+		repoID := "local:" + repoRoot
+		t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "prism")
+
+		realPlan := filepath.Join(vaultRoot, "real-plan")
+		writeLegacyBinding(t, realPlan, repoID, repoRoot)
+		legacyPlan := filepath.Join(vaultRoot, "plan", "prism")
+		if err := os.MkdirAll(filepath.Join(vaultRoot, "plan"), 0750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(realPlan, legacyPlan); err != nil {
+			t.Fatal(err)
+		}
+		writeLegacyBinding(t, filepath.Join(vaultRoot, "e2e", "prism"), repoID, repoRoot)
+
+		_, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+		if err == nil {
+			t.Fatal("expected symlink failure, got nil")
+		}
+		if !strings.Contains(err.Error(), "symlink") {
+			t.Errorf("expected symlink error, got: %v", err)
+		}
+		if _, err := os.Stat(filepath.Join(vaultRoot, "prism")); !os.IsNotExist(err) {
+			t.Errorf("expected zero mutation on symlink source")
+		}
+	})
+
+	t.Run("legacy e2e symlink", func(t *testing.T) {
+		vaultRoot := t.TempDir()
+		t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+		t.Setenv("AGENTPLAYBOOK_VAULT_MIGRATION_FAULT", "")
+		repoRoot := t.TempDir()
+		repoID := "local:" + repoRoot
+		t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "prism")
+
+		writeLegacyBinding(t, filepath.Join(vaultRoot, "plan", "prism"), repoID, repoRoot)
+		realE2E := filepath.Join(vaultRoot, "real-e2e")
+		writeLegacyBinding(t, realE2E, repoID, repoRoot)
+		legacyE2E := filepath.Join(vaultRoot, "e2e", "prism")
+		if err := os.MkdirAll(filepath.Join(vaultRoot, "e2e"), 0750); err != nil {
+			t.Fatal(err)
+		}
+		// Remove dir created by helper parent? helper created legacyE2E? No, helper created realE2E only.
+		if err := os.Symlink(realE2E, legacyE2E); err != nil {
+			t.Fatal(err)
+		}
+
+		_, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+		if err == nil {
+			t.Fatal("expected symlink failure, got nil")
+		}
+		if !strings.Contains(err.Error(), "symlink") {
+			t.Errorf("expected symlink error, got: %v", err)
+		}
+	})
+
+	t.Run("project dir symlink", func(t *testing.T) {
+		vaultRoot := t.TempDir()
+		t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+		t.Setenv("AGENTPLAYBOOK_VAULT_MIGRATION_FAULT", "")
+		repoRoot := t.TempDir()
+		t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "prism")
+
+		realDir := filepath.Join(vaultRoot, "real-proj")
+		if err := os.MkdirAll(realDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(realDir, filepath.Join(vaultRoot, "prism")); err != nil {
+			t.Fatal(err)
+		}
+		_, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+		if err == nil {
+			t.Fatal("expected symlink failure, got nil")
+		}
+		if !strings.Contains(err.Error(), "symlink") {
+			t.Errorf("expected symlink error, got: %v", err)
+		}
+	})
+}
+
+func TestMigrateLegacy_FaultInjection(t *testing.T) {
+	setup := func(t *testing.T) (string, string, string, []byte, []byte) {
+		t.Helper()
+		vaultRoot := t.TempDir()
+		t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+		repoRoot := t.TempDir()
+		repoID := "local:" + repoRoot
+		t.Setenv("AGENTPLAYBOOK_PROJECT_NAME", "prism")
+		planData := writeLegacyBinding(t, filepath.Join(vaultRoot, "plan", "prism"), repoID, repoRoot)
+		e2eData := writeLegacyBinding(t, filepath.Join(vaultRoot, "e2e", "prism"), repoID, repoRoot)
+		return vaultRoot, repoRoot, repoID, planData, e2eData
+	}
+	assertRolledBack := func(t *testing.T, vaultRoot string, wantPlan, wantE2E []byte) {
+		t.Helper()
+		if _, err := os.Stat(filepath.Join(vaultRoot, "prism")); !os.IsNotExist(err) {
+			t.Errorf("expected project dir to be rolled back")
+		}
+		planDesc, err := os.ReadFile(filepath.Join(vaultRoot, "plan", "prism", ".vault-binding.json"))
+		if err != nil {
+			t.Errorf("legacy plan descriptor must be restored: %v", err)
+		}
+		e2eDesc, err := os.ReadFile(filepath.Join(vaultRoot, "e2e", "prism", ".vault-binding.json"))
+		if err != nil {
+			t.Errorf("legacy e2e descriptor must be restored: %v", err)
+		}
+		if string(planDesc) != string(wantPlan) {
+			t.Errorf("plan descriptor corrupted by rollback:\ngot:\n%s\nwant:\n%s", string(planDesc), string(wantPlan))
+		}
+		if string(e2eDesc) != string(wantE2E) {
+			t.Errorf("e2e descriptor corrupted by rollback:\ngot:\n%s\nwant:\n%s", string(e2eDesc), string(wantE2E))
+		}
+	}
+
+	for _, stage := range []string{"after-first-rename", "after-second-rename", "fail-root-write", "after-root-write", "fail-child-cleanup"} {
+		t.Run("fault_"+stage, func(t *testing.T) {
+			vaultRoot, repoRoot, _, wantPlan, wantE2E := setup(t)
+			t.Setenv("AGENTPLAYBOOK_VAULT_MIGRATION_FAULT", stage)
+			_, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+			if err == nil {
+				t.Fatalf("expected injected fault %q to fail, got nil", stage)
+			}
+			if !strings.Contains(err.Error(), "injected migration fault") {
+				t.Errorf("expected injected fault error, got: %v", err)
+			}
+			assertRolledBack(t, vaultRoot, wantPlan, wantE2E)
+		})
+	}
+}
+
+func TestParseProjectFromAgentsMD_ProjectFirst(t *testing.T) {
+	dir := t.TempDir()
+	newMD := "# AGENTS.md\n- **Scaffolding Vault**: plan: `~/.agentplaybook/prism/plan` | e2e: `~/.agentplaybook/prism/e2e`.\n"
+	legacyMD := "# AGENTS.md\n- **Scaffolding Vault**: plan: `~/.agentplaybook/plan/legacy` | e2e: `~/.agentplaybook/e2e/legacy`.\n"
+	_ = newMD
+	_ = legacyMD
+	// Exercise via ResolveVault with AGENTS.md present and no env override.
+	vaultRoot := t.TempDir()
+	t.Setenv("AGENTPLAYBOOK_VAULT_ROOT", vaultRoot)
+	repoRoot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(repoRoot, "AGENTS.md"), []byte(newMD), 0644); err != nil {
+		t.Fatal(err)
+	}
+	paths, err := cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+	if err != nil {
+		t.Fatalf("ResolveVault with new marker failed: %v", err)
+	}
+	if paths.ProjectName != "prism" {
+		t.Errorf("ProjectName = %q; want prism", paths.ProjectName)
+	}
+	if err := os.WriteFile(filepath.Join(repoRoot, "AGENTS.md"), []byte(legacyMD), 0644); err != nil {
+		t.Fatal(err)
+	}
+	paths, err = cli.ResolveVault(repoRoot, cli.VaultResolveOptions{})
+	if err != nil {
+		t.Fatalf("ResolveVault with legacy marker failed: %v", err)
+	}
+	if paths.ProjectName != "legacy" {
+		t.Errorf("ProjectName = %q; want legacy", paths.ProjectName)
+	}
+	_ = dir
 }
 
 func setupFakeGitRepo(t *testing.T, dir string, remoteURL string) {

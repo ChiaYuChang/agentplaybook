@@ -77,7 +77,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Assess feature scope and complexity to branch between Hierarchical Blueprint and Single Plan; author task build-plan (or blueprint-plan) and review-plan in the resolved plan vault (~/.agentplaybook/plan/<project>/) with mandatory E2E Verification section and review-plan with mandatory E2E Coverage section, with verification paths for every material invariant and optional Track B definitions."
+        "action": "Assess feature scope and complexity to branch between Hierarchical Blueprint and Single Plan; author task build-plan (or blueprint-plan) and review-plan in the resolved plan vault (~/.agentplaybook/<project>/plan/) with mandatory E2E Verification section and review-plan with mandatory E2E Coverage section, with verification paths for every material invariant and optional Track B definitions."
       },
       {
         "index": 2,
@@ -124,7 +124,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Author the blueprint-plan artifact (<slug>.blueprint.md) in the resolved plan vault (~/.agentplaybook/plan/<project>/) defining high-level goals, shared interface contracts, invariant boundaries, feature-level E2E scope and composition obligations, and ordered sub-plan sequence."
+        "action": "Author the blueprint-plan artifact (<slug>.blueprint.md) in the resolved plan vault (~/.agentplaybook/<project>/plan/) defining high-level goals, shared interface contracts, invariant boundaries, feature-level E2E scope and composition obligations, and ordered sub-plan sequence."
       },
       {
         "index": 2,
@@ -620,7 +620,7 @@
       {
         "index": 3,
         "actor": "cartographer",
-        "action": "Evaluate visual type, complexity budget (≤12 nodes), and brief semantic completeness under Taste Gate criteria.",
+        "action": "Evaluate visual type, complexity budget (\u226412 nodes), and brief semantic completeness under Taste Gate criteria.",
         "conditions": [
           {
             "when": "CLARIFICATION_REQUIRED",
@@ -676,7 +676,7 @@
       {
         "index": 3,
         "actor": "cartographer",
-        "action": "Evaluate visual type, complexity budget (≤12 nodes), and brief semantic completeness under Taste Gate criteria.",
+        "action": "Evaluate visual type, complexity budget (\u226412 nodes), and brief semantic completeness under Taste Gate criteria.",
         "conditions": [
           {
             "when": "CLARIFICATION_REQUIRED",
@@ -732,7 +732,7 @@
       {
         "index": 3,
         "actor": "verifier",
-        "action": "Provision isolated out-of-tree sandbox or detached clone in the E2E vault (~/.agentplaybook/e2e/<project>/runs/<run-id>) pinned strictly to candidate revision and initialize dependencies."
+        "action": "Provision isolated out-of-tree sandbox or detached clone in the E2E vault (~/.agentplaybook/<project>/e2e/runs/<run-id>) pinned strictly to candidate revision and initialize dependencies."
       },
       {
         "index": 4,

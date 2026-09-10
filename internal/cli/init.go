@@ -45,7 +45,7 @@ When invoked with --file/-f, it acts as an explicit opt-in local scaffolding uti
 strictly upon operator invocation to generate baseline AGENTS.md, with zero background
 mutation, network downloads, or daemon processes. Use --minimal/-m for an ultra-compact
 telegraphic Caveman-style template optimized for minimal context budget. Use --vault to scaffold
-the out-of-tree shadow scaffolding vault directories (~/.agentplaybook/{plan,e2e}/<project>).`,
+the out-of-tree shadow scaffolding vault directories (~/.agentplaybook/<project>/{plan,e2e}).`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {

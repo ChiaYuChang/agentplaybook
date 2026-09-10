@@ -180,13 +180,13 @@ sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file AGENTS.md --vault --re
 
 ### Out-of-Tree Shadow Scaffolding Vault Governance (`scaffolding-vault-isolation`)
 
-AgentPlaybook v0.4.2 establishes the **Out-of-Tree Shadow Scaffolding Vault** (`scaffolding-vault-isolation`) ensuring physical separation between product repositories and ephemeral construction scaffolding:
-- **Strong Convention**: Scaffolding files live outside target repositories under `~/.agentplaybook/{plan,e2e}/<project>`.
-  - Planning and review artifacts reside under `~/.agentplaybook/plan/<project>/`.
-  - End-to-end sandbox execution runs and evidence logs reside under `~/.agentplaybook/e2e/<project>/runs/<run-id>/`.
+AgentPlaybook v0.4.3 establishes the **Out-of-Tree Shadow Scaffolding Vault** (`scaffolding-vault-isolation`) ensuring physical separation between product repositories and ephemeral construction scaffolding:
+- **Strong Convention**: Scaffolding files live outside target repositories under `~/.agentplaybook/<project>/{plan,e2e}`.
+  - Planning and review artifacts reside under `~/.agentplaybook/<project>/plan/`.
+  - End-to-end sandbox execution runs and evidence logs reside under `~/.agentplaybook/<project>/e2e/runs/<run-id>/`.
 - **Zero In-Tree Scaffolding Residue**: Target repositories remain pristine and free of ephemeral construction debris. No `.agentplaybook/`, `plan/`, or `e2e/` scratch directories are created inside product repositories.
 - **Canonical Repository Identification**: Deterministic repository identification normalizes remotes (`host/owner/repo` from HTTPS, SSH, or git URLs with credentials and `.git` stripped) or falls back to `local:<abs_path>` when no remote exists.
-- **Provenance & Safe Migration**: Each vault maintains a `.vault-binding.json` descriptor tracking `repo_id`, `repo_root`, `last_attached_utc`, and `binding_version`. Cross-machine checkouts or relocations are safeguarded:
+- **Provenance & Safe Migration**: Each project vault maintains a single root `.vault-binding.json` descriptor tracking `repo_id`, `repo_root`, `last_attached_utc`, and `binding_version`. Cross-machine checkouts or relocations are safeguarded:
   - If a different repository attempts to use an existing vault, initialization fails closed with `VAULT_COLLISION`.
   - If the same repository root or ID is detected from a new location, `--adopt` (or `AGENTPLAYBOOK_VAULT_ADOPT=1`) securely adopts the vault.
   - `--rebind` forces updating the recorded root binding when moving local checkouts.

@@ -74,9 +74,9 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-09-10T10:53:03Z @ e17fc54a`
-- **Dirty Status**: Uncommitted. Implementation complete. `REVIEW_PASS` achieved (Round 4). Verified: 241 tests pass, vet clean, secret scan clean.
-- **Milestone**: `out-of-tree-scaffolding-vault` - `RESOLVED_PASS` (v0.4.2).
-- **Scaffolding Vault**: plan: `~/.agentplaybook/plan/<project>` | e2e: `~/.agentplaybook/e2e/<project>`.
-- **Next Pickup Item**: Step 7 commit authorization gate - await explicit user auth to seal via `jj describe` -> `jj new` (push requires separate auth).
+- **Observed-At**: `2026-09-10T15:33:54Z @ 340eca86`
+- **Dirty Status**: Uncommitted. Project-first vault migration complete. `REVIEW_PASS` achieved (plan gate 2 rounds, code gate 2 rounds). Verified: 260 tests pass, race clean, vet clean, secret scan clean.
+- **Milestone**: `vault-project-first-layout` - `RESOLVED_PASS` (v0.4.3).
+- **Scaffolding Vault**: project-first `~/.agentplaybook/<project>/{plan,e2e}` (single root binding; legacy type-first auto-migrates).
+- **Next Pickup Item**: Step 7 commit authorization gate - await explicit user auth to seal via `jj commit` (push + tag require separate auth).
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

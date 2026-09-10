@@ -2899,8 +2899,8 @@ func TestCLI_SubPlan02_LifecycleAndAcceptanceIntegration(t *testing.T) {
 	// 5. Living memory templates version and budget check
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.0") && !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") {
-			t.Errorf("expected default template to contain v0.4.0, v0.4.1, or v0.4.2")
+		if !strings.Contains(def, "v0.4.0") && !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") {
+			t.Errorf("expected default template to contain v0.4.0, v0.4.1, v0.4.2, or v0.4.3")
 		}
 		min := cli.MinimalLivingMemoryTemplate()
 		lines := strings.Split(strings.TrimSpace(min), "\n")
@@ -3081,8 +3081,8 @@ func TestCLI_NavigatorCartographyIntegration(t *testing.T) {
 	// 5. Living Memory Templates version, content, and budget
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") {
-			t.Errorf("expected default template to contain v0.4.1 or v0.4.2")
+		if !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") {
+			t.Errorf("expected default template to contain v0.4.1, v0.4.2, or v0.4.3")
 		}
 		if !strings.Contains(def, "navigator-cartography") {
 			t.Errorf("expected default template to contain navigator-cartography")
@@ -3182,7 +3182,7 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 	if rule.Category != "protocol" {
 		t.Errorf("expected category protocol, got %s", rule.Category)
 	}
-	if !strings.Contains(rule.Summary, "~/.agentplaybook/{plan,e2e}/<project>") {
+	if !strings.Contains(rule.Summary, "~/.agentplaybook/<project>/{plan,e2e}") {
 		t.Errorf("expected summary to reference vault path, got %s", rule.Summary)
 	}
 
@@ -3194,7 +3194,7 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 	if len(e2eRules) != 1 {
 		t.Fatalf("expected 1 rule, got %d", len(e2eRules))
 	}
-	if !strings.Contains(e2eRules[0].Summary, "~/.agentplaybook/e2e/<project>/runs/<run-id>") {
+	if !strings.Contains(e2eRules[0].Summary, "~/.agentplaybook/<project>/e2e/runs/<run-id>") {
 		t.Errorf("expected e2e-sandbox-isolation summary to reference E2E vault path, got %s", e2eRules[0].Summary)
 	}
 
@@ -3220,15 +3220,15 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 	// 4. Verify Living Memory Templates version, vault content, and budget
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.2") {
-			t.Errorf("expected default template to contain v0.4.2")
+		if !strings.Contains(def, "v0.4.3") {
+			t.Errorf("expected default template to contain v0.4.3")
 		}
-		if !strings.Contains(def, "~/.agentplaybook/plan/<project>") || !strings.Contains(def, "~/.agentplaybook/e2e/<project>") {
+		if !strings.Contains(def, "~/.agentplaybook/<project>/plan") || !strings.Contains(def, "~/.agentplaybook/<project>/e2e") {
 			t.Errorf("expected default template to reference scaffolding vault paths")
 		}
 
 		min := cli.MinimalLivingMemoryTemplate()
-		if !strings.Contains(min, "~/.agentplaybook/plan/<project>") || !strings.Contains(min, "~/.agentplaybook/e2e/<project>") {
+		if !strings.Contains(min, "~/.agentplaybook/<project>/plan") || !strings.Contains(min, "~/.agentplaybook/<project>/e2e") {
 			t.Errorf("expected minimal template to reference scaffolding vault paths")
 		}
 		lines := strings.Split(strings.TrimSpace(min), "\n")
@@ -3255,14 +3255,14 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 			docStr := string(content)
 			for _, required := range []string{
 				"scaffolding-vault-isolation",
-				"~/.agentplaybook/{plan,e2e}/<project>",
+				"~/.agentplaybook/<project>/{plan,e2e}",
 				"--vault",
 				"--adopt",
 				"--rebind",
 				"Zero In-Tree Scaffolding Residue",
 			} {
 				if !strings.Contains(docStr, required) {
-					t.Errorf("expected doc file %q to contain v0.4.2 term %q", docPath, required)
+					t.Errorf("expected doc file %q to contain v0.4.3 term %q", docPath, required)
 				}
 			}
 		}

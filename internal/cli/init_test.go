@@ -452,7 +452,7 @@ func TestCLI_Init_Minimal_Invariants(t *testing.T) {
 		"IMPLEMENTATION_REVIEW_PASS",
 		"plus diagram messages",
 		"Navigator to Cartographer for diagrams",
-		"Vault: plan: ~/.agentplaybook/plan/<project>",
+		"Vault: plan: ~/.agentplaybook/<project>/plan",
 	}
 
 	for _, s := range requiredStrings {
@@ -476,7 +476,7 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 
 	// 2. Verify mandatory structural strings
 	requiredStrings := []string{
-		"AgentPlaybook v0.4.2 Living Memory Blueprint",
+		"AgentPlaybook v0.4.3 Living Memory Blueprint",
 		"Peer-Session Primacy over Subagents",
 		"invoke_subagent",
 		"Blind Barrier",
@@ -500,7 +500,7 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 		"plus authorized diagram message artifacts",
 		"Navigator-Cartographer communication permitted exclusively for `navigator-cartography` flow",
 		"Scaffolding Vault",
-		"~/.agentplaybook/plan/<project>",
+		"~/.agentplaybook/<project>/plan",
 	}
 
 	for _, s := range requiredStrings {
@@ -605,9 +605,10 @@ func TestCLI_Init_ExplicitVault(t *testing.T) {
 		t.Errorf("expected stdout to remain pure template stream when --vault is used without --file")
 	}
 
-	// Vault plan and e2e directories created
-	planDir := filepath.Join(vaultRoot, "plan", projectName)
-	e2eDir := filepath.Join(vaultRoot, "e2e", projectName)
+	// Vault project-first directories created
+	projectVaultDir := filepath.Join(vaultRoot, projectName)
+	planDir := filepath.Join(projectVaultDir, "plan")
+	e2eDir := filepath.Join(projectVaultDir, "e2e")
 
 	if fi, err := os.Stat(planDir); err != nil || fi.Mode().Perm() != 0750 {
 		t.Errorf("expected plan dir %s with mode 0750, err=%v", planDir, err)
@@ -616,12 +617,15 @@ func TestCLI_Init_ExplicitVault(t *testing.T) {
 		t.Errorf("expected e2e dir %s with mode 0750, err=%v", e2eDir, err)
 	}
 
-	// Verify .vault-binding.json exists in both
-	if _, err := os.Stat(filepath.Join(planDir, ".vault-binding.json")); err != nil {
-		t.Errorf("plan .vault-binding.json missing: %v", err)
+	// Verify single root .vault-binding.json exists; no child descriptors.
+	if _, err := os.Stat(filepath.Join(projectVaultDir, ".vault-binding.json")); err != nil {
+		t.Errorf("root .vault-binding.json missing: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(e2eDir, ".vault-binding.json")); err != nil {
-		t.Errorf("e2e .vault-binding.json missing: %v", err)
+	if _, err := os.Stat(filepath.Join(planDir, ".vault-binding.json")); !os.IsNotExist(err) {
+		t.Errorf("expected no child descriptor under plan dir, got err=%v", err)
+	}
+	if _, err := os.Stat(filepath.Join(e2eDir, ".vault-binding.json")); !os.IsNotExist(err) {
+		t.Errorf("expected no child descriptor under e2e dir, got err=%v", err)
 	}
 }
 
@@ -657,8 +661,8 @@ func TestCLI_Init_ExplicitRebind(t *testing.T) {
 		t.Fatalf("init --vault --rebind failed: %v\nStderr: %s", err, stderr.String())
 	}
 
-	// Verify descriptor in planDir has newRepo root
-	planDescPath := filepath.Join(vaultRoot, "plan", "rebind-cli-test", ".vault-binding.json")
+	// Verify single root descriptor has newRepo root
+	planDescPath := filepath.Join(vaultRoot, "rebind-cli-test", ".vault-binding.json")
 	data, err := os.ReadFile(planDescPath)
 	if err != nil {
 		t.Fatal(err)
