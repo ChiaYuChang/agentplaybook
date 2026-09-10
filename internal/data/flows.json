@@ -722,27 +722,27 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Formulate structured e2e-brief artifact specifying immutable candidate revision SHA, fresh unique run_id, mode, and package path, requiring IMPLEMENTATION_REVIEW_PASS before initial dispatch or after any remediation."
+        "action": "Formulate structured e2e-brief artifact specifying immutable candidate revision SHA, fresh unique run_id, mode, package path, Secrets Policy inventory classifying each credential entity as throwaway-capable versus external-real-only, and any per-name real-credential authorization, requiring IMPLEMENTATION_REVIEW_PASS before initial dispatch or after any remediation. All-throwaway runs proceed silently; runs with real-only entities require per-name explicit human authorization recorded in the brief, and wholesale secret store access is prohibited."
       },
       {
         "index": 2,
         "actor": "planner",
-        "action": "Dispatch e2e-brief message artifact to Verifier."
+        "action": "Dispatch e2e-brief message artifact, including Secrets Policy reference and credential authorization record, to Verifier."
       },
       {
         "index": 3,
         "actor": "verifier",
-        "action": "Provision isolated out-of-tree sandbox or detached clone in the E2E vault (~/.agentplaybook/<project>/e2e/runs/<run-id>) pinned strictly to candidate revision and initialize dependencies."
+        "action": "Evaluate the execution package Secrets Policy before provisioning or container start; a policy-less specification is preflight-blocked with CLARIFICATION_REQUIRED and no provisioning or container start occurs. Self-check the sandbox credential directory against the specification allowlist by name, provision declared credentials with throwaway-by-default generation, then render infrastructure and start containers strictly after credential provisioning. Unsatisfied policy fails closed as ENV_BLOCKED with no step-skipping. Historical policy-less packages remain untouched on disk."
       },
       {
         "index": 4,
         "actor": "verifier",
-        "action": "Execute test scenarios, redirecting and quarantining verbose stdout/stderr and trace logs to persistent E2E vault sandbox disk storage."
+        "action": "Execute test scenarios with provisioned credentials confined to the sandbox credential directory, redirecting and quarantining verbose stdout/stderr and trace logs to persistent E2E vault sandbox disk storage."
       },
       {
         "index": 5,
         "actor": "verifier",
-        "action": "Emit lightweight e2e-report message artifact to Planner.",
+        "action": "Remove generated credential directories including injected real-value residue and tear down containers before reporting, keeping credential file names only in evidence, and emit lightweight e2e-report message artifact carrying secrets_attestation with mode to Planner.",
         "conditions": [
           {
             "when": "E2E_RESULT_PASS",
@@ -781,7 +781,7 @@
       {
         "index": 6,
         "actor": "planner",
-        "action": "Evaluate Verifier report against admission criteria (candidate SHA match, scenario coverage, allowed skips, artifact digest provenance, and token budget <150 tokens).",
+        "action": "Evaluate Verifier report against admission criteria (candidate SHA match, scenario coverage, allowed skips, artifact digest provenance, secrets attestation presence with mode matching brief authorization, and token budget <150 tokens). Missing or mismatched attestation, or evidence containing credential material, fails closed as E2E_INVALID_EVIDENCE.",
         "conditions": [
           {
             "when": "E2E_EVIDENCE_ADMITTED",
@@ -826,7 +826,7 @@
       {
         "index": 9,
         "actor": "planner",
-        "action": "Resolve environment blockers or answer clarification requests, formulating amended execution parameters or routing package defects to remediation.",
+        "action": "Resolve environment blockers, including credential provisioning blocks, or answer clarification requests, formulating amended execution parameters or routing package defects to remediation.",
         "conditions": [
           {
             "when": "E2E_INPUTS_AMENDED",
@@ -845,7 +845,7 @@
       {
         "index": 10,
         "actor": "planner",
-        "action": "Investigate timeout, cancellation, or invalid evidence, arbitrating retry authorization on unchanged candidate, escalating package/code defects to remediation, or halting execution.",
+        "action": "Investigate timeout, cancellation, or invalid evidence, including secrets attestation failures, arbitrating retry authorization on unchanged candidate, escalating package/code defects to remediation, or halting execution.",
         "conditions": [
           {
             "when": "E2E_RETRY_AUTHORIZED",

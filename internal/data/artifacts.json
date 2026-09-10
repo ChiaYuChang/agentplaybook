@@ -622,6 +622,11 @@
         "name": "timeout_ms",
         "required": true,
         "description": "Total execution timeout in milliseconds as an integer string (e.g. '180000')."
+      },
+      {
+        "name": "credential_authorization",
+        "required": false,
+        "description": "Authorization record for runs using real credentials; required if and only if the run uses real credentials. Each entry carries credential name, purpose, and single-run lifetime. Canonical encoding is the entry name set in the same sorted order as the attestation list; ATTESTED:MIXED names must equal this set exactly, and any extra or missing name rejects."
       }
     ]
   },
@@ -706,6 +711,11 @@
         "name": "evidence_uri",
         "required": true,
         "description": "Persistent sandbox evidence URI (e.g. file:///tmp/e2e-.../evidence.tar.gz), or explicit sentinel 'UNAVAILABLE' when run terminates prior to sandbox/evidence provisioning."
+      },
+      {
+        "name": "secrets_attestation",
+        "required": true,
+        "description": "Secrets hygiene attestation for the run in one of three canonical forms: ATTESTED:THROWAWAY sha256:<hex> when every credential is locally generated throwaway; ATTESTED:MIXED:<names> sha256:<hex> when narrow-exception real values were used; or ENV_BLOCKED:<code> with a closed reason code (GENERATOR_UNAVAILABLE, POLICY_MISSING, AUTHORIZATION_DENIED, PROVISIONING_FAILED) when provisioning could not complete. Names are specification Secrets Policy entity identifiers, sorted in lexicographic byte order, unique with duplicates rejected, comma-joined with no spaces; digest input is the sorted names joined by single newlines with trailing newline, UTF-8 encoded. Raw error text is prohibited in the attestation and remains in quarantined sandbox logs referenced by name only."
       }
     ]
   },
@@ -750,6 +760,11 @@
         "name": "Timeout & Allowed Skip Policy",
         "required": true,
         "description": "Execution bounds, timeout limits, and explicit permitted skip conditions."
+      },
+      {
+        "name": "Secrets Policy",
+        "required": true,
+        "description": "Declares needed credential entities with ASCII kebab-case identifiers matching ^[a-z0-9][a-z0-9-]*$, the local generation mechanism for each entity, and the ingress rule as a narrow exception: operator secret stores remain prohibited in wholesale form, and only explicitly authorized real-only named values may enter for one run, while provider and break-glass credentials remain unconditionally prohibited."
       }
     ]
   },

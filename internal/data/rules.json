@@ -506,7 +506,8 @@
     "guidelines": [
       "Implementation review emits IMPLEMENTATION_REVIEW_PASS; final REVIEW_PASS or FEATURE_REVIEW_PASS requires admitted E2E evidence or reviewed exemption.",
       "Required E2E execution gates on a frozen immutable candidate revision; stale or drifted candidate evidence is strictly inadmissible.",
-      "Unresolved, failed, timed-out, or incomplete E2E verification strictly blocks final review acceptance and commit flow admission."
+      "Unresolved, failed, timed-out, or incomplete E2E verification strictly blocks final review acceptance and commit flow admission.",
+      "Planner admission verifies secrets_attestation presence and digest plausibility; missing or negative attestation, or evidence containing credential material, fails closed as E2E_INVALID_EVIDENCE."
     ]
   },
   {
@@ -521,6 +522,21 @@
       "Storing ephemeral planning artifacts, review findings, or E2E run traces inside the product repository working tree is strictly prohibited.",
       "The product repository contains strictly product source code, in-tree unit/integration tests, documentation, and AGENTS.md.",
       "Vault binding and canonical repository identity must be validated before persisting scaffolding artifacts."
+    ]
+  },
+  {
+    "id": "e2e-secrets-hygiene",
+    "title": "E2E Sandbox Secrets Hygiene & Throwaway Credential Governance",
+    "category": "protocol",
+    "summary": "Mandates throwaway-by-default sandbox credential provisioning under a declared Secrets Policy, prohibiting operator secret store ingress except explicitly authorized real-only named values for one run, with names-only evidence and attested admission.",
+    "details": "Sandbox verification environments generate local-only throwaway credentials for every declared entity; interactive secret synchronization is unavailable in sandboxes, so no workflow may depend on reaching operator secret stores from sandbox execution. Copying, symlinking, or mounting operator secret stores into the sandbox is strictly prohibited. The sole narrow exception admits explicitly authorized real-only named values for one run, each bound to a declared purpose and single-run lifetime. Provider credentials and break-glass credentials never enter sandboxes under any exception. Generated credential directories, including injected real-value residue, are removed after execution before reporting. Evidence bundles carry credential file names only, never secret file contents. Before execution, Verifier self-checks the sandbox credential directory against the specification allowlist by name, rejecting unexpected entries and directory links. Historical execution packages without a Secrets Policy remain untouched on disk, but any run against a policy-less specification is preflight-blocked before provisioning or container start: Verifier halts with CLARIFICATION_REQUIRED, never provisions credentials and never starts containers. Relying on final admission failure alone is insufficient and prohibited. Concrete provisioning and removal mechanics are delegated to Tier 2.",
+    "guidelines": [
+      "Sandboxes generate local-only throwaway credentials for every Secrets Policy entity; interactive secret synchronization is unavailable in sandboxes.",
+      "Copying, symlinking, or mounting operator secret stores into the sandbox is strictly prohibited.",
+      "Only explicitly authorized real-only named values may enter for one run, each with declared purpose and single-run lifetime; provider and break-glass credentials never enter under any exception.",
+      "Generated credential directories, including injected real-value residue, are removed after execution before reporting; evidence bundles carry file names only, never secret file contents.",
+      "Verifier self-checks the sandbox credential directory against the specification allowlist by name before execution, rejecting unexpected entries and directory links.",
+      "Historical packages without a Secrets Policy remain untouched, but runs against policy-less specifications are preflight-blocked with CLARIFICATION_REQUIRED before provisioning or container start; final-admission failure alone is prohibited."
     ]
   }
 ]

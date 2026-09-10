@@ -473,8 +473,8 @@ func TestLoad_Success(t *testing.T) {
 	if len(e2eBrief.Visibility) != 2 || e2eBrief.Visibility[0] != knowledge.RolePlanner || e2eBrief.Visibility[1] != knowledge.RoleVerifier {
 		t.Errorf("expected e2e-brief visibility [planner verifier], got %v", e2eBrief.Visibility)
 	}
-	if len(e2eBrief.Fields) != 6 {
-		t.Errorf("expected e2e-brief to have 6 fields, got %d", len(e2eBrief.Fields))
+	if len(e2eBrief.Fields) != 7 {
+		t.Errorf("expected e2e-brief to have 7 fields, got %d", len(e2eBrief.Fields))
 	}
 
 	e2eReport, _ := k.Artifact("e2e-report")
@@ -484,8 +484,8 @@ func TestLoad_Success(t *testing.T) {
 	if len(e2eReport.Visibility) != 3 || e2eReport.Visibility[0] != knowledge.RolePlanner || e2eReport.Visibility[1] != knowledge.RoleVerifier || e2eReport.Visibility[2] != knowledge.RoleReviewer {
 		t.Errorf("expected e2e-report visibility [planner verifier reviewer], got %v", e2eReport.Visibility)
 	}
-	if len(e2eReport.Fields) != 14 {
-		t.Errorf("expected e2e-report to have 14 fields, got %d", len(e2eReport.Fields))
+	if len(e2eReport.Fields) != 15 {
+		t.Errorf("expected e2e-report to have 15 fields, got %d", len(e2eReport.Fields))
 	}
 
 	// Verify e2e-test-spec and e2e-clarification-request metadata
@@ -496,8 +496,8 @@ func TestLoad_Success(t *testing.T) {
 	if len(e2eTestSpec.Visibility) != 4 || e2eTestSpec.Visibility[0] != knowledge.RolePlanner || e2eTestSpec.Visibility[1] != knowledge.RoleReviewer || e2eTestSpec.Visibility[2] != knowledge.RoleBuilder || e2eTestSpec.Visibility[3] != knowledge.RoleVerifier {
 		t.Errorf("expected e2e-test-spec visibility [planner reviewer builder verifier], got %v", e2eTestSpec.Visibility)
 	}
-	if len(e2eTestSpec.Sections) != 5 {
-		t.Errorf("expected e2e-test-spec to have 5 sections, got %d", len(e2eTestSpec.Sections))
+	if len(e2eTestSpec.Sections) != 6 {
+		t.Errorf("expected e2e-test-spec to have 6 sections, got %d", len(e2eTestSpec.Sections))
 	}
 
 	e2eClarification, _ := k.Artifact("e2e-clarification-request")
@@ -548,6 +548,7 @@ func TestLoad_Success(t *testing.T) {
 		"e2e-clarification-inquiry",
 		"e2e-immutable-evidence-binding",
 		"e2e-lifecycle-admission",
+		"e2e-secrets-hygiene",
 		"scaffolding-vault-isolation",
 	} {
 		r, ok := k.Rule(expected)

@@ -159,6 +159,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "e2e-clarification-inquiry"},
 		{"rule", "explain", "e2e-immutable-evidence-binding"},
 		{"rule", "explain", "e2e-lifecycle-admission"},
+		{"rule", "explain", "e2e-secrets-hygiene"},
 		{"rule", "explain", "scaffolding-vault-isolation"},
 	}
 
@@ -2509,7 +2510,7 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 		return stdout.Bytes()
 	}
 
-	// 1. Artifact Verification: e2e-test-spec (document, 5 sections)
+	// 1. Artifact Verification: e2e-test-spec (document, 6 sections)
 	{
 		var a knowledge.Artifact
 		if err := json.Unmarshal(queryJSON("artifact", "e2e-test-spec"), &a); err != nil {
@@ -2533,8 +2534,8 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 		if a.Path != "e2e/{test_name}/spec.md" {
 			t.Errorf("expected path 'e2e/{test_name}/spec.md', got %q", a.Path)
 		}
-		if len(a.Sections) != 5 {
-			t.Fatalf("expected 5 sections, got %d", len(a.Sections))
+		if len(a.Sections) != 6 {
+			t.Fatalf("expected 6 sections, got %d", len(a.Sections))
 		}
 		expectedSections := []string{
 			"Scenario Matrix & Given/When/Then",
@@ -2542,6 +2543,7 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 			"Environment & Dependency Bindings",
 			"Result Paths & Cleanup Obligations",
 			"Timeout & Allowed Skip Policy",
+			"Secrets Policy",
 		}
 		for i, expected := range expectedSections {
 			if a.Sections[i].Name != expected || !a.Sections[i].Required {
@@ -2585,19 +2587,22 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 		}
 	}
 
-	// 3. Artifact Verification: e2e-brief (6 required fields)
+	// 3. Artifact Verification: e2e-brief (6 required fields + conditional credential_authorization)
 	{
 		var a knowledge.Artifact
 		if err := json.Unmarshal(queryJSON("artifact", "e2e-brief"), &a); err != nil {
 			t.Fatalf("failed to decode e2e-brief: %v", err)
 		}
-		if len(a.Fields) != 6 {
-			t.Fatalf("expected 6 fields in e2e-brief, got %d", len(a.Fields))
+		if len(a.Fields) != 7 {
+			t.Fatalf("expected 7 fields in e2e-brief, got %d", len(a.Fields))
 		}
 		reqFields := make(map[string]bool)
+		condFound := false
 		for _, f := range a.Fields {
 			if f.Required {
 				reqFields[f.Name] = true
+			} else if f.Name == "credential_authorization" {
+				condFound = true
 			}
 		}
 		for _, expectedField := range []string{"run_id", "repo_ref", "candidate_ref", "test_package", "mode", "timeout_ms"} {
@@ -2605,16 +2610,19 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 				t.Errorf("expected required field %q in e2e-brief", expectedField)
 			}
 		}
+		if !condFound {
+			t.Errorf("expected conditional field credential_authorization in e2e-brief")
+		}
 	}
 
-	// 4. Artifact Verification: e2e-report (14 required fields)
+	// 4. Artifact Verification: e2e-report (15 required fields)
 	{
 		var a knowledge.Artifact
 		if err := json.Unmarshal(queryJSON("artifact", "e2e-report"), &a); err != nil {
 			t.Fatalf("failed to decode e2e-report: %v", err)
 		}
-		if len(a.Fields) != 14 {
-			t.Fatalf("expected 14 fields in e2e-report, got %d", len(a.Fields))
+		if len(a.Fields) != 15 {
+			t.Fatalf("expected 15 fields in e2e-report, got %d", len(a.Fields))
 		}
 		reqFields := make(map[string]bool)
 		for _, f := range a.Fields {
@@ -2626,6 +2634,7 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 			"run_id", "candidate_ref", "stage_outcome", "build_outcome", "execution_outcome",
 			"scenarios_selected", "scenarios_passed", "scenarios_failed", "scenarios_skipped",
 			"result_completeness", "tested_artifact_ref", "duration_ms", "diagnostic", "evidence_uri",
+			"secrets_attestation",
 		} {
 			if !reqFields[expectedField] {
 				t.Errorf("expected required field %q in e2e-report", expectedField)
@@ -2899,8 +2908,8 @@ func TestCLI_SubPlan02_LifecycleAndAcceptanceIntegration(t *testing.T) {
 	// 5. Living memory templates version and budget check
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.0") && !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") {
-			t.Errorf("expected default template to contain v0.4.0, v0.4.1, v0.4.2, or v0.4.3")
+		if !strings.Contains(def, "v0.4.0") && !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") && !strings.Contains(def, "v0.4.4") {
+			t.Errorf("expected default template to contain v0.4.0, v0.4.1, v0.4.2, v0.4.3, or v0.4.4")
 		}
 		min := cli.MinimalLivingMemoryTemplate()
 		lines := strings.Split(strings.TrimSpace(min), "\n")
@@ -3081,8 +3090,8 @@ func TestCLI_NavigatorCartographyIntegration(t *testing.T) {
 	// 5. Living Memory Templates version, content, and budget
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") {
-			t.Errorf("expected default template to contain v0.4.1, v0.4.2, or v0.4.3")
+		if !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") && !strings.Contains(def, "v0.4.4") {
+			t.Errorf("expected default template to contain v0.4.1, v0.4.2, v0.4.3, or v0.4.4")
 		}
 		if !strings.Contains(def, "navigator-cartography") {
 			t.Errorf("expected default template to contain navigator-cartography")
@@ -3220,8 +3229,8 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 	// 4. Verify Living Memory Templates version, vault content, and budget
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.3") {
-			t.Errorf("expected default template to contain v0.4.3")
+		if !strings.Contains(def, "v0.4.4") {
+			t.Errorf("expected default template to contain v0.4.4")
 		}
 		if !strings.Contains(def, "~/.agentplaybook/<project>/plan") || !strings.Contains(def, "~/.agentplaybook/<project>/e2e") {
 			t.Errorf("expected default template to reference scaffolding vault paths")
@@ -3265,6 +3274,379 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 					t.Errorf("expected doc file %q to contain v0.4.3 term %q", docPath, required)
 				}
 			}
+		}
+	}
+}
+
+// catalogRequiredFieldNames returns the required field names of a queried
+// message artifact. Fixture checks below are judged against this
+// catalog-derived set, so removing a catalog requirement flips them.
+func catalogRequiredFieldNames(artifact knowledge.Artifact) []string {
+	var names []string
+	for _, field := range artifact.Fields {
+		if field.Required {
+			names = append(names, field.Name)
+		}
+	}
+	return names
+}
+
+// catalogRequiredSectionNames returns the required section names of a
+// queried document artifact.
+func catalogRequiredSectionNames(artifact knowledge.Artifact) []string {
+	var names []string
+	for _, sec := range artifact.Sections {
+		if sec.Required {
+			names = append(names, sec.Name)
+		}
+	}
+	return names
+}
+
+// reportFixtureAdmitted admits a fixture field map exactly when it carries
+// every catalog-required report field.
+func reportFixtureAdmitted(fixture map[string]string, required []string) bool {
+	for _, name := range required {
+		if _, ok := fixture[name]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// nameSetsEqual reports sorted set equality for comma-joined name lists.
+func nameSetsEqual(a, b string) bool {
+	splitA := strings.Split(a, ",")
+	splitB := strings.Split(b, ",")
+	if len(splitA) != len(splitB) {
+		return false
+	}
+	sortedA := slices.Clone(splitA)
+	sortedB := slices.Clone(splitB)
+	slices.Sort(sortedA)
+	slices.Sort(sortedB)
+	return slices.Equal(sortedA, sortedB)
+}
+
+// specFixtureAdmitted admits a fixture section list exactly when it carries
+// every catalog-required specification section.
+func specFixtureAdmitted(present []string, required []string) bool {
+	have := map[string]bool{}
+	for _, name := range present {
+		have[name] = true
+	}
+	for _, need := range required {
+		if !have[need] {
+			return false
+		}
+	}
+	return true
+}
+
+func TestCLI_E2ESecretsHygiene(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "dev"); err != nil {
+			t.Fatalf("cli.Execute(%v) failed: %v\nStderr: %s", args, err, stderr.String())
+		}
+		return stdout.Bytes()
+	}
+
+	// 1. Rule presence and identity.
+	{
+		var rules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "e2e-secrets-hygiene"), &rules); err != nil {
+			t.Fatalf("failed to decode e2e-secrets-hygiene rule: %v", err)
+		}
+		if len(rules) != 1 {
+			t.Fatalf("expected 1 rule, got %d", len(rules))
+		}
+		rule := rules[0]
+		if rule.ID != "e2e-secrets-hygiene" {
+			t.Errorf("expected ID e2e-secrets-hygiene, got %s", rule.ID)
+		}
+		if rule.Category != "protocol" {
+			t.Errorf("expected category protocol, got %s", rule.Category)
+		}
+		for _, required := range []string{"Secrets Policy", "throwaway", "CLARIFICATION_REQUIRED"} {
+			if !strings.Contains(rule.Details, required) {
+				t.Errorf("expected rule details to reference %q", required)
+			}
+		}
+	}
+
+	// 2. Spec requires the Secrets Policy section.
+	{
+		var artifact knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "e2e-test-spec"), &artifact); err != nil {
+			t.Fatalf("failed to decode e2e-test-spec: %v", err)
+		}
+		found := false
+		for _, sec := range artifact.Sections {
+			if sec.Name == "Secrets Policy" && sec.Required {
+				found = true
+				if !strings.Contains(sec.Description, "real-only") {
+					t.Errorf("expected Secrets Policy to state the narrow exception, got: %s", sec.Description)
+				}
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected e2e-test-spec to require Secrets Policy section")
+		}
+	}
+
+	// 3. Report requires secrets_attestation with format contract.
+	{
+		var artifact knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "e2e-report"), &artifact); err != nil {
+			t.Fatalf("failed to decode e2e-report: %v", err)
+		}
+		found := false
+		for _, field := range artifact.Fields {
+			if field.Name == "secrets_attestation" && field.Required {
+				found = true
+				for _, required := range []string{"ATTESTED:THROWAWAY", "ATTESTED:MIXED", "ENV_BLOCKED", "GENERATOR_UNAVAILABLE", "POLICY_MISSING", "AUTHORIZATION_DENIED", "PROVISIONING_FAILED"} {
+					if !strings.Contains(field.Description, required) {
+						t.Errorf("expected secrets_attestation to reference %q", required)
+					}
+				}
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected e2e-report to require secrets_attestation field")
+		}
+	}
+
+	// 4. Brief carries the conditional credential_authorization field.
+	{
+		var artifact knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "e2e-brief"), &artifact); err != nil {
+			t.Fatalf("failed to decode e2e-brief: %v", err)
+		}
+		found := false
+		for _, field := range artifact.Fields {
+			if field.Name == "credential_authorization" && !field.Required {
+				found = true
+				if !strings.Contains(field.Description, "required if and only if") {
+					t.Errorf("expected credential_authorization to be conditional, got: %s", field.Description)
+				}
+				if !strings.Contains(field.Description, "ATTESTED:MIXED") {
+					t.Errorf("expected credential_authorization to bind MIXED set equality, got: %s", field.Description)
+				}
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected e2e-brief to carry conditional credential_authorization field")
+		}
+	}
+
+	// 5. Flow references policy-driven provisioning, attestation, and admission.
+	{
+		var flow knowledge.Flow
+		if err := json.Unmarshal(queryJSON("flow", "e2e"), &flow); err != nil {
+			t.Fatalf("failed to decode e2e flow: %v", err)
+		}
+		joined := ""
+		for _, step := range flow.Steps {
+			joined += " " + step.Action
+		}
+		for _, required := range []string{"Secrets Policy", "CLARIFICATION_REQUIRED", "ENV_BLOCKED", "secrets_attestation", "allowlist"} {
+			if !strings.Contains(joined, required) {
+				t.Errorf("expected e2e flow to reference %q", required)
+			}
+		}
+	}
+
+	// 6. Documentation synchronization across README.md and SKILL.md.
+	{
+		for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+			content, err := os.ReadFile(docPath)
+			if err != nil {
+				t.Fatalf("failed to read doc file %q: %v", docPath, err)
+			}
+			docStr := string(content)
+			for _, required := range []string{
+				"e2e-secrets-hygiene",
+				"Secrets Policy",
+				"secrets_attestation",
+				"CLARIFICATION_REQUIRED",
+			} {
+				if !strings.Contains(docStr, required) {
+					t.Errorf("expected doc file %q to contain %q", docPath, required)
+				}
+			}
+		}
+	}
+
+	// 7. Catalog-bound invariant assertions. Every material hygiene
+	// invariant is asserted against queried catalog descriptions, so
+	// removing catalog requirements flips these checks.
+	{
+		var rules []knowledge.Rule
+		if err := json.Unmarshal(queryJSON("rule", "explain", "e2e-secrets-hygiene"), &rules); err != nil {
+			t.Fatalf("failed to decode e2e-secrets-hygiene rule: %v", err)
+		}
+		joinedRule := rules[0].Summary + " " + rules[0].Details + " " + strings.Join(rules[0].Guidelines, " ")
+		for _, required := range []string{
+			"Secrets Policy",
+			"throwaway",
+			"never secret file contents",
+			"break-glass",
+			"never enter",
+			"single-run lifetime",
+			"declared purpose",
+			"never provisions",
+			"CLARIFICATION_REQUIRED",
+		} {
+			if !strings.Contains(joinedRule, required) {
+				t.Errorf("expected hygiene rule to state %q", required)
+			}
+		}
+
+		var report knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "e2e-report"), &report); err != nil {
+			t.Fatalf("failed to decode e2e-report: %v", err)
+		}
+		reportDesc := ""
+		for _, field := range report.Fields {
+			if field.Name == "secrets_attestation" {
+				reportDesc = field.Description
+			}
+		}
+		for _, required := range []string{
+			"ATTESTED:THROWAWAY",
+			"ATTESTED:MIXED",
+			"ENV_BLOCKED",
+			"GENERATOR_UNAVAILABLE",
+			"POLICY_MISSING",
+			"AUTHORIZATION_DENIED",
+			"PROVISIONING_FAILED",
+			"sorted",
+			"unique",
+			"duplicates rejected",
+			"comma-joined",
+			"trailing newline",
+			"UTF-8 encoded",
+			"sha256:",
+			"Raw error text is prohibited",
+		} {
+			if !strings.Contains(reportDesc, required) {
+				t.Errorf("expected attestation contract to state %q", required)
+			}
+		}
+
+		var brief knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "e2e-brief"), &brief); err != nil {
+			t.Fatalf("failed to decode e2e-brief: %v", err)
+		}
+		briefDesc := ""
+		for _, field := range brief.Fields {
+			if field.Name == "credential_authorization" {
+				briefDesc = field.Description
+			}
+		}
+		for _, required := range []string{
+			"required if and only if",
+			"purpose",
+			"single-run lifetime",
+			"exactly",
+			"extra or missing",
+		} {
+			if !strings.Contains(briefDesc, required) {
+				t.Errorf("expected authorization contract to state %q", required)
+			}
+		}
+
+		var spec knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", "e2e-test-spec"), &spec); err != nil {
+			t.Fatalf("failed to decode e2e-test-spec: %v", err)
+		}
+		specDesc := ""
+		for _, sec := range spec.Sections {
+			if sec.Name == "Secrets Policy" {
+				specDesc = sec.Description
+			}
+		}
+		for _, required := range []string{
+			"kebab-case",
+			"real-only",
+			"provider",
+			"break-glass",
+			"unconditionally prohibited",
+		} {
+			if !strings.Contains(specDesc, required) {
+				t.Errorf("expected policy contract to state %q", required)
+			}
+		}
+
+		var flow knowledge.Flow
+		if err := json.Unmarshal(queryJSON("flow", "e2e"), &flow); err != nil {
+			t.Fatalf("failed to decode e2e flow: %v", err)
+		}
+		joinedFlow := ""
+		for _, step := range flow.Steps {
+			joinedFlow += " " + step.Action
+		}
+		for _, required := range []string{
+			"policy-less",
+			"no provisioning or container start occurs",
+			"allowlist",
+			"ENV_BLOCKED",
+			"mode matching brief authorization",
+			"E2E_INVALID_EVIDENCE",
+		} {
+			if !strings.Contains(joinedFlow, required) {
+				t.Errorf("expected e2e flow to state %q", required)
+			}
+		}
+
+		// Unattested report fixture rejected. The verdict is driven by
+		// the required field set read from the queried report artifact.
+		requiredReport := catalogRequiredFieldNames(report)
+		complete := map[string]string{}
+		for _, name := range requiredReport {
+			complete[name] = "placeholder"
+		}
+		if !reportFixtureAdmitted(complete, requiredReport) {
+			t.Errorf("complete report fixture rejected, want admission")
+		}
+		withoutAttestation := map[string]string{}
+		for name, value := range complete {
+			withoutAttestation[name] = value
+		}
+		delete(withoutAttestation, "secrets_attestation")
+		if reportFixtureAdmitted(withoutAttestation, requiredReport) {
+			t.Errorf("unattested report fixture accepted, want rejection")
+		}
+
+		// MIXED names not matching brief authorization rejected. The
+		// equality rule itself is asserted against the queried brief
+		// description above; fixtures exercise the boundary.
+		if !nameSetsEqual("api-key,db-password", "db-password,api-key") {
+			t.Errorf("matching MIXED and brief sets rejected, want admission")
+		}
+		if nameSetsEqual("api-key,db-password,extra", "api-key,db-password") {
+			t.Errorf("MIXED names with extra entry accepted, want rejection")
+		}
+		if nameSetsEqual("api-key", "api-key,db-password") {
+			t.Errorf("MIXED names with missing entry accepted, want rejection")
+		}
+
+		// Policy-less specification rejected at preflight contract. The
+		// verdict is driven by the required section set read from the
+		// queried specification artifact.
+		requiredSections := catalogRequiredSectionNames(spec)
+		if specFixtureAdmitted([]string{"Scenario Matrix and Given When Then"}, requiredSections) {
+			t.Errorf("policy-less spec fixture accepted at preflight, want rejection")
+		}
+		if !specFixtureAdmitted(requiredSections, requiredSections) {
+			t.Errorf("policy-bearing spec fixture rejected at preflight, want admission")
 		}
 	}
 }
