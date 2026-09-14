@@ -83,6 +83,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"flow", "blueprint"},
 		{"flow", "blueprint", "--step", "1"},
 		{"flow", "blueprint", "--step", "2"},
+		{"flow", "blueprint", "--step", "3"},
 		{"flow", "build"},
 		{"flow", "review"},
 		{"flow", "commit"},
@@ -129,6 +130,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "anti-rubber-stamp-plan-gate"},
 		{"rule", "explain", "evidence-proportional-persistence"},
 		{"rule", "explain", "mandatory-alignment"},
+		{"rule", "explain", "interaction-contract-gate"},
 		{"rule", "explain", "tdd-reproduction"},
 		{"rule", "explain", "repo-context-storage"},
 		{"rule", "explain", "agents-md-single-writer"},
@@ -615,7 +617,7 @@ func TestCLI_InterfaceStabilityContractTesting(t *testing.T) {
 		"Contract tests must assert observable input/output, side effects, errors, or interoperability at the boundary, not internal implementation details or mere absence of failure.",
 		"A contract test must fail under at least one plausible violating implementation; Reviewer assesses falsifiability through targeted variation where feasible.",
 		"Unexpected cross-boundary dependencies require Planner escalation; Builder must not unilaterally expand scope.",
-		"Contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings; contract tests are required when boundary behavior is added, changed, or insufficiently protected.",
+		"Plan-time Interaction Contracts are design declarations, not implementation tests; behavioral contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings, and behavioral contract tests are required when runtime boundary behavior is added, changed, or insufficiently protected.",
 	}
 	if len(rules[0].Guidelines) != len(expectedGuidelines) {
 		t.Fatalf("expected %d interface-stability-contract-testing guidelines, got %d", len(expectedGuidelines), len(rules[0].Guidelines))
@@ -659,6 +661,255 @@ func TestCLI_InterfaceStabilityContractTesting(t *testing.T) {
 	}
 	if !slices.Contains(reviewer.Responsibilities, "Independently audit component interface stability and verify that contract tests assert genuine behavioral invariants—failing under at least one plausible violating implementation—distinct from TDD bug-fix reproductions.") {
 		t.Error("expected reviewer responsibility to audit falsifiable contract tests")
+	}
+}
+
+func TestCLI_InteractionContractGate(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "v0.1.0"); err != nil {
+			t.Fatalf("query %q failed: %v", strings.Join(args, " "), err)
+		}
+		return stdout.Bytes()
+	}
+
+	var rules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "interaction-contract-gate"), &rules); err != nil {
+		t.Fatalf("failed to decode interaction-contract-gate rule: %v", err)
+	}
+	if len(rules) != 1 || rules[0].ID != "interaction-contract-gate" {
+		t.Fatalf("expected one interaction-contract-gate rule, got %+v", rules)
+	}
+	if len(rules[0].Guidelines) < 10 {
+		t.Fatalf("expected complete interaction-contract policy, got %d guidelines", len(rules[0].Guidelines))
+	}
+	for _, phrase := range []string{
+		"necessary but never substitutes for a distinct contract-review approval",
+		"Write primary Given/When/Then scenarios first",
+		"return names/types or explicit none",
+		"concrete not-applicable rationale",
+		"detailed review criteria never enter Builder handoff",
+		"changed concept, scope, consumer, or sub-plan boundary re-enters its concept gate",
+	} {
+		found := strings.Contains(rules[0].Details, phrase)
+		for _, guideline := range rules[0].Guidelines {
+			found = found || strings.Contains(guideline, phrase)
+		}
+		if !found {
+			t.Errorf("interaction-contract-gate rule must document %q", phrase)
+		}
+	}
+	reuseOrder := rules[0].Guidelines[3]
+	orderedTerms := []string{
+		"After scenario and boundary identification",
+		"owning package first",
+		"repository pkgs/ if present",
+		"never use internal/",
+		"Record searched locations",
+		"when pkgs/ is absent",
+	}
+	previousIndex := -1
+	for _, term := range orderedTerms {
+		index := strings.Index(reuseOrder, term)
+		if index < 0 || index <= previousIndex {
+			t.Fatalf("reuse guideline must preserve ordered evidence %q: %s", orderedTerms, reuseOrder)
+		}
+		previousIndex = index
+	}
+	for _, term := range []string{"no suitable helper", "named typed inputs", "single-consumer helpers in the owning package", "demonstrated multiple consumers", "approved boundary change"} {
+		if !strings.Contains(rules[0].Guidelines[4], term) {
+			t.Errorf("helper contract/locality guideline must contain %q", term)
+		}
+	}
+	if !strings.Contains(rules[0].Guidelines[5], "Finalize principal-function contracts last") || !strings.Contains(rules[0].Guidelines[5], "link each one") {
+		t.Errorf("principal-function contracts must follow reuse evidence and link helpers: %s", rules[0].Guidelines[5])
+	}
+
+	for _, artifactName := range []string{"build-plan", "sub-build-plan"} {
+		var artifact knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", artifactName), &artifact); err != nil {
+			t.Fatalf("failed to decode %s artifact: %v", artifactName, err)
+		}
+		var contractDescription string
+		for _, section := range artifact.Sections {
+			if section.Name == "Interaction Contracts" {
+				if !section.Required {
+					t.Errorf("%s Interaction Contracts must be required", artifactName)
+				}
+				contractDescription = section.Description
+			}
+		}
+		if contractDescription == "" {
+			t.Fatalf("%s must define an Interaction Contracts section", artifactName)
+		}
+		for _, field := range []string{
+			"contract ID and purpose", "owning package and consumer", "named fields/types", "interacting methods",
+			"body-free signatures", "named typed parameters", "return names/types or explicit none",
+			"error outcomes including no error", "Given/When/Then scenario IDs", "relevant side effects",
+			"ordered reuse evidence", "pending contract review", "Reviewer-approved concrete not-applicable rationale",
+		} {
+			if !strings.Contains(contractDescription, field) {
+				t.Errorf("%s Interaction Contracts description missing %q: %s", artifactName, field, contractDescription)
+			}
+		}
+		if slices.Contains(artifact.Visibility, knowledge.RoleScout) {
+			t.Errorf("%s must preserve in-flight artifact visibility, got %v", artifactName, artifact.Visibility)
+		}
+	}
+
+	for _, artifactName := range []string{"review-plan", "sub-review-plan"} {
+		var artifact knowledge.Artifact
+		if err := json.Unmarshal(queryJSON("artifact", artifactName), &artifact); err != nil {
+			t.Fatalf("failed to decode %s artifact: %v", artifactName, err)
+		}
+		if len(artifact.Visibility) != 2 || artifact.Visibility[0] != knowledge.RolePlanner || artifact.Visibility[1] != knowledge.RoleReviewer {
+			t.Errorf("%s must remain Planner/Reviewer-only, got %v", artifactName, artifact.Visibility)
+		}
+		foundReviewSection := false
+		for _, section := range artifact.Sections {
+			if section.Name == "Interaction Contract Review" {
+				foundReviewSection = true
+				if !section.Required || !strings.Contains(section.Description, "independent verification paths") || !strings.Contains(section.Description, "pending") {
+					t.Errorf("%s has incomplete Interaction Contract Review contract: %+v", artifactName, section)
+				}
+			}
+		}
+		if !foundReviewSection {
+			t.Errorf("%s must define a separate Interaction Contract Review section", artifactName)
+		}
+	}
+
+	var blueprintArtifact knowledge.Artifact
+	if err := json.Unmarshal(queryJSON("artifact", "blueprint-plan"), &blueprintArtifact); err != nil {
+		t.Fatalf("failed to decode blueprint-plan artifact: %v", err)
+	}
+	sharedContracts := ""
+	for _, section := range blueprintArtifact.Sections {
+		if section.Name == "Shared Contracts & Invariants" {
+			sharedContracts = section.Description
+		}
+	}
+	if !strings.Contains(sharedContracts, "shared interaction contracts known at blueprint level") || !strings.Contains(sharedContracts, "defer JIT sub-plan-specific contracts") {
+		t.Errorf("blueprint-plan must scope contract design to shared boundaries and defer JIT details: %q", sharedContracts)
+	}
+
+	var planFlow knowledge.Flow
+	if err := json.Unmarshal(queryJSON("flow", "plan"), &planFlow); err != nil {
+		t.Fatalf("failed to decode plan flow: %v", err)
+	}
+	if len(planFlow.Steps) != 8 {
+		t.Fatalf("expected 8 plan-flow steps, got %d", len(planFlow.Steps))
+	}
+	planContractPassTarget := 0
+	for _, condition := range planFlow.Steps[5].Conditions {
+		if condition.When == "CONTRACT_REVIEW_PASS" {
+			planContractPassTarget = condition.Then
+		}
+	}
+	if planContractPassTarget != 8 || planFlow.Steps[7].Actor != knowledge.RolePlanner {
+		t.Errorf("single-plan route must finalize only after the separate contract pass, target=%d step8=%+v", planContractPassTarget, planFlow.Steps[7])
+	}
+
+	var blueprintFlow knowledge.Flow
+	if err := json.Unmarshal(queryJSON("flow", "blueprint"), &blueprintFlow); err != nil {
+		t.Fatalf("failed to decode blueprint flow: %v", err)
+	}
+	if len(blueprintFlow.Steps) != 17 {
+		t.Fatalf("expected 17 blueprint-flow steps, got %d", len(blueprintFlow.Steps))
+	}
+	sharedReviewConditions := make(map[string]int)
+	for _, condition := range blueprintFlow.Steps[2].Conditions {
+		sharedReviewConditions[condition.When] = condition.Then
+	}
+	if blueprintFlow.Steps[2].Actor != knowledge.RoleReviewer || sharedReviewConditions["SHARED_CONTRACT_REVIEW_PASS"] != 5 || sharedReviewConditions["SHARED_CONTRACT_REVIEW_REJECT"] != 4 {
+		t.Errorf("blueprint shared contracts require separate Reviewer approval after Blueprint Gate: %+v conditions=%v", blueprintFlow.Steps[2], sharedReviewConditions)
+	}
+	sharedAmendmentTargets := make(map[string]int)
+	for _, condition := range blueprintFlow.Steps[3].Conditions {
+		sharedAmendmentTargets[condition.When] = condition.Then
+	}
+	if sharedAmendmentTargets["SHARED_CONTRACT_AMENDED"] != 2 || sharedAmendmentTargets["BLUEPRINT_CONCEPT_CHANGED"] != 2 {
+		t.Errorf("shared contract amendments must re-enter Blueprint Gate before shared contract review: %v", sharedAmendmentTargets)
+	}
+	if !strings.Contains(blueprintFlow.Steps[3].Action, "invalidates prior approvals for dependent sub-plans") ||
+		!strings.Contains(blueprintFlow.Steps[4].Action, "Reassess every dependent sub-plan through Sub-Plan and contract gates") {
+		t.Error("contract-rejection amendments must invalidate and reassess dependent sub-plans")
+	}
+	for _, condition := range blueprintFlow.Steps[5].Conditions {
+		if condition.When == "SUBPLAN_PLAN_PASS" && condition.Then != 7 {
+			t.Errorf("SUBPLAN_PLAN_PASS must enter JIT contract design, got step %d", condition.Then)
+		}
+	}
+	if blueprintFlow.Steps[6].Actor != knowledge.RolePlanner || blueprintFlow.Steps[7].Actor != knowledge.RoleReviewer || blueprintFlow.Steps[9].Actor != knowledge.RoleBuilder {
+		t.Errorf("JIT contract design and independent review must precede Builder, got %+v", blueprintFlow.Steps[6:10])
+	}
+	blueprintContractPassTarget := 0
+	for _, condition := range blueprintFlow.Steps[7].Conditions {
+		if condition.When == "CONTRACT_REVIEW_PASS" {
+			blueprintContractPassTarget = condition.Then
+		}
+	}
+	if blueprintContractPassTarget != 10 || !strings.Contains(blueprintFlow.Steps[9].Action, "BLUEPRINT_PASS, SHARED_CONTRACT_REVIEW_PASS, SUBPLAN_PLAN_PASS, and CONTRACT_REVIEW_PASS") {
+		t.Errorf("JIT Builder handoff must require all gate approvals, target=%d action=%q", blueprintContractPassTarget, blueprintFlow.Steps[9].Action)
+	}
+	blueprintRevisionTargets := make(map[string]int)
+	for _, condition := range blueprintFlow.Steps[8].Conditions {
+		blueprintRevisionTargets[condition.When] = condition.Then
+	}
+	if blueprintRevisionTargets["CONTRACT_ONLY_REVISION"] != 8 || blueprintRevisionTargets["SUBPLAN_CONCEPT_CHANGED"] != 6 || blueprintRevisionTargets["SHARED_CONTRACT_CHANGED"] != 2 {
+		t.Errorf("JIT contract rejections must preserve concept-gate re-review: %v", blueprintRevisionTargets)
+	}
+	remediationTargets := make(map[string]int)
+	for _, condition := range blueprintFlow.Steps[11].Conditions {
+		remediationTargets[condition.When] = condition.Then
+	}
+	if remediationTargets["REMEDIATION_DISPATCHED"] != 10 || remediationTargets["CONTRACT_ONLY_REVISION"] != 7 ||
+		remediationTargets["SUBPLAN_CONCEPT_CHANGED"] != 6 || remediationTargets["SHARED_CONTRACT_CHANGED"] != 2 {
+		t.Errorf("code remediation must re-enter design/review when contracts change: %v", remediationTargets)
+	}
+	if !strings.Contains(blueprintFlow.Steps[11].Action, "shared-contract amendments invalidate all dependent sub-plan approvals") {
+		t.Error("code-remediation shared-contract amendments must invalidate dependent sub-plan approvals")
+	}
+	if !strings.Contains(blueprintFlow.Steps[10].Action, "sub-review-plan") || !strings.Contains(blueprintFlow.Steps[15].Action, "admitted E2E evidence") {
+		t.Error("downstream code-review and E2E composition gates must remain distinct and intact")
+	}
+
+	var planner, reviewer, builder knowledge.RoleDefinition
+	if err := json.Unmarshal(queryJSON("role", "planner"), &planner); err != nil {
+		t.Fatalf("failed to decode planner role: %v", err)
+	}
+	if err := json.Unmarshal(queryJSON("role", "reviewer"), &reviewer); err != nil {
+		t.Fatalf("failed to decode reviewer role: %v", err)
+	}
+	if err := json.Unmarshal(queryJSON("role", "builder"), &builder); err != nil {
+		t.Fatalf("failed to decode builder role: %v", err)
+	}
+	if !slices.Contains(planner.Responsibilities, "Author scenario-first, typed Interaction Contracts with ordered helper-reuse evidence; route Builder handoff only after independent concept/method and contract gates pass.") {
+		t.Error("Planner role must own contract authorship and gate ordering")
+	}
+	if !slices.Contains(reviewer.Responsibilities, "Independently approve or reject finalized Interaction Contracts and concrete no-interaction rationales after the concept/method gate; preserve detailed verification criteria in Planner/Reviewer-only review plans.") {
+		t.Error("Reviewer role must independently approve contracts and protect private criteria")
+	}
+	if !slices.Contains(builder.Responsibilities, "Implement only finalized, Reviewer-approved Interaction Contracts in the approved build-plan or sub-build-plan; treat contract declarations as design, not implementation tests.") {
+		t.Error("Builder role must receive only finalized public contracts")
+	}
+	if !slices.Contains(builder.Boundaries, "DO NOT treat a pending Interaction Contracts section or concept/method pass alone as Builder authorization; escalate incomplete or changed public contracts to Planner.") {
+		t.Error("Builder role must not treat pending contracts as authorization")
+	}
+
+	for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+		doc, err := os.ReadFile(docPath)
+		if err != nil {
+			t.Fatalf("failed to read %s: %v", docPath, err)
+		}
+		for _, phrase := range []string{"CONTRACT_REVIEW_PASS", "17-step", "internal/"} {
+			if !strings.Contains(string(doc), phrase) {
+				t.Errorf("%s must document %q consistently with CLI contracts", docPath, phrase)
+			}
+		}
 	}
 }
 
@@ -1508,54 +1759,76 @@ func TestCLI_V030_BlueprintAndGovernance(t *testing.T) {
 		}
 	}
 
-	// 3. Blueprint Flow & Two-Tier Gating
+	// 3. Blueprint Flow & Independent Contract Gate
 	{
 		var bpFlow knowledge.Flow
 		if err := json.Unmarshal(queryJSON("flow", "blueprint"), &bpFlow); err != nil {
 			t.Fatalf("failed to decode blueprint flow: %v", err)
 		}
-		if len(bpFlow.Steps) != 12 {
-			t.Fatalf("expected 12 steps in blueprint flow, got %d", len(bpFlow.Steps))
+		if len(bpFlow.Steps) != 17 {
+			t.Fatalf("expected 17 steps in blueprint flow, got %d", len(bpFlow.Steps))
 		}
 
 		// Assert Blueprint Gate (step 2)
-		if bpFlow.Steps[1].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[1].Action, "Blueprint Gate") {
+		if bpFlow.Steps[1].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[1].Action, "Blueprint concept Gate") {
 			t.Errorf("expected Step 2 to be Reviewer Blueprint Gate, got: %+v", bpFlow.Steps[1])
 		}
 
-		// Assert Sub-Plan Gate (step 4)
-		if bpFlow.Steps[3].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[3].Action, "Sub-Plan Gate") {
-			t.Errorf("expected Step 4 to be Reviewer Sub-Plan Gate, got: %+v", bpFlow.Steps[3])
+		// Assert shared-contract review after Blueprint Gate and required amendment re-entry.
+		if bpFlow.Steps[2].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[2].Action, "blueprint-level shared Interaction Contracts") {
+			t.Errorf("expected Step 3 to independently review shared blueprint contracts, got: %+v", bpFlow.Steps[2])
+		}
+		sharedRevisionTargets := make(map[string]int)
+		for _, condition := range bpFlow.Steps[3].Conditions {
+			sharedRevisionTargets[condition.When] = condition.Then
+		}
+		if sharedRevisionTargets["SHARED_CONTRACT_AMENDED"] != 2 || sharedRevisionTargets["BLUEPRINT_CONCEPT_CHANGED"] != 2 {
+			t.Errorf("shared amendments must return through concept then shared review gates: %v", sharedRevisionTargets)
 		}
 
-		// Assert Mediation (step 7)
-		if bpFlow.Steps[6].Actor != knowledge.RolePlanner || !strings.Contains(bpFlow.Steps[6].Action, "Mediate and sanitize") {
-			t.Errorf("expected Step 7 to be Planner Mediation, got: %+v", bpFlow.Steps[6])
+		// Assert JIT Sub-Plan/contract gates and Builder precondition (steps 6-10).
+		if bpFlow.Steps[5].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[5].Action, "Sub-Plan Gate") {
+			t.Errorf("expected Step 6 to be Reviewer Sub-Plan Gate, got: %+v", bpFlow.Steps[5])
+		}
+		if bpFlow.Steps[6].Actor != knowledge.RolePlanner || !strings.Contains(bpFlow.Steps[6].Action, "Interaction Contracts") ||
+			bpFlow.Steps[7].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[7].Action, "Interaction Contracts") {
+			t.Errorf("expected Steps 7-8 to design and independently review JIT contracts, got: %+v", bpFlow.Steps[6:8])
+		}
+		if bpFlow.Steps[9].Actor != knowledge.RoleBuilder || !strings.Contains(bpFlow.Steps[9].Action, "SHARED_CONTRACT_REVIEW_PASS") {
+			t.Errorf("expected Step 10 Builder handoff to require shared contract approval, got: %+v", bpFlow.Steps[9])
+		}
+		if bpFlow.Steps[11].Actor != knowledge.RolePlanner || !strings.Contains(bpFlow.Steps[11].Action, "Mediate and sanitize") {
+			t.Errorf("expected Step 12 to be Planner Mediation, got: %+v", bpFlow.Steps[11])
+		}
+		if bpFlow.Steps[12].Actor != knowledge.RolePlanner || !strings.Contains(bpFlow.Steps[12].Action, "sub-review-resolution") ||
+			bpFlow.Steps[13].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[13].Action, "sub-review-resolution") {
+			t.Errorf("expected Steps 13-14 to synthesize and verify sub-resolution, got: %+v", bpFlow.Steps[12:14])
+		}
+		if bpFlow.Steps[15].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[15].Action, "Feature Composition Gate") {
+			t.Errorf("expected Step 16 to be Reviewer Feature Composition Gate, got: %+v", bpFlow.Steps[15])
 		}
 
-		// Assert Sub-Resolution Synthesis & Verification (steps 8 & 9)
-		if bpFlow.Steps[7].Actor != knowledge.RolePlanner || !strings.Contains(bpFlow.Steps[7].Action, "sub-review-resolution") {
-			t.Errorf("expected Step 8 to be Planner Sub-Resolution Synthesis, got: %+v", bpFlow.Steps[7])
+		// Assert code review and both shared-contract amendment routes.
+		if !strings.Contains(bpFlow.Steps[10].Action, "When Track B is selected, assert the pinned baseline identity") {
+			t.Errorf("expected blueprint step 11 action to retain Track B identity assertion, got: %s", bpFlow.Steps[10].Action)
 		}
-		if bpFlow.Steps[8].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[8].Action, "sub-review-resolution") {
-			t.Errorf("expected Step 9 to be Reviewer Sub-Resolution Verification, got: %+v", bpFlow.Steps[8])
+		bpStep11Conditions := make(map[string]int)
+		for _, c := range bpFlow.Steps[10].Conditions {
+			bpStep11Conditions[c.When] = c.Then
 		}
-
-		// Assert Feature Composition Gate (step 11)
-		if bpFlow.Steps[10].Actor != knowledge.RoleReviewer || !strings.Contains(bpFlow.Steps[10].Action, "Feature Composition Gate") {
-			t.Errorf("expected Step 11 to be Reviewer Feature Composition Gate, got: %+v", bpFlow.Steps[10])
+		if bpStep11Conditions["BASELINE_STALE"] != 2 || bpStep11Conditions["SUBPLAN_REVIEW_FINDINGS"] != 12 || bpStep11Conditions["SUBPLAN_REVIEW_SATISFIED"] != 13 {
+			t.Errorf("expected blueprint step 11 code-review routing to remain intact, got: %v", bpStep11Conditions)
 		}
-
-		// Assert BASELINE_STALE fail-closed routes and Track B action text
-		if !strings.Contains(bpFlow.Steps[5].Action, "When Track B is selected, assert the pinned baseline identity") {
-			t.Errorf("expected blueprint step 6 action to mention Track B pinned baseline identity, got: %s", bpFlow.Steps[5].Action)
-		}
-		bpStep6Conditions := make(map[string]int)
-		for _, c := range bpFlow.Steps[5].Conditions {
-			bpStep6Conditions[c.When] = c.Then
-		}
-		if bpStep6Conditions["BASELINE_STALE"] != 2 {
-			t.Errorf("expected blueprint step 6 BASELINE_STALE condition to point to step 2, got: %v", bpStep6Conditions)
+		for _, stepIndex := range []int{8, 11} {
+			sharedChangeReturnsToBlueprint := false
+			for _, condition := range bpFlow.Steps[stepIndex].Conditions {
+				if condition.When == "SHARED_CONTRACT_CHANGED" && condition.Then == 2 {
+					sharedChangeReturnsToBlueprint = true
+				}
+			}
+			if !sharedChangeReturnsToBlueprint {
+				t.Errorf("shared contract amendment from blueprint step %d must re-enter Blueprint Gate", stepIndex+1)
+			}
 		}
 
 		var revFlow knowledge.Flow
@@ -2908,8 +3181,8 @@ func TestCLI_SubPlan02_LifecycleAndAcceptanceIntegration(t *testing.T) {
 	// 5. Living memory templates version and budget check
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.0") && !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") && !strings.Contains(def, "v0.4.4") {
-			t.Errorf("expected default template to contain v0.4.0, v0.4.1, v0.4.2, v0.4.3, or v0.4.4")
+		if !strings.Contains(def, "v0.4.0") && !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") && !strings.Contains(def, "v0.4.4") && !strings.Contains(def, "v0.4.5") {
+			t.Errorf("expected default template to contain v0.4.0, v0.4.1, v0.4.2, v0.4.3, v0.4.4, or v0.4.5")
 		}
 		min := cli.MinimalLivingMemoryTemplate()
 		lines := strings.Split(strings.TrimSpace(min), "\n")
@@ -3090,8 +3363,8 @@ func TestCLI_NavigatorCartographyIntegration(t *testing.T) {
 	// 5. Living Memory Templates version, content, and budget
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") && !strings.Contains(def, "v0.4.4") {
-			t.Errorf("expected default template to contain v0.4.1, v0.4.2, v0.4.3, or v0.4.4")
+		if !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") && !strings.Contains(def, "v0.4.4") && !strings.Contains(def, "v0.4.5") {
+			t.Errorf("expected default template to contain v0.4.1, v0.4.2, v0.4.3, v0.4.4, or v0.4.5")
 		}
 		if !strings.Contains(def, "navigator-cartography") {
 			t.Errorf("expected default template to contain navigator-cartography")
@@ -3229,8 +3502,8 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 	// 4. Verify Living Memory Templates version, vault content, and budget
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.4") {
-			t.Errorf("expected default template to contain v0.4.4")
+		if !strings.Contains(def, "v0.4.5") {
+			t.Errorf("expected default template to contain v0.4.5")
 		}
 		if !strings.Contains(def, "~/.agentplaybook/<project>/plan") || !strings.Contains(def, "~/.agentplaybook/<project>/e2e") {
 			t.Errorf("expected default template to reference scaffolding vault paths")

@@ -62,7 +62,7 @@ func TestFlow_QueryFull(t *testing.T) {
 		}
 	}
 
-	// 2. plan flow (reviewability and Track B)
+	// 2. plan flow (independent concept/method and Interaction Contract gates)
 	{
 		var stdout, stderr bytes.Buffer
 		err := cli.Execute([]string{"flow", "plan"}, &stdout, &stderr, "dev")
@@ -74,8 +74,8 @@ func TestFlow_QueryFull(t *testing.T) {
 		if err := json.Unmarshal(stdout.Bytes(), &f); err != nil {
 			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
 		}
-		if len(f.Steps) != 5 {
-			t.Fatalf("expected 5 steps in plan flow, got %d", len(f.Steps))
+		if len(f.Steps) != 8 {
+			t.Fatalf("expected 8 steps in plan flow, got %d", len(f.Steps))
 		}
 		if !strings.Contains(f.Steps[0].Action, "Hierarchical Blueprint") {
 			t.Errorf("expected plan step 1 action to mention Hierarchical Blueprint, got: %s", f.Steps[0].Action)
@@ -83,9 +83,36 @@ func TestFlow_QueryFull(t *testing.T) {
 		if !strings.Contains(f.Steps[2].Action, "Counterfactual Decomposition Challenge") {
 			t.Errorf("expected plan step 3 action to mention Counterfactual Decomposition Challenge, got: %s", f.Steps[2].Action)
 		}
+		phase1Conditions := make(map[string]int)
+		for _, condition := range f.Steps[2].Conditions {
+			phase1Conditions[condition.When] = condition.Then
+		}
+		if phase1Conditions["PLAN_REVIEW_PASS"] != 5 || phase1Conditions["PLAN_REVIEW_REJECT"] != 4 {
+			t.Errorf("unexpected phase-1 plan gate transitions: %v", phase1Conditions)
+		}
+		if f.Steps[4].Actor != knowledge.RolePlanner || !strings.Contains(f.Steps[4].Action, "scenario-driven interaction boundaries") {
+			t.Errorf("expected step 5 to draft interaction contracts after concept pass, got: %+v", f.Steps[4])
+		}
+		contractConditions := make(map[string]int)
+		for _, condition := range f.Steps[5].Conditions {
+			contractConditions[condition.When] = condition.Then
+		}
+		if f.Steps[5].Actor != knowledge.RoleReviewer || contractConditions["CONTRACT_REVIEW_PASS"] != 8 || contractConditions["CONTRACT_REVIEW_REJECT"] != 7 {
+			t.Errorf("unexpected contract review gate: %+v, transitions=%v", f.Steps[5], contractConditions)
+		}
+		revisionConditions := make(map[string]int)
+		for _, condition := range f.Steps[6].Conditions {
+			revisionConditions[condition.When] = condition.Then
+		}
+		if revisionConditions["CONTRACT_ONLY_REVISION"] != 6 || revisionConditions["FOUNDATION_OR_SCOPE_CHANGED"] != 2 {
+			t.Errorf("unexpected contract revision transitions: %v", revisionConditions)
+		}
+		if !strings.Contains(f.Steps[7].Action, "PLAN_REVIEW_PASS and CONTRACT_REVIEW_PASS") {
+			t.Errorf("expected finalization to require both approvals, got: %s", f.Steps[7].Action)
+		}
 	}
 
-	// 3. blueprint flow (12 steps)
+	// 3. blueprint flow (17 steps; shared and JIT contract gates before Builder)
 	{
 		var stdout, stderr bytes.Buffer
 		err := cli.Execute([]string{"flow", "blueprint"}, &stdout, &stderr, "dev")
@@ -97,21 +124,85 @@ func TestFlow_QueryFull(t *testing.T) {
 		if err := json.Unmarshal(stdout.Bytes(), &f); err != nil {
 			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
 		}
-		if len(f.Steps) != 12 {
-			t.Fatalf("expected 12 steps in blueprint flow, got %d", len(f.Steps))
+		if len(f.Steps) != 17 {
+			t.Fatalf("expected 17 steps in blueprint flow, got %d", len(f.Steps))
 		}
 		if f.Steps[0].Actor != knowledge.RolePlanner || f.Steps[1].Actor != knowledge.RoleReviewer {
 			t.Errorf("unexpected actors in blueprint steps 1-2: %s, %s", f.Steps[0].Actor, f.Steps[1].Actor)
 		}
-		if !strings.Contains(f.Steps[5].Action, "When Track B is selected, assert the pinned baseline identity") {
-			t.Errorf("expected blueprint step 6 action to mention Track B pinned baseline identity assertion, got: %s", f.Steps[5].Action)
+		blueprintGateConditions := make(map[string]int)
+		for _, condition := range f.Steps[1].Conditions {
+			blueprintGateConditions[condition.When] = condition.Then
 		}
-		bpStep6Conditions := make(map[string]int)
-		for _, c := range f.Steps[5].Conditions {
-			bpStep6Conditions[c.When] = c.Then
+		if blueprintGateConditions["BLUEPRINT_PASS"] != 3 || blueprintGateConditions["BLUEPRINT_REJECT"] != 1 {
+			t.Errorf("unexpected Blueprint Gate transitions: %v", blueprintGateConditions)
 		}
-		if bpStep6Conditions["BASELINE_STALE"] != 2 {
-			t.Errorf("expected blueprint step 6 BASELINE_STALE condition to point to step 2, got: %v", bpStep6Conditions)
+		if f.Steps[2].Actor != knowledge.RoleReviewer || !strings.Contains(f.Steps[2].Action, "blueprint-level shared Interaction Contracts") {
+			t.Errorf("expected step 3 to separately review shared blueprint contracts after Blueprint Gate, got: %+v", f.Steps[2])
+		}
+		sharedConditions := make(map[string]int)
+		for _, condition := range f.Steps[2].Conditions {
+			sharedConditions[condition.When] = condition.Then
+		}
+		if sharedConditions["SHARED_CONTRACT_REVIEW_PASS"] != 5 || sharedConditions["SHARED_CONTRACT_REVIEW_REJECT"] != 4 {
+			t.Errorf("unexpected shared contract gate transitions: %v", sharedConditions)
+		}
+		sharedRevisionConditions := make(map[string]int)
+		for _, condition := range f.Steps[3].Conditions {
+			sharedRevisionConditions[condition.When] = condition.Then
+		}
+		if sharedRevisionConditions["SHARED_CONTRACT_AMENDED"] != 2 || sharedRevisionConditions["BLUEPRINT_CONCEPT_CHANGED"] != 2 {
+			t.Errorf("shared contract amendments must re-enter Blueprint Gate before contract review: %v", sharedRevisionConditions)
+		}
+		if !strings.Contains(f.Steps[3].Action, "invalidates prior approvals for dependent sub-plans") {
+			t.Errorf("shared contract amendment must invalidate dependent approvals, got: %s", f.Steps[3].Action)
+		}
+		if !strings.Contains(f.Steps[4].Action, "Reassess every dependent sub-plan through Sub-Plan and contract gates") {
+			t.Errorf("shared contract approval must restart dependent JIT assessments, got: %s", f.Steps[4].Action)
+		}
+		if f.Steps[5].Actor != knowledge.RoleReviewer || !strings.Contains(f.Steps[5].Action, "Sub-Plan Gate") {
+			t.Errorf("expected step 6 to remain the JIT Sub-Plan Gate, got: %+v", f.Steps[5])
+		}
+		if f.Steps[6].Actor != knowledge.RolePlanner || f.Steps[7].Actor != knowledge.RoleReviewer || f.Steps[9].Actor != knowledge.RoleBuilder {
+			t.Errorf("expected JIT contract design/review before Builder handoff, got steps 7-10: %+v", f.Steps[6:10])
+		}
+		contractConditions := make(map[string]int)
+		for _, condition := range f.Steps[7].Conditions {
+			contractConditions[condition.When] = condition.Then
+		}
+		if contractConditions["CONTRACT_REVIEW_PASS"] != 10 || contractConditions["CONTRACT_REVIEW_REJECT"] != 9 {
+			t.Errorf("unexpected JIT contract gate transitions: %v", contractConditions)
+		}
+		if !strings.Contains(f.Steps[9].Action, "SHARED_CONTRACT_REVIEW_PASS") {
+			t.Errorf("Builder handoff must require shared contract approval, got: %s", f.Steps[9].Action)
+		}
+		revisionConditions := make(map[string]int)
+		for _, condition := range f.Steps[8].Conditions {
+			revisionConditions[condition.When] = condition.Then
+		}
+		if revisionConditions["CONTRACT_ONLY_REVISION"] != 8 || revisionConditions["SUBPLAN_CONCEPT_CHANGED"] != 6 || revisionConditions["SHARED_CONTRACT_CHANGED"] != 2 {
+			t.Errorf("unexpected contract revision transitions: %v", revisionConditions)
+		}
+		if !strings.Contains(f.Steps[10].Action, "When Track B is selected, assert the pinned baseline identity") {
+			t.Errorf("expected blueprint step 11 action to retain Track B pinned baseline identity assertion, got: %s", f.Steps[10].Action)
+		}
+		bpStep11Conditions := make(map[string]int)
+		for _, c := range f.Steps[10].Conditions {
+			bpStep11Conditions[c.When] = c.Then
+		}
+		if bpStep11Conditions["BASELINE_STALE"] != 2 || bpStep11Conditions["SUBPLAN_REVIEW_FINDINGS"] != 12 || bpStep11Conditions["SUBPLAN_REVIEW_SATISFIED"] != 13 {
+			t.Errorf("expected blueprint step 11 code-review transitions to remain intact, got: %v", bpStep11Conditions)
+		}
+		remediationConditions := make(map[string]int)
+		for _, condition := range f.Steps[11].Conditions {
+			remediationConditions[condition.When] = condition.Then
+		}
+		if remediationConditions["REMEDIATION_DISPATCHED"] != 10 || remediationConditions["CONTRACT_ONLY_REVISION"] != 7 ||
+			remediationConditions["SUBPLAN_CONCEPT_CHANGED"] != 6 || remediationConditions["SHARED_CONTRACT_CHANGED"] != 2 {
+			t.Errorf("unexpected remediation routing for contract changes: %v", remediationConditions)
+		}
+		if !strings.Contains(f.Steps[11].Action, "shared-contract amendments invalidate all dependent sub-plan approvals") {
+			t.Errorf("code-remediation shared-contract change must invalidate dependent approvals, got: %s", f.Steps[11].Action)
 		}
 	}
 

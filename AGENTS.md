@@ -2,7 +2,7 @@
 
 ## Architectural Topology & Jurisdictions
 
-- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook` v0.4.1). Roles: `planner`, `reviewer`, `builder`, `scout`, `verifier` (category: `core`), `navigator`, `cartographer` (category: `companion`). Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`, `cartography`, `navigator-cartography`, `session-handoff`, `e2e`. Memory: living `AGENTS.md`.
+- **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook` v0.4.5). Roles: `planner`, `reviewer`, `builder`, `scout`, `verifier` (category: `core`), `navigator`, `cartographer` (category: `companion`). Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`, `cartography`, `navigator-cartography`, `session-handoff`, `e2e`. Memory: living `AGENTS.md`.
 - **External Interfaces**: Go CLI (`agentplaybook`) discovery commands (`role`, `flow`, `artifact`, `rule`) and scaffolding (`init`) with JSON/markdown output.
 - **Artifact Governance**: Hierarchical structure with `blueprint-plan` (`<slug>.blueprint.md`), `sub-build-plan` (`sub/<slug>.build.md`), `sub-review-plan` (`sub/<slug>.review.md`), `sub-review-resolution` (`sub/<slug>.resolution.md`), top-level `review-resolution` (`<slug>.resolution.md`), `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-test-spec`, `e2e-clarification-request`, and `e2e-report`.
 - **Blind Barrier, Scout Isolation & Companion/Verifier Allowlists**: `review-findings` strictly restricted to `["planner", "reviewer"]`; Builder receives only Planner-sanitized remediation instructions. Scout strictly excluded from all task in-flight artifacts (`build-plan`, `review-plan`, `blueprint-plan`, `sub-*`, `review-findings`). Navigator, Cartographer, and Verifier visibility strictly constrained by Settled-Artifact Allowlist (`agents-md`, `review-resolution`, `sub-review-resolution`) plus authorized domain message artifacts (`diagram-brief`, `diagram-completion`, `diagram-clarification-request` for companions; `e2e-brief`, `e2e-report`, `e2e-test-spec`, `e2e-clarification-request` for verifier); in-flight draft plans and review artifacts strictly exclude companions and verifier. Navigator acts only in `navigator-cartography` flow; Cartographer owns only `diagram-completion` and `diagram-clarification-request` and acts only in `cartography` and `navigator-cartography` flows; Verifier owns `e2e-report` and `e2e-clarification-request`, and acts only in `e2e` flow.
@@ -45,6 +45,7 @@
 - **Conventional Commits**: Messages follow Conventional Commits specification (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`). Concise header without plan slug or `00_` prefix.
 - **No Background Auto-Update**: Updates user-initiated only. Runner never polls, downloads, or mutates repository in background without explicit invocation.
 - **Coherent Plan Units & Anti-Rubber-Stamp Gate**: Sub-plans authored Just-In-Time (JIT) from high-level Blueprint plans. Single change request decomposed into coherent sub-plans by architectural layers, bounded contexts, or independent invariants. Reviewer must independently challenge excessive consolidation.
+- **Interaction Contract Gates**: Concept/method review precedes separate Reviewer `CONTRACT_REVIEW_PASS`; pending contract sections never authorize Builder handoff. Blueprint shared-contract review precedes per-sub-plan concept and contract gates; shared amendments invalidate dependent approvals and re-enter both Blueprint gates before JIT reassessment. Preserve code review and E2E admission as independent later gates.
 - **Finding Severity**: Exactly `Blocker`, `Major`, `Minor`, `Other`. Unresolved Blocker blocks `REVIEW_PASS`; Major requires resolution or documented Planner waiver; Minor/Other non-blocking.
 - **Verification Tracks**: Track A covers local behavioral RED/GREEN. Non-behavioral findings use static/specification evidence. Optional Track B covers complete action differentials with pinned baseline identity tuple `(repository_identity, baseline_identity)` and fails closed (`BASELINE_STALE`) on baseline drift.
 
@@ -52,9 +53,11 @@
 
 - **CLI Role Discovery Sole Truth**: Query roles via `agentplaybook role <name>` backed by `internal/data/roles.json`.
 - **Step Sequence Validation**: `validate.go` requires linear steps to sequence to `Index+1`. Conditional branches require explicit condition targets.
+- **Contract Flow Indices**: `flow plan` has 8 steps; `flow blueprint` has 17. Recheck numeric references in docs and tests when changing either flow.
 - **Go Embed Data Invalidation**: `internal/data/*.json` embedded via `embed.go`. Syntax errors invalidate full CLI test suite.
 - **`rtk git diff` Path Scope**: Include `--no-ext-diff` before `--` to prevent path filters being parsed as revisions.
 - **`flow commit` Non-Mutating Command**: `agentplaybook flow commit` queryable workflow metadata only; coordinator flow, not mutating binary CLI command.
+- **Release Version Parity**: `scripts/VERSION` must match release tag; `.github/workflows/release.yml` rejects mismatches. Sync standard `agentplaybook init` header in `internal/cli/template.go` and assertions in `internal/cli/init_test.go` and `internal/cli/matrix_test.go` for each release.
 - **`AGENTPLAYBOOK_DEV=1` Cache Race**: Concurrent CLI queries with `AGENTPLAYBOOK_DEV=1` trigger build race on cache (`text file busy`). Run development queries sequentially.
 - **Stateless Replaceability**: Builder stateless/disposable. Bloated or rate-limited sessions replaced from approved build plans without compaction token overhead.
 - **Artifact Data Shape**: Message artifacts use `ArtifactField`; document artifacts use `ArtifactSection`. JSON syntax or missing embedded rule/artifact references invalidate the CLI test suite.
@@ -74,9 +77,9 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-09-10T19:52:10Z @ ab1d4c7c`
-- **Dirty Status**: Uncommitted. E2E secrets hygiene complete. `REVIEW_PASS` achieved (plan gate 4 rounds + A1/A2 amendments, code gate 2 rounds). Verified: 262 tests pass, race clean, vet clean, secret scan clean.
-- **Milestone**: `e2e-secrets-hygiene` - `RESOLVED_PASS` (v0.4.4).
+- **Observed-At**: `2026-09-30T12:29:03Z @ ef85397f`
+- **Dirty Status**: Reviewed four-file v0.4.5 alignment plus Planner-owned `AGENTS.md` update; unrelated pre-existing `opencode.json` excluded from candidate. Local squash and publication pending.
+- **Milestone**: `v0-4-5-release-alignment` - code `REVIEW_PASS`; E2E not required with reviewed rationale.
 - **Scaffolding Vault**: project-first `~/.agentplaybook/<project>/{plan,e2e}` (single root binding; legacy type-first auto-migrates).
-- **Next Pickup Item**: Step 7 commit authorization gate - await explicit user auth to seal via `jj commit` (push + tag require separate auth).
+- **Next Pickup Item**: Complete `AGENTS.md` barrier check, scoped candidate secret scan, and approved squash into `nlosltnz`; verify `main`/`v0.4.5` refs before authorized remote publication. Exclude `opencode.json`.
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

@@ -233,14 +233,18 @@ The `session-handoff-audit` rule formalizes these handover elements and audit pr
 
 ## Interface Stability & Contract Testing
 
-The `interface-stability-contract-testing` rule governs component boundaries and the tests that protect them:
+The `interaction-contract-gate` rule separates plan-time Interaction Contract design/review from runtime behavioral contract tests:
 
+- Define primary Given/When/Then scenarios first, then identify actual interaction boundaries and consumers. Record only interacting symbols: struct named fields/types, interface methods, and body-free function signatures with named typed parameters, return names/types or explicit none, error outcomes, scenario IDs/observable outcomes, and relevant side effects.
+- Require ordered reuse evidence after boundary identification and before principal-function contracts: owning package first, repository `pkgs/` second if present; record when `pkgs/` is absent; never use repository `internal/` as a shared-helper search target. Record locations, candidates, and suitability. Specify a typed helper contract if no suitable helper exists; keep single-consumer helpers local and propose shared helpers only for demonstrated multiple consumers plus approved boundary change. Finalize principal functions last and link each helper.
+- Record concrete not-applicable rationale when no interaction exists. Phase-1 drafts may mark contracts pending, but are never Builder-ready. `review-plan` and `sub-review-plan` carry a separate Reviewer-only Interaction Contract Review section; preserve its detailed criteria from Builder handoff and shared resolution.
+- `PLAN_REVIEW_PASS` and `SUBPLAN_PLAN_PASS` remain necessary but are not sufficient for Builder routing. Planner contract-only revisions return to contract review; changed intent, scope, consumers, or sub-plan boundaries re-enter the applicable concept gate. Blueprint-level review covers known shared interactions; defer JIT details to each sub-plan. Shared-contract changes return to Blueprint Gate and invalidate dependent approvals.
 - A build plan must identify all affected boundary symbols, endpoints, schemas, files, or consumer contracts, or explicitly state that no external boundary is affected.
 - Interface changes require a plan amendment before implementation, identifying affected consumers and compatibility or migration handling.
-- Contract tests must assert observable input/output, side effects, errors, or interoperability at the boundary, not internal implementation details or mere absence of failure.
-- A contract test must fail under at least one plausible violating implementation; Reviewer assesses falsifiability through targeted variation where feasible.
+- Behavioral contract tests must assert observable input/output, side effects, errors, or interoperability at the runtime boundary, not design prose, internal implementation details, or mere absence of failure.
+- A behavioral contract test must fail under at least one plausible violating implementation; Reviewer assesses falsifiability through targeted variation where feasible.
 - Unexpected cross-boundary dependencies require Planner escalation; Builder must not unilaterally expand scope.
-- Contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings; contract tests are required when boundary behavior is added, changed, or insufficiently protected.
+- Interaction Contract declarations are not implementation tests. Behavioral contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings; behavioral contract tests are required when runtime boundary behavior is added, changed, or insufficiently protected.
 
 ## AI Reviewer Spec & Verification Governance
 
@@ -298,24 +302,32 @@ AgentPlaybook v0.3.0 establishes hierarchical blueprinting and two-tier gating f
    Distinguishes `WORKING != ACCEPTED != PUBLISHED`. Milestone acceptance seals reviewed revisions locally as `ACCEPTED` under Planner VCS governance, strictly upholding Finalization Equivalence ($\text{tree}(\text{Final}) == \text{tree}(\text{Verified})$) with zero unstaged drift. Remote publication (`PUBLISHED`) requires explicit separate human authorization.
 5. **Two-Tier Gating & Composition Review**:
    - `Blueprint Gate`: Reviewer validates architectural coherence, public contracts, and sub-plan boundary definitions before implementation.
-   - `Sub-Plan Gate`: Reviewer validates JIT sub-build (with mandatory `E2E Verification`) and sub-review (with mandatory `E2E Coverage`) plan pairs for verification coverage.
+   - `Blueprint Shared Contract Gate`: Reviewer independently reviews shared blueprint Interaction Contracts after concept review; amendments invalidate dependent sub-plan approvals, rerun both Blueprint gates, and require affected JIT plans to pass concept and contract gates again.
+   - `Sub-Plan Gate`: Reviewer validates JIT sub-build (with mandatory `E2E Verification`) and sub-review (with mandatory `E2E Coverage`) plan pairs for concept and verification coverage; a separate per-sub-plan Interaction Contract Gate is required before Builder handoff.
    - `Feature Composition Gate`: Reviewer evaluates global composition across all completed sub-plans, shared contracts, regression suites, and required admitted E2E evidence (or reviewed exemption) before milestone acceptance.
 
-## Deterministic Hierarchical Blueprint Flow (`flow blueprint`)
+## Deterministic Planning and Hierarchical Blueprint Flows
 
-The `blueprint` flow defines a 12-step deterministic lifecycle:
+The `plan` flow has two independent approvals. Phase 1 retains concept/method review and the Counterfactual Decomposition Challenge. After `PLAN_REVIEW_PASS`, Planner finalizes scenario-first Interaction Contracts (shared interactions only for a blueprint) and Reviewer independently approves them with `CONTRACT_REVIEW_PASS`; only then does Planner finalize and route. Contract-only revision returns to contract review; changed concept, scope, consumers, or shared boundaries re-enter phase 1. `flow build` requires both approvals and cannot bypass either gate.
+
+The `blueprint` flow defines a 17-step deterministic lifecycle:
 1. Planner authors hierarchical architecture plan (`<slug>.blueprint.md`).
 2. Reviewer executes Blueprint Gate (`BLUEPRINT_PASS` -> 3; `BLUEPRINT_REJECT` -> 1).
-3. Planner authors JIT sub-plan pairs `sub/<slug>.build.md` (with mandatory `E2E Verification`) and `sub/<slug>.review.md` (with mandatory `E2E Coverage`).
-4. Reviewer executes Sub-Plan Gate (`SUBPLAN_PLAN_PASS` -> 5; `SUBPLAN_PLAN_REJECT` -> 3).
-5. Builder implements sub-build plan and executes self-tests.
-6. Reviewer inspects diffs and reports findings (`SUBPLAN_REVIEW_FINDINGS` -> 7; `SUBPLAN_REVIEW_SATISFIED` -> 8; `BLUEPRINT_REVIEW_REQUIRED` -> 2).
-7. Planner mediates and sanitizes findings (`REMEDIATION_DISPATCHED` -> 5).
-8. Planner synthesizes sanitized sub-resolution (`sub/<slug>.resolution.md`).
-9. Reviewer verifies sub-resolution (`SUBPLAN_REVIEW_PASS_MORE_SUBPLANS` -> 3; `SUBPLAN_REVIEW_PASS_ALL_COMPLETED` -> 10; `RESOLUTION_REJECTED` -> 8).
-10. Planner synthesizes master feature composition resolution (`<slug>.resolution.md`).
-11. Reviewer executes Feature Composition Gate confirming `FEATURE_REVIEW_PASS` only after required admitted E2E evidence or reviewed exemption (`FEATURE_REVIEW_PASS` -> 12; `FEATURE_REVIEW_REJECT` -> 3; `DEPENDENT_EVIDENCE_STALE` -> 2).
-12. Planner triggers Governed Milestone Acceptance.
+3. Reviewer independently reviews blueprint-level shared Interaction Contracts after Blueprint Gate (`SHARED_CONTRACT_REVIEW_PASS` -> 5; `SHARED_CONTRACT_REVIEW_REJECT` -> 4).
+4. Planner revises shared contracts (`SHARED_CONTRACT_AMENDED`/`BLUEPRINT_CONCEPT_CHANGED` -> 2), invalidating dependent sub-plan approvals and forcing concept re-review then shared-contract re-review.
+5. Planner resumes at the earliest affected/next ordered JIT unit, creating or refreshing the sub-plan pair with mandatory `E2E Verification`/`E2E Coverage`; reassess every dependent sub-plan through Sub-Plan and contract gates, never reusing approvals invalidated by shared-contract changes.
+6. Reviewer executes Sub-Plan Gate (`SUBPLAN_PLAN_PASS` -> 7; `SUBPLAN_PLAN_REJECT` -> 5).
+7. Planner finalizes scenario-driven contracts and ordered reuse evidence for current sub-plan.
+8. Reviewer independently reviews JIT contracts or no-interaction rationale (`CONTRACT_REVIEW_PASS` -> 10; `CONTRACT_REVIEW_REJECT` -> 9).
+9. Planner revises contracts (`CONTRACT_ONLY_REVISION` -> 8; `SUBPLAN_CONCEPT_CHANGED` -> 6; `SHARED_CONTRACT_CHANGED` -> 2, invalidating dependent approvals and resuming earliest-affected JIT reassessment after both Blueprint gates).
+10. Builder implements only after Blueprint, shared-contract, Sub-Plan, and JIT contract approvals.
+11. Reviewer inspects code (`SUBPLAN_REVIEW_FINDINGS` -> 12; `SUBPLAN_REVIEW_SATISFIED` -> 13; `BLUEPRINT_REVIEW_REQUIRED`/`BASELINE_STALE` -> 2).
+12. Planner mediates findings (`REMEDIATION_DISPATCHED` -> 10; `CONTRACT_ONLY_REVISION` -> 7; `SUBPLAN_CONCEPT_CHANGED` -> 6; `SHARED_CONTRACT_CHANGED` -> 2, invalidating all dependent sub-plan approvals and requiring earliest-affected JIT reassessment after both Blueprint gates).
+13. Planner synthesizes sanitized sub-resolution (`sub/<slug>.resolution.md`).
+14. Reviewer verifies sub-resolution (`SUBPLAN_REVIEW_PASS_MORE_SUBPLANS` -> 5; `SUBPLAN_REVIEW_PASS_ALL_COMPLETED` -> 15; `RESOLUTION_REJECTED` -> 13).
+15. Planner synthesizes master feature composition resolution (`<slug>.resolution.md`).
+16. Reviewer executes Feature Composition Gate (`FEATURE_REVIEW_PASS` -> 17; `FEATURE_REVIEW_REJECT` -> 5; `DEPENDENT_EVIDENCE_STALE` -> 2), retaining required admitted E2E evidence or reviewed not-required rationale.
+17. Planner triggers Governed Milestone Acceptance.
 
 ## Ephemeral Communication Buffers
 

@@ -45,7 +45,7 @@
   {
     "name": "build-plan",
     "title": "Build Plan",
-    "description": "Task-specific implementation plan authored and persisted in the out-of-tree plan vault (~/.agentplaybook/<project>/plan/) and provided to Builder upon passing the planning gate.",
+    "description": "Task-specific implementation plan authored and persisted in the out-of-tree plan vault (~/.agentplaybook/<project>/plan/) and provided to Builder only after both concept/method and interaction-contract review gates pass.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -85,6 +85,11 @@
         "description": "Concrete conditions that determine successful implementation."
       },
       {
+        "name": "Interaction Contracts",
+        "required": true,
+        "description": "Scenario-first, Builder-visible declarations for actual interacting symbols only: contract ID and purpose; owning package and consumer; structs with named fields/types; interfaces with interacting methods; and functions with body-free signatures and named typed parameters. Record return names/types or explicit none, error outcomes including no error, Given/When/Then scenario IDs and observable outcomes, and relevant side effects. Include ordered reuse evidence and link each principal function to usable or planned helpers. A phase-1 draft may mark this section pending contract review, but Builder handoff requires finalized contracts or a Reviewer-approved concrete not-applicable rationale; never include implementation bodies."
+      },
+      {
         "name": "Local Verification Commands",
         "required": true,
         "description": "Exact test commands Builder must execute and pass locally before submission."
@@ -121,6 +126,11 @@
         "name": "Invariants & Boundaries",
         "required": true,
         "description": "Architectural rules, non-functional requirements, and anti-cheating invariants to uphold."
+      },
+      {
+        "name": "Interaction Contract Review",
+        "required": true,
+        "description": "Reviewer-only independent verification paths for each public interaction contract or not-applicable rationale, including scenario-to-boundary traceability, typed contract completeness, ordered reuse evidence, helper locality/abstraction, and principal-function/helper links. A phase-1 draft may mark this section pending; final criteria remain private to Planner and Reviewer."
       },
       {
         "name": "Edge Cases & Failure Scenarios",
@@ -169,7 +179,7 @@
       {
         "name": "Shared Contracts & Invariants",
         "required": true,
-        "description": "Public APIs, schemas, shared contracts, and non-functional invariants spanning all sub-plans."
+        "description": "Public APIs, schemas, shared interaction contracts known at blueprint level, and non-functional invariants spanning sub-plans; defer JIT sub-plan-specific contracts to their separate contract gate."
       },
       {
         "name": "Sub-Plan Sequence",
@@ -186,7 +196,7 @@
   {
     "name": "sub-build-plan",
     "title": "Sub-Build Plan",
-    "description": "Task-specific implementation plan for an individual sub-plan unit persisted in the out-of-tree plan vault (~/.agentplaybook/<project>/plan/sub/) and dispatched to Builder upon passing the Sub-Plan Gate.",
+    "description": "Task-specific implementation plan for an individual sub-plan unit persisted in the out-of-tree plan vault (~/.agentplaybook/<project>/plan/sub/) and dispatched to Builder only after both Sub-Plan and interaction-contract gates pass.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -226,6 +236,11 @@
         "description": "Concrete observable conditions determining successful sub-plan completion."
       },
       {
+        "name": "Interaction Contracts",
+        "required": true,
+        "description": "Scenario-first, Builder-visible declarations for actual interacting symbols only: contract ID and purpose; owning package and consumer; structs with named fields/types; interfaces with interacting methods; and functions with body-free signatures and named typed parameters. Record return names/types or explicit none, error outcomes including no error, Given/When/Then scenario IDs and observable outcomes, and relevant side effects. Include ordered reuse evidence and link each principal function to usable or planned helpers. A phase-1 draft may mark this section pending contract review, but Builder handoff requires finalized contracts or a Reviewer-approved concrete not-applicable rationale; never include implementation bodies."
+      },
+      {
         "name": "Local Verification Commands",
         "required": true,
         "description": "Exact test commands Builder must execute and pass locally before handoff."
@@ -262,6 +277,11 @@
         "name": "Invariants & Boundaries",
         "required": true,
         "description": "Architectural rules, contract stability, and anti-cheating invariants to uphold."
+      },
+      {
+        "name": "Interaction Contract Review",
+        "required": true,
+        "description": "Reviewer-only independent verification paths for each public interaction contract or not-applicable rationale, including scenario-to-boundary traceability, typed contract completeness, ordered reuse evidence, helper locality/abstraction, and principal-function/helper links. A phase-1 draft may mark this section pending; final criteria remain private to Planner and Reviewer."
       },
       {
         "name": "Edge Cases & Failure Scenarios",

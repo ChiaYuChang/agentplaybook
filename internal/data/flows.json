@@ -72,22 +72,22 @@
   },
   {
     "name": "plan",
-    "description": "Author, review, and lock task-specific build and review plans through the Plan-Review Gate with Counterfactual Decomposition Challenge.",
+    "description": "Apply independent concept/method and interaction-contract design gates before finalizing task plans or routing work to Builder.",
     "steps": [
       {
         "index": 1,
         "actor": "planner",
-        "action": "Assess feature scope and complexity to branch between Hierarchical Blueprint and Single Plan; author task build-plan (or blueprint-plan) and review-plan in the resolved plan vault (~/.agentplaybook/<project>/plan/) with mandatory E2E Verification section and review-plan with mandatory E2E Coverage section, with verification paths for every material invariant and optional Track B definitions."
+        "action": "Assess feature scope and complexity to branch between Hierarchical Blueprint and Single Plan; author phase-1 task build-plan (or blueprint-plan) and review-plan in the resolved plan vault (~/.agentplaybook/<project>/plan/) with mandatory E2E Verification and E2E Coverage sections, independent paths for every material invariant, optional Track B definition, and Interaction Contracts marked pending contract review."
       },
       {
         "index": 2,
         "actor": "planner",
-        "action": "Submit draft plan artifacts to Reviewer for gate review."
+        "action": "Submit phase-1 plan artifacts to Reviewer for concept/method gate review."
       },
       {
         "index": 3,
         "actor": "reviewer",
-        "action": "Inspect plan artifacts for scope coherence, execute Counterfactual Decomposition Challenge (SPLIT_ATTEMPT and SPLIT_REJECTED_BECAUSE), and verify independent verification paths.",
+        "action": "Review concept, intent, decomposition, affected consumers, invariants, independent verification paths, and E2E classification; execute Counterfactual Decomposition Challenge (SPLIT_ATTEMPT and SPLIT_REJECTED_BECAUSE). PLAN_REVIEW_PASS is necessary but not sufficient for Builder dispatch.",
         "conditions": [
           {
             "when": "PLAN_REVIEW_REJECT",
@@ -102,7 +102,7 @@
       {
         "index": 4,
         "actor": "planner",
-        "action": "Revise plan artifacts based on Reviewer feedback, structural decomposition rationale, and Track B requirements.",
+        "action": "Revise phase-1 concept/method artifacts based on Reviewer feedback, decomposition rationale, and Track B requirements.",
         "conditions": [
           {
             "when": "PLANS_REVISED",
@@ -113,23 +113,58 @@
       {
         "index": 5,
         "actor": "planner",
-        "action": "Finalize approved plan artifacts in the plan vault and route to build flow (for single plan) or blueprint flow (for hierarchical blueprint)."
+        "action": "After PLAN_REVIEW_PASS, identify scenario-driven interaction boundaries, record ordered reuse evidence, and finalize typed Interaction Contracts; for blueprint-plan, cover shared interactions known at blueprint level only and defer sub-plan details to JIT review. Document concrete not-applicable rationale when no interactions exist."
+      },
+      {
+        "index": 6,
+        "actor": "reviewer",
+        "action": "Independently review Interaction Contracts or the not-applicable rationale; CONTRACT_REVIEW_PASS is a separate approval and does not imply code review or E2E admission.",
+        "conditions": [
+          {
+            "when": "CONTRACT_REVIEW_REJECT",
+            "then": 7
+          },
+          {
+            "when": "CONTRACT_REVIEW_PASS",
+            "then": 8
+          }
+        ]
+      },
+      {
+        "index": 7,
+        "actor": "planner",
+        "action": "Revise rejected Interaction Contracts; contract-only changes return to contract review, while changed concept, scope, consumers, or shared boundaries re-enter phase-1 review.",
+        "conditions": [
+          {
+            "when": "CONTRACT_ONLY_REVISION",
+            "then": 6
+          },
+          {
+            "when": "FOUNDATION_OR_SCOPE_CHANGED",
+            "then": 2
+          }
+        ]
+      },
+      {
+        "index": 8,
+        "actor": "planner",
+        "action": "Finalize plan artifacts only after PLAN_REVIEW_PASS and CONTRACT_REVIEW_PASS; route single-plan work to build flow or hierarchical work to blueprint flow."
       }
     ]
   },
   {
     "name": "blueprint",
-    "description": "Execute hierarchical multi-stage feature development through blueprint gating, JIT sub-plan pairs, Planner-mediated remediation, and feature composition verification.",
+    "description": "Execute hierarchical feature development with independent Blueprint concept and shared Interaction Contract gates, JIT sub-plan gates, and unchanged downstream code/E2E composition gates.",
     "steps": [
       {
         "index": 1,
         "actor": "planner",
-        "action": "Author the blueprint-plan artifact (<slug>.blueprint.md) in the resolved plan vault (~/.agentplaybook/<project>/plan/) defining high-level goals, shared interface contracts, invariant boundaries, feature-level E2E scope and composition obligations, and ordered sub-plan sequence."
+        "action": "Author or update blueprint-plan (<slug>.blueprint.md) in the resolved plan vault, defining high-level goals, shared Interaction Contracts, invariant boundaries, feature-level E2E scope/composition obligations, and ordered sub-plan sequence."
       },
       {
         "index": 2,
         "actor": "reviewer",
-        "action": "Execute Blueprint Gate on <slug>.blueprint.md, validating architectural coherence, interface stability, and sub-plan boundary definitions.",
+        "action": "Execute Blueprint concept Gate on blueprint-plan, validating architectural coherence, shared-boundary scope, and sub-plan boundary definitions; shared contract approval remains a separate gate.",
         "conditions": [
           {
             "when": "BLUEPRINT_PASS",
@@ -143,31 +178,100 @@
       },
       {
         "index": 3,
-        "actor": "planner",
-        "action": "Author JIT sub-plan pair in the plan vault: sub-build-plan (sub/<slug>.build.md) with mandatory E2E Verification section and sub-review-plan (sub/<slug>.review.md) with mandatory E2E Coverage section for the current sub-plan unit."
-      },
-      {
-        "index": 4,
         "actor": "reviewer",
-        "action": "Execute Sub-Plan Gate on current sub-plan pair, evaluating verification coverage, boundaries, and Track B definitions.",
+        "action": "After BLUEPRINT_PASS, independently review blueprint-level shared Interaction Contracts or the concrete no-interaction rationale; SHARED_CONTRACT_REVIEW_PASS is separate from concept and JIT sub-plan approval.",
         "conditions": [
           {
-            "when": "SUBPLAN_PLAN_PASS",
+            "when": "SHARED_CONTRACT_REVIEW_PASS",
             "then": 5
           },
           {
-            "when": "SUBPLAN_PLAN_REJECT",
-            "then": 3
+            "when": "SHARED_CONTRACT_REVIEW_REJECT",
+            "then": 4
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "actor": "planner",
+        "action": "Revise rejected blueprint-level shared Interaction Contracts or blueprint concept; every shared-contract amendment invalidates prior approvals for dependent sub-plans and returns through the Blueprint concept Gate and then this separate shared-contract review before JIT reassessment.",
+        "conditions": [
+          {
+            "when": "SHARED_CONTRACT_AMENDED",
+            "then": 2
+          },
+          {
+            "when": "BLUEPRINT_CONCEPT_CHANGED",
+            "then": 2
           }
         ]
       },
       {
         "index": 5,
-        "actor": "builder",
-        "action": "Implement approved sub-build-plan strictly within declared file boundaries, execute local tests, and report verified diff and logs to Planner."
+        "actor": "planner",
+        "action": "Resume JIT at the earliest affected or next ordered sub-plan; author or refresh its plan pair with mandatory E2E Verification/Coverage and pending contract sections. Reassess every dependent sub-plan through Sub-Plan and contract gates; prior approvals invalidated by a shared-contract amendment are not reusable."
       },
       {
         "index": 6,
+        "actor": "reviewer",
+        "action": "Execute Sub-Plan Gate on current sub-plan pair, evaluating concept, scope, verification coverage, boundaries, and Track B definitions; SUBPLAN_PLAN_PASS is necessary but not sufficient for Builder dispatch.",
+        "conditions": [
+          {
+            "when": "SUBPLAN_PLAN_PASS",
+            "then": 7
+          },
+          {
+            "when": "SUBPLAN_PLAN_REJECT",
+            "then": 5
+          }
+        ]
+      },
+      {
+        "index": 7,
+        "actor": "planner",
+        "action": "After SUBPLAN_PLAN_PASS, identify scenario-driven interaction boundaries, record ordered reuse evidence, and finalize typed Interaction Contracts for this JIT sub-plan; document concrete not-applicable rationale when no interactions exist."
+      },
+      {
+        "index": 8,
+        "actor": "reviewer",
+        "action": "Independently review the current sub-plan Interaction Contracts or not-applicable rationale; contract approval remains separate from implementation/code review.",
+        "conditions": [
+          {
+            "when": "CONTRACT_REVIEW_PASS",
+            "then": 10
+          },
+          {
+            "when": "CONTRACT_REVIEW_REJECT",
+            "then": 9
+          }
+        ]
+      },
+      {
+        "index": 9,
+        "actor": "planner",
+        "action": "Revise rejected sub-plan Interaction Contracts; contract-only changes return to contract review, sub-plan concept/scope changes return to Sub-Plan Gate, and shared-contract amendments return through Blueprint Gate plus the separate shared-contract review, invalidate all dependent sub-plan approvals, and resume JIT reassessment at the earliest affected unit.",
+        "conditions": [
+          {
+            "when": "CONTRACT_ONLY_REVISION",
+            "then": 8
+          },
+          {
+            "when": "SUBPLAN_CONCEPT_CHANGED",
+            "then": 6
+          },
+          {
+            "when": "SHARED_CONTRACT_CHANGED",
+            "then": 2
+          }
+        ]
+      },
+      {
+        "index": 10,
+        "actor": "builder",
+        "action": "Implement approved sub-build-plan only after BLUEPRINT_PASS, SHARED_CONTRACT_REVIEW_PASS, SUBPLAN_PLAN_PASS, and CONTRACT_REVIEW_PASS, strictly within declared boundaries and finalized Interaction Contracts; execute local tests and report verified diff and logs to Planner."
+      },
+      {
+        "index": 11,
         "actor": "reviewer",
         "action": "When Track B is selected, assert the pinned baseline identity tuple (repository_identity, baseline_identity) before evaluating differential measurements and emit BASELINE_STALE on drift; independently inspect code diff against sub-review-plan and report structured findings to Planner.",
         "conditions": [
@@ -177,11 +281,11 @@
           },
           {
             "when": "SUBPLAN_REVIEW_FINDINGS",
-            "then": 7
+            "then": 12
           },
           {
             "when": "SUBPLAN_REVIEW_SATISFIED",
-            "then": 8
+            "then": 13
           },
           {
             "when": "BLUEPRINT_REVIEW_REQUIRED",
@@ -190,57 +294,69 @@
         ]
       },
       {
-        "index": 7,
+        "index": 12,
         "actor": "planner",
-        "action": "Mediate and sanitize review findings into actionable remediation instructions for Builder, strictly withholding review-plan artifacts.",
+        "action": "Mediate and sanitize review findings into actionable remediation instructions for Builder, strictly withholding review-plan artifacts; shared-contract amendments invalidate all dependent sub-plan approvals and return through Blueprint Gate and separate shared-contract review before earliest-affected JIT reassessment; route local contract changes through JIT gates before another Builder handoff.",
         "conditions": [
           {
             "when": "REMEDIATION_DISPATCHED",
-            "then": 5
+            "then": 10
+          },
+          {
+            "when": "CONTRACT_ONLY_REVISION",
+            "then": 7
+          },
+          {
+            "when": "SUBPLAN_CONCEPT_CHANGED",
+            "then": 6
+          },
+          {
+            "when": "SHARED_CONTRACT_CHANGED",
+            "then": 2
           }
         ]
       },
       {
-        "index": 8,
+        "index": 13,
         "actor": "planner",
         "action": "Synthesize sanitized sub-review-resolution artifact (sub/<slug>.resolution.md) in the plan vault recording resolved findings, waivers, deviations, and verified evidence."
       },
       {
-        "index": 9,
+        "index": 14,
         "actor": "reviewer",
         "action": "Verify sub-review-resolution artifact against sub-review-plan and determine sub-plan completion status.",
         "conditions": [
           {
             "when": "SUBPLAN_REVIEW_PASS_MORE_SUBPLANS",
-            "then": 3
+            "then": 5
           },
           {
             "when": "SUBPLAN_REVIEW_PASS_ALL_COMPLETED",
-            "then": 10
+            "then": 15
           },
           {
             "when": "RESOLUTION_REJECTED",
-            "then": 8
+            "then": 13
           }
         ]
       },
       {
-        "index": 10,
+        "index": 15,
         "actor": "planner",
         "action": "Synthesize master composition review-resolution artifact (<slug>.resolution.md) in the plan vault summarizing global outcomes and cross-plan evidence."
       },
       {
-        "index": 11,
+        "index": 16,
         "actor": "reviewer",
         "action": "Execute Feature Composition Gate across all completed sub-plans, shared contracts, regression suites, and required admitted E2E evidence (or reviewed not-required rationale), emitting FEATURE_REVIEW_PASS only when required E2E evidence is admitted.",
         "conditions": [
           {
             "when": "FEATURE_REVIEW_PASS",
-            "then": 12
+            "then": 17
           },
           {
             "when": "FEATURE_REVIEW_REJECT",
-            "then": 3
+            "then": 5
           },
           {
             "when": "DEPENDENT_EVIDENCE_STALE",
@@ -249,7 +365,7 @@
         ]
       },
       {
-        "index": 12,
+        "index": 17,
         "actor": "planner",
         "action": "Trigger Governed Milestone Acceptance and advance to the commit flow."
       }
@@ -257,12 +373,12 @@
   },
   {
     "name": "build",
-    "description": "Execute blind handover, perform mandatory alignment, implement minimal changes, and verify locally.",
+    "description": "Execute blind handover only after independent PLAN_REVIEW_PASS and CONTRACT_REVIEW_PASS, perform mandatory alignment, implement minimal changes, and verify locally.",
     "steps": [
       {
         "index": 1,
         "actor": "planner",
-        "action": "Dispatch the approved build-plan artifact from the plan vault to Builder via blind handover, strictly withholding the review-plan artifact."
+        "action": "After PLAN_REVIEW_PASS and separate CONTRACT_REVIEW_PASS, dispatch the finalized approved build-plan to Builder via blind handover; strictly withhold review-plan artifacts and private criteria. Direct build entry without both approvals is prohibited."
       },
       {
         "index": 2,

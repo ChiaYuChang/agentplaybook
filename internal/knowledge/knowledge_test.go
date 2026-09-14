@@ -164,13 +164,55 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("expected non-existent flow to return false")
 	}
 
-	// Verify blueprint flow has 12 steps and deterministic routing
+	// Verify two-phase plan flow and deterministic contract-gate routing.
+	planFlow, ok := k.Flow("plan")
+	if !ok {
+		t.Fatalf("expected plan flow to exist")
+	}
+	if len(planFlow.Steps) != 8 {
+		t.Fatalf("expected 8 steps in plan flow, got %d", len(planFlow.Steps))
+	}
+	planStep3, _ := k.FlowStep("plan", 3)
+	planStep3Conditions := make(map[string]int)
+	for _, c := range planStep3.Conditions {
+		planStep3Conditions[c.When] = c.Then
+	}
+	if planStep3Conditions["PLAN_REVIEW_PASS"] != 5 || planStep3Conditions["PLAN_REVIEW_REJECT"] != 4 {
+		t.Errorf("unexpected phase-1 plan gate conditions: %v", planStep3Conditions)
+	}
+	planStep6, _ := k.FlowStep("plan", 6)
+	planStep6Conditions := make(map[string]int)
+	for _, c := range planStep6.Conditions {
+		planStep6Conditions[c.When] = c.Then
+	}
+	if planStep6Conditions["CONTRACT_REVIEW_PASS"] != 8 || planStep6Conditions["CONTRACT_REVIEW_REJECT"] != 7 {
+		t.Errorf("unexpected plan contract gate conditions: %v", planStep6Conditions)
+	}
+	planStep7, _ := k.FlowStep("plan", 7)
+	planStep7Conditions := make(map[string]int)
+	for _, c := range planStep7.Conditions {
+		planStep7Conditions[c.When] = c.Then
+	}
+	if planStep7Conditions["CONTRACT_ONLY_REVISION"] != 6 || planStep7Conditions["FOUNDATION_OR_SCOPE_CHANGED"] != 2 {
+		t.Errorf("unexpected plan revision routing: %v", planStep7Conditions)
+	}
+
+	// Verify direct build entry documents both independent approval preconditions.
+	buildFlow, ok := k.Flow("build")
+	if !ok {
+		t.Fatalf("expected build flow to exist")
+	}
+	if len(buildFlow.Steps) == 0 || !strings.Contains(buildFlow.Steps[0].Action, "PLAN_REVIEW_PASS") || !strings.Contains(buildFlow.Steps[0].Action, "CONTRACT_REVIEW_PASS") {
+		t.Errorf("expected build entry to require both plan and contract passes, got: %+v", buildFlow)
+	}
+
+	// Verify blueprint concept/shared-contract approvals and JIT gate ordering.
 	blueprintFlow, ok := k.Flow("blueprint")
 	if !ok {
 		t.Fatalf("expected blueprint flow to exist")
 	}
-	if len(blueprintFlow.Steps) != 12 {
-		t.Fatalf("expected 12 steps in blueprint flow, got %d", len(blueprintFlow.Steps))
+	if len(blueprintFlow.Steps) != 17 {
+		t.Fatalf("expected 17 steps in blueprint flow, got %d", len(blueprintFlow.Steps))
 	}
 	bpStep2, _ := k.FlowStep("blueprint", 2)
 	bpStep2Conditions := make(map[string]int)
@@ -180,29 +222,90 @@ func TestLoad_Success(t *testing.T) {
 	if bpStep2Conditions["BLUEPRINT_PASS"] != 3 || bpStep2Conditions["BLUEPRINT_REJECT"] != 1 {
 		t.Errorf("unexpected blueprint step 2 conditions: %v", bpStep2Conditions)
 	}
+	bpStep3, _ := k.FlowStep("blueprint", 3)
+	bpStep3Conditions := make(map[string]int)
+	for _, c := range bpStep3.Conditions {
+		bpStep3Conditions[c.When] = c.Then
+	}
+	if bpStep3.Actor != knowledge.RoleReviewer || bpStep3Conditions["SHARED_CONTRACT_REVIEW_PASS"] != 5 || bpStep3Conditions["SHARED_CONTRACT_REVIEW_REJECT"] != 4 {
+		t.Errorf("unexpected post-Blueprint-Gate shared contract review: %+v conditions=%v", bpStep3, bpStep3Conditions)
+	}
+	bpStep4, _ := k.FlowStep("blueprint", 4)
+	bpStep4Conditions := make(map[string]int)
+	for _, c := range bpStep4.Conditions {
+		bpStep4Conditions[c.When] = c.Then
+	}
+	if bpStep4Conditions["SHARED_CONTRACT_AMENDED"] != 2 || bpStep4Conditions["BLUEPRINT_CONCEPT_CHANGED"] != 2 {
+		t.Errorf("every shared contract amendment must re-enter Blueprint Gate: %v", bpStep4Conditions)
+	}
+	bpStep5, _ := k.FlowStep("blueprint", 5)
+	if !strings.Contains(bpStep4.Action, "invalidates prior approvals for dependent sub-plans") ||
+		!strings.Contains(bpStep5.Action, "Reassess every dependent sub-plan through Sub-Plan and contract gates") {
+		t.Errorf("shared-contract amendment must invalidate and reassess dependent sub-plans: step4=%q step5=%q", bpStep4.Action, bpStep5.Action)
+	}
 	bpStep6, _ := k.FlowStep("blueprint", 6)
 	bpStep6Conditions := make(map[string]int)
 	for _, c := range bpStep6.Conditions {
 		bpStep6Conditions[c.When] = c.Then
 	}
-	if bpStep6Conditions["SUBPLAN_REVIEW_FINDINGS"] != 7 || bpStep6Conditions["SUBPLAN_REVIEW_SATISFIED"] != 8 || bpStep6Conditions["BLUEPRINT_REVIEW_REQUIRED"] != 2 || bpStep6Conditions["BASELINE_STALE"] != 2 {
-		t.Errorf("unexpected blueprint step 6 conditions: %v", bpStep6Conditions)
+	if bpStep6.Actor != knowledge.RoleReviewer || !strings.Contains(bpStep6.Action, "Sub-Plan Gate") || bpStep6Conditions["SUBPLAN_PLAN_PASS"] != 7 || bpStep6Conditions["SUBPLAN_PLAN_REJECT"] != 5 {
+		t.Errorf("unexpected JIT Sub-Plan Gate: %+v conditions=%v", bpStep6, bpStep6Conditions)
+	}
+	bpStep8, _ := k.FlowStep("blueprint", 8)
+	bpStep8Conditions := make(map[string]int)
+	for _, c := range bpStep8.Conditions {
+		bpStep8Conditions[c.When] = c.Then
+	}
+	if bpStep8Conditions["CONTRACT_REVIEW_PASS"] != 10 || bpStep8Conditions["CONTRACT_REVIEW_REJECT"] != 9 {
+		t.Errorf("unexpected JIT contract review conditions: %v", bpStep8Conditions)
 	}
 	bpStep9, _ := k.FlowStep("blueprint", 9)
 	bpStep9Conditions := make(map[string]int)
 	for _, c := range bpStep9.Conditions {
 		bpStep9Conditions[c.When] = c.Then
 	}
-	if bpStep9Conditions["SUBPLAN_REVIEW_PASS_MORE_SUBPLANS"] != 3 || bpStep9Conditions["SUBPLAN_REVIEW_PASS_ALL_COMPLETED"] != 10 || bpStep9Conditions["RESOLUTION_REJECTED"] != 8 {
-		t.Errorf("unexpected blueprint step 9 conditions: %v", bpStep9Conditions)
+	if bpStep9Conditions["CONTRACT_ONLY_REVISION"] != 8 || bpStep9Conditions["SUBPLAN_CONCEPT_CHANGED"] != 6 || bpStep9Conditions["SHARED_CONTRACT_CHANGED"] != 2 {
+		t.Errorf("unexpected JIT contract revision routing: %v", bpStep9Conditions)
+	}
+	bpStep10, _ := k.FlowStep("blueprint", 10)
+	if bpStep10.Actor != knowledge.RoleBuilder || !strings.Contains(bpStep10.Action, "BLUEPRINT_PASS, SHARED_CONTRACT_REVIEW_PASS, SUBPLAN_PLAN_PASS, and CONTRACT_REVIEW_PASS") {
+		t.Errorf("expected Builder handoff only after all four approvals, got: %+v", bpStep10)
 	}
 	bpStep11, _ := k.FlowStep("blueprint", 11)
 	bpStep11Conditions := make(map[string]int)
 	for _, c := range bpStep11.Conditions {
 		bpStep11Conditions[c.When] = c.Then
 	}
-	if bpStep11Conditions["FEATURE_REVIEW_PASS"] != 12 || bpStep11Conditions["FEATURE_REVIEW_REJECT"] != 3 || bpStep11Conditions["DEPENDENT_EVIDENCE_STALE"] != 2 {
-		t.Errorf("unexpected blueprint step 11 conditions: %v", bpStep11Conditions)
+	if bpStep11Conditions["SUBPLAN_REVIEW_FINDINGS"] != 12 || bpStep11Conditions["SUBPLAN_REVIEW_SATISFIED"] != 13 || bpStep11Conditions["BLUEPRINT_REVIEW_REQUIRED"] != 2 || bpStep11Conditions["BASELINE_STALE"] != 2 {
+		t.Errorf("unexpected blueprint step 11 code-review conditions: %v", bpStep11Conditions)
+	}
+	bpStep12, _ := k.FlowStep("blueprint", 12)
+	bpStep12Conditions := make(map[string]int)
+	for _, c := range bpStep12.Conditions {
+		bpStep12Conditions[c.When] = c.Then
+	}
+	if bpStep12Conditions["REMEDIATION_DISPATCHED"] != 10 || bpStep12Conditions["CONTRACT_ONLY_REVISION"] != 7 ||
+		bpStep12Conditions["SUBPLAN_CONCEPT_CHANGED"] != 6 || bpStep12Conditions["SHARED_CONTRACT_CHANGED"] != 2 {
+		t.Errorf("unexpected blueprint remediation routing: %v", bpStep12Conditions)
+	}
+	if !strings.Contains(bpStep12.Action, "shared-contract amendments invalidate all dependent sub-plan approvals") {
+		t.Errorf("shared-contract code remediation must invalidate dependent approvals: %q", bpStep12.Action)
+	}
+	bpStep14, _ := k.FlowStep("blueprint", 14)
+	bpStep14Conditions := make(map[string]int)
+	for _, c := range bpStep14.Conditions {
+		bpStep14Conditions[c.When] = c.Then
+	}
+	if bpStep14Conditions["SUBPLAN_REVIEW_PASS_MORE_SUBPLANS"] != 5 || bpStep14Conditions["SUBPLAN_REVIEW_PASS_ALL_COMPLETED"] != 15 || bpStep14Conditions["RESOLUTION_REJECTED"] != 13 {
+		t.Errorf("unexpected blueprint step 14 conditions: %v", bpStep14Conditions)
+	}
+	bpStep16, _ := k.FlowStep("blueprint", 16)
+	bpStep16Conditions := make(map[string]int)
+	for _, c := range bpStep16.Conditions {
+		bpStep16Conditions[c.When] = c.Then
+	}
+	if bpStep16Conditions["FEATURE_REVIEW_PASS"] != 17 || bpStep16Conditions["FEATURE_REVIEW_REJECT"] != 5 || bpStep16Conditions["DEPENDENT_EVIDENCE_STALE"] != 2 {
+		t.Errorf("unexpected blueprint step 16 conditions: %v", bpStep16Conditions)
 	}
 
 	// Regression check: review flow has 8 steps, step 1 is planner handoff, and step 2 has BASELINE_STALE condition
@@ -391,20 +494,20 @@ func TestLoad_Success(t *testing.T) {
 	if len(buildPlan.Visibility) != 3 {
 		t.Errorf("expected build-plan visibility to have 3 roles, got %v", buildPlan.Visibility)
 	}
-	if len(buildPlan.Sections) != 7 {
-		t.Errorf("expected build-plan to have 7 sections, got %d", len(buildPlan.Sections))
+	if len(buildPlan.Sections) != 8 {
+		t.Errorf("expected build-plan to have 8 sections, got %d", len(buildPlan.Sections))
 	}
 	subBuildPlan, _ := k.Artifact("sub-build-plan")
-	if len(subBuildPlan.Sections) != 7 {
-		t.Errorf("expected sub-build-plan to have 7 sections, got %d", len(subBuildPlan.Sections))
+	if len(subBuildPlan.Sections) != 8 {
+		t.Errorf("expected sub-build-plan to have 8 sections, got %d", len(subBuildPlan.Sections))
 	}
 	reviewPlan, _ := k.Artifact("review-plan")
-	if len(reviewPlan.Sections) != 6 {
-		t.Errorf("expected review-plan to have 6 sections, got %d", len(reviewPlan.Sections))
+	if len(reviewPlan.Sections) != 7 {
+		t.Errorf("expected review-plan to have 7 sections, got %d", len(reviewPlan.Sections))
 	}
 	subReviewPlan, _ := k.Artifact("sub-review-plan")
-	if len(subReviewPlan.Sections) != 6 {
-		t.Errorf("expected sub-review-plan to have 6 sections, got %d", len(subReviewPlan.Sections))
+	if len(subReviewPlan.Sections) != 7 {
+		t.Errorf("expected sub-review-plan to have 7 sections, got %d", len(subReviewPlan.Sections))
 	}
 	reviewFindings, _ := k.Artifact("review-findings")
 	if len(reviewFindings.Visibility) != 2 || reviewFindings.Visibility[0] != knowledge.RolePlanner || reviewFindings.Visibility[1] != knowledge.RoleReviewer {

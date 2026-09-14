@@ -83,6 +83,25 @@
     ]
   },
   {
+    "id": "interaction-contract-gate",
+    "title": "Interaction Contract Design & Independent Review Gate",
+    "category": "architecture",
+    "summary": "Requires finalized scenario-driven interaction contracts and a separate Reviewer approval after concept/method review and before Builder handoff.",
+    "details": "The planning lifecycle has two independent approvals. Phase 1 preserves the existing concept/method Plan-Review or Sub-Plan Gate; PLAN_REVIEW_PASS or SUBPLAN_PLAN_PASS is necessary but not sufficient for Builder dispatch. Only after that pass, Planner designs Interaction Contracts and Reviewer independently approves them through CONTRACT_REVIEW_PASS. Contracts describe intended interactions, not implementation bodies or implementation tests. Changed intent, scope, consumers, or shared boundaries re-enter the appropriate concept gate; a contract-only revision returns to contract review. A blueprint-level phase covers only shared interactions known there, while sub-plan-specific contracts are designed and reviewed JIT. A shared-contract amendment returns to Blueprint Gate and invalidates dependent sub-plan approvals.",
+    "guidelines": [
+      "Retain the concept/method gate as Phase 1; its pass is necessary but never substitutes for a distinct contract-review approval before Builder handoff.",
+      "Write primary Given/When/Then scenarios first, then identify actual calls, state exchanges, interacting symbols, owning packages, and consumers; do not invent interactions for unrelated symbols.",
+      "For each interacting symbol, record contract ID and purpose; structs with named fields and types; interfaces with interacting methods; functions with declaration/signature and no body, named typed parameters, return names/types or explicit none, error outcomes including absence of error, scenario IDs with observable outcomes, and relevant boundary side effects.",
+      "After scenario and boundary identification, search reuse candidates in this order: owning package first, then repository pkgs/ if present; never use internal/ as the repository-wide shared-helper search target. Record searched locations, candidate symbols, suitability decisions, and when pkgs/ is absent.",
+      "If no suitable helper exists in the owning package or pkgs/, specify the needed helper's named typed inputs, outputs, error outcomes, Given/When/Then cases, and consumers before principal-function contracts; keep single-consumer helpers in the owning package and propose shared pkgs/ helpers only for demonstrated multiple consumers with an approved boundary change.",
+      "Finalize principal-function contracts last and explicitly link each one to every usable or planned helper; absence of a suitable helper is evidence, not permission to fabricate a package.",
+      "When no interaction boundary exists, record a concrete not-applicable rationale and obtain independent Reviewer approval; a phase-1 draft may mark contract sections pending but is never Builder-ready.",
+      "Review plans map each contract or absence rationale to independent verification paths and remain Planner/Reviewer-only; detailed review criteria never enter Builder handoff or shared resolution.",
+      "Contract-only rejection loops return to contract review; changed concept, scope, consumer, or sub-plan boundary re-enters its concept gate; shared blueprint-contract changes return to Blueprint Gate and invalidate dependent approvals.",
+      "Blueprint contract review covers shared interactions only; defer sub-plan-specific contracts to JIT Sub-Plan and contract gates. Keep this design gate distinct from falsifiable behavioral contract tests required for changed runtime boundaries."
+    ]
+  },
+  {
     "id": "evidence-proportional-persistence",
     "title": "Evidence-Proportional Persistence & Operational Memory Governance",
     "category": "operational",
@@ -192,15 +211,15 @@
     "id": "interface-stability-contract-testing",
     "title": "Component Interface Stability & Meaningful Contract Testing",
     "category": "architecture",
-    "summary": "Build plans declare all affected component boundaries; contract tests assert observable boundary behavior and must be falsifiable; cross-boundary changes require prior plan amendment.",
-    "details": "Stable component interfaces require explicit planning, meaningful behavioral contracts, and controlled scope. Build plans identify every affected boundary and its consumers, interface changes are amended before implementation, and contract tests protect observable behavior rather than implementation details. Reviewers verify that those contracts are falsifiable, while unexpected cross-boundary dependencies are escalated instead of silently widening the work. Contract tests complement, but do not replace, TDD reproductions for validated review findings.",
+    "summary": "Separates plan-time Interaction Contract design/review from falsifiable behavioral contract tests; boundary changes require prior plan amendment.",
+    "details": "Stable component interfaces require explicit plan-time design and meaningful behavioral protection. Interaction Contracts declare intended symbol signatures, typed inputs/outputs, errors, scenarios, and consumers without implementation bodies; their separate design gate does not replace tests. Build plans identify every affected boundary and its consumers, interface changes are amended before implementation, and behavioral contract tests protect observable runtime behavior rather than design prose or implementation details. Reviewers verify that those tests are falsifiable, while unexpected cross-boundary dependencies are escalated instead of silently widening the work. Behavioral contract tests complement, but do not replace, TDD reproductions for validated review findings.",
     "guidelines": [
       "A build plan must identify all affected boundary symbols, endpoints, schemas, files, or consumer contracts, or explicitly state that no external boundary is affected.",
       "Interface changes require a plan amendment before implementation, identifying affected consumers and compatibility or migration handling.",
       "Contract tests must assert observable input/output, side effects, errors, or interoperability at the boundary, not internal implementation details or mere absence of failure.",
       "A contract test must fail under at least one plausible violating implementation; Reviewer assesses falsifiability through targeted variation where feasible.",
       "Unexpected cross-boundary dependencies require Planner escalation; Builder must not unilaterally expand scope.",
-      "Contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings; contract tests are required when boundary behavior is added, changed, or insufficiently protected."
+      "Plan-time Interaction Contracts are design declarations, not implementation tests; behavioral contract tests are distinct from TDD reproduction tests: TDD reproduction is mandatory for validated review findings, and behavioral contract tests are required when runtime boundary behavior is added, changed, or insufficiently protected."
     ]
   },
   {

@@ -330,6 +330,86 @@ func TestArtifact_Query(t *testing.T) {
 	}
 }
 
+func TestArtifact_InteractionContractSections(t *testing.T) {
+	t.Parallel()
+
+	queryArtifact := func(name string) knowledge.Artifact {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute([]string{"artifact", name}, &stdout, &stderr, "dev"); err != nil {
+			t.Fatalf("querying artifact %q failed: %v", name, err)
+		}
+		var artifact knowledge.Artifact
+		if err := json.Unmarshal(stdout.Bytes(), &artifact); err != nil {
+			t.Fatalf("decoding artifact %q failed: %v", name, err)
+		}
+		return artifact
+	}
+
+	for _, name := range []string{"build-plan", "sub-build-plan"} {
+		artifact := queryArtifact(name)
+		var description string
+		for _, section := range artifact.Sections {
+			if section.Name == "Interaction Contracts" {
+				if !section.Required {
+					t.Errorf("%s Interaction Contracts section must be required", name)
+				}
+				description = section.Description
+			}
+		}
+		if description == "" {
+			t.Fatalf("%s missing Interaction Contracts section", name)
+		}
+		for _, required := range []string{
+			"contract ID and purpose", "owning package and consumer", "structs with named fields/types",
+			"interfaces with interacting methods", "body-free signatures", "named typed parameters",
+			"return names/types or explicit none", "error outcomes including no error",
+			"Given/When/Then scenario IDs and observable outcomes", "relevant side effects",
+			"ordered reuse evidence", "pending contract review", "Reviewer-approved concrete not-applicable rationale",
+		} {
+			if !strings.Contains(description, required) {
+				t.Errorf("%s Interaction Contracts section missing %q: %s", name, required, description)
+			}
+		}
+		if !strings.Contains(artifact.Description, "both concept/method and interaction-contract review gates") && name == "build-plan" {
+			t.Errorf("build-plan handoff description must require both gates, got %q", artifact.Description)
+		}
+		if !strings.Contains(artifact.Description, "both Sub-Plan and interaction-contract gates") && name == "sub-build-plan" {
+			t.Errorf("sub-build-plan handoff description must require both gates, got %q", artifact.Description)
+		}
+	}
+
+	for _, name := range []string{"review-plan", "sub-review-plan"} {
+		artifact := queryArtifact(name)
+		if len(artifact.Visibility) != 2 || artifact.Visibility[0] != knowledge.RolePlanner || artifact.Visibility[1] != knowledge.RoleReviewer {
+			t.Errorf("%s must remain visible only to Planner and Reviewer, got %v", name, artifact.Visibility)
+		}
+		found := false
+		for _, section := range artifact.Sections {
+			if section.Name == "Interaction Contract Review" {
+				found = true
+				if !section.Required || !strings.Contains(section.Description, "independent verification paths") || !strings.Contains(section.Description, "criteria remain private") {
+					t.Errorf("%s Interaction Contract Review is incomplete or not private: %+v", name, section)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s missing Interaction Contract Review section", name)
+		}
+	}
+
+	blueprint := queryArtifact("blueprint-plan")
+	for _, section := range blueprint.Sections {
+		if section.Name == "Shared Contracts & Invariants" {
+			if !strings.Contains(section.Description, "shared interaction contracts known at blueprint level") || !strings.Contains(section.Description, "defer JIT sub-plan-specific contracts") {
+				t.Errorf("blueprint shared-contract scope must defer JIT detail, got %q", section.Description)
+			}
+			return
+		}
+	}
+	t.Error("blueprint-plan missing Shared Contracts & Invariants section")
+}
+
 func TestArtifact_Unknown(t *testing.T) {
 	t.Parallel()
 
