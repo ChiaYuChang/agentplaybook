@@ -4,7 +4,7 @@ set -eu
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
 skill_dir="$(CDPATH= cd -- "${script_dir}/.." && pwd -P)"
 
-cli_version="$(tr -d '[:space:]' < "${script_dir}/VERSION")"
+cli_version="$(sh "${script_dir}/read-version.sh")"
 binary_name="agentplaybook"
 
 if [ -n "${XDG_CACHE_HOME:-}" ]; then
@@ -44,7 +44,7 @@ if [ -n "${AGENTPLAYBOOK_DEV:-}" ] || [ -n "${WORKFLOW_DEV:-}" ]; then
 	mkdir -p "${cache_root}/dev"
 	(
 		cd "${skill_dir}"
-		GOFLAGS= GOWORK=off CGO_ENABLED=0 go build -ldflags "-X main.version=${cli_version}-dev" -o "${dev_binary}" .
+		GOFLAGS= GOWORK=off CGO_ENABLED=0 go build -o "${dev_binary}" .
 	)
 	exec "${dev_binary}" "$@"
 fi
@@ -113,7 +113,7 @@ build_local() {
 	prepare_tmp_dir
 	(
 		cd "${skill_dir}"
-		GOFLAGS= GOWORK=off CGO_ENABLED=0 go build -ldflags "-X main.version=${cli_version}" -o "${tmp_dir}/${binary_name}" .
+		GOFLAGS= GOWORK=off CGO_ENABLED=0 go build -o "${tmp_dir}/${binary_name}" .
 	)
 	mv -f "${tmp_dir}/${binary_name}" "${binary_path}"
 	echo "agentplaybook: build complete and cached successfully." >&2

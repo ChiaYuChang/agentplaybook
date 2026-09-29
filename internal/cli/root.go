@@ -5,10 +5,9 @@ import (
 	"io"
 
 	"github.com/ChiaYuChang/agentplaybook/internal/knowledge"
+	versioninfo "github.com/ChiaYuChang/agentplaybook/internal/version"
 	"github.com/spf13/cobra"
 )
-
-var defaultVersion = "dev"
 
 // Execute runs the CLI with the provided arguments and streams.
 func Execute(args []string, stdout, stderr io.Writer, version string) error {
@@ -18,7 +17,7 @@ func Execute(args []string, stdout, stderr io.Writer, version string) error {
 	}
 
 	if version == "" {
-		version = defaultVersion
+		version = versioninfo.Release()
 	}
 
 	rootCmd := NewRootCmd(k, version)

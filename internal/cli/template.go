@@ -1,5 +1,7 @@
 package cli
 
+import versioninfo "github.com/ChiaYuChang/agentplaybook/internal/version"
+
 // DefaultLivingMemoryTemplate returns the canonical AGENTS.md template markdown
 // incorporating the 7 roles, 10 flows, dual formal gates, and peer-session primacy over subagents.
 func DefaultLivingMemoryTemplate() string {
@@ -7,7 +9,7 @@ func DefaultLivingMemoryTemplate() string {
 
 ## Architectural Topology & Jurisdictions
 
-- **Repository Tier**: Tier 3 Orchestration Protocol (` + "`" + `AgentPlaybook v0.4.5 Living Memory Blueprint` + "`" + `). Roles: ` + "`" + `planner` + "`" + `, ` + "`" + `reviewer` + "`" + `, ` + "`" + `builder` + "`" + `, ` + "`" + `scout` + "`" + `, ` + "`" + `verifier` + "`" + ` (category: ` + "`" + `core` + "`" + `), ` + "`" + `navigator` + "`" + `, ` + "`" + `cartographer` + "`" + ` (category: ` + "`" + `companion` + "`" + `). Flows: ` + "`" + `init` + "`" + `, ` + "`" + `plan` + "`" + `, ` + "`" + `blueprint` + "`" + `, ` + "`" + `build` + "`" + `, ` + "`" + `review` + "`" + `, ` + "`" + `commit` + "`" + `, ` + "`" + `cartography` + "`" + `, ` + "`" + `session-handoff` + "`" + `, ` + "`" + `e2e` + "`" + `, ` + "`" + `navigator-cartography` + "`" + `. Memory: living ` + "`" + `AGENTS.md` + "`" + `.
+- **Repository Tier**: Tier 3 Orchestration Protocol (` + "`" + `AgentPlaybook ` + versioninfo.Release() + ` Living Memory Blueprint` + "`" + `). Roles: ` + "`" + `planner` + "`" + `, ` + "`" + `reviewer` + "`" + `, ` + "`" + `builder` + "`" + `, ` + "`" + `scout` + "`" + `, ` + "`" + `verifier` + "`" + ` (category: ` + "`" + `core` + "`" + `), ` + "`" + `navigator` + "`" + `, ` + "`" + `cartographer` + "`" + ` (category: ` + "`" + `companion` + "`" + `). Flows: ` + "`" + `init` + "`" + `, ` + "`" + `plan` + "`" + `, ` + "`" + `blueprint` + "`" + `, ` + "`" + `build` + "`" + `, ` + "`" + `review` + "`" + `, ` + "`" + `commit` + "`" + `, ` + "`" + `cartography` + "`" + `, ` + "`" + `session-handoff` + "`" + `, ` + "`" + `e2e` + "`" + `, ` + "`" + `navigator-cartography` + "`" + `. Memory: living ` + "`" + `AGENTS.md` + "`" + `.
 - **External Interfaces**: Go CLI (` + "`" + `agentplaybook` + "`" + `) discovery commands (` + "`" + `role` + "`" + `, ` + "`" + `flow` + "`" + `, ` + "`" + `artifact` + "`" + `, ` + "`" + `rule` + "`" + `) and scaffolding (` + "`" + `init` + "`" + `) with JSON/markdown output.
 - **Artifact Governance**: Hierarchical structure with ` + "`" + `blueprint-plan` + "`" + ` (` + "`" + `<slug>.blueprint.md` + "`" + `), ` + "`" + `sub-build-plan` + "`" + ` (` + "`" + `sub/<slug>.build.md` + "`" + `), ` + "`" + `sub-review-plan` + "`" + ` (` + "`" + `sub/<slug>.review.md` + "`" + `), ` + "`" + `sub-review-resolution` + "`" + ` (` + "`" + `sub/<slug>.resolution.md` + "`" + `), top-level ` + "`" + `review-resolution` + "`" + ` (` + "`" + `<slug>.resolution.md` + "`" + `), ` + "`" + `diagram-brief` + "`" + `, ` + "`" + `diagram-completion` + "`" + `, ` + "`" + `diagram-clarification-request` + "`" + `, ` + "`" + `e2e-brief` + "`" + `, ` + "`" + `e2e-report` + "`" + `, ` + "`" + `e2e-test-spec` + "`" + `, and ` + "`" + `e2e-clarification-request` + "`" + `.
 - **Scaffolding Vault**: plan: ` + "`" + `~/.agentplaybook/<project>/plan` + "`" + ` | e2e: ` + "`" + `~/.agentplaybook/<project>/e2e` + "`" + `.

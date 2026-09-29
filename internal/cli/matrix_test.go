@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChiaYuChang/agentplaybook/internal/cli"
 	"github.com/ChiaYuChang/agentplaybook/internal/knowledge"
+	"github.com/ChiaYuChang/agentplaybook/internal/version"
 )
 
 func TestCLI_GoldenDiscoveryMatrix(t *testing.T) {
@@ -3181,8 +3182,9 @@ func TestCLI_SubPlan02_LifecycleAndAcceptanceIntegration(t *testing.T) {
 	// 5. Living memory templates version and budget check
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.0") && !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") && !strings.Contains(def, "v0.4.4") && !strings.Contains(def, "v0.4.5") {
-			t.Errorf("expected default template to contain v0.4.0, v0.4.1, v0.4.2, v0.4.3, v0.4.4, or v0.4.5")
+		expectedHeader := "AgentPlaybook " + version.Release() + " Living Memory Blueprint"
+		if !strings.Contains(def, expectedHeader) {
+			t.Errorf("expected default template to contain canonical release header %q", expectedHeader)
 		}
 		min := cli.MinimalLivingMemoryTemplate()
 		lines := strings.Split(strings.TrimSpace(min), "\n")
@@ -3363,8 +3365,9 @@ func TestCLI_NavigatorCartographyIntegration(t *testing.T) {
 	// 5. Living Memory Templates version, content, and budget
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.1") && !strings.Contains(def, "v0.4.2") && !strings.Contains(def, "v0.4.3") && !strings.Contains(def, "v0.4.4") && !strings.Contains(def, "v0.4.5") {
-			t.Errorf("expected default template to contain v0.4.1, v0.4.2, v0.4.3, v0.4.4, or v0.4.5")
+		expectedHeader := "AgentPlaybook " + version.Release() + " Living Memory Blueprint"
+		if !strings.Contains(def, expectedHeader) {
+			t.Errorf("expected default template to contain canonical release header %q", expectedHeader)
 		}
 		if !strings.Contains(def, "navigator-cartography") {
 			t.Errorf("expected default template to contain navigator-cartography")
@@ -3502,8 +3505,9 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 	// 4. Verify Living Memory Templates version, vault content, and budget
 	{
 		def := cli.DefaultLivingMemoryTemplate()
-		if !strings.Contains(def, "v0.4.5") {
-			t.Errorf("expected default template to contain v0.4.5")
+		expectedHeader := "AgentPlaybook " + version.Release() + " Living Memory Blueprint"
+		if !strings.Contains(def, expectedHeader) {
+			t.Errorf("expected default template to contain canonical release header %q", expectedHeader)
 		}
 		if !strings.Contains(def, "~/.agentplaybook/<project>/plan") || !strings.Contains(def, "~/.agentplaybook/<project>/e2e") {
 			t.Errorf("expected default template to reference scaffolding vault paths")

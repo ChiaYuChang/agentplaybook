@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ChiaYuChang/agentplaybook/internal/cli"
+	"github.com/ChiaYuChang/agentplaybook/internal/version"
 )
 
 func TestRoot_BareDiscovery(t *testing.T) {
@@ -23,6 +24,18 @@ func TestRoot_BareDiscovery(t *testing.T) {
 	}
 	if !strings.Contains(out, "Knowledge Domains:") {
 		t.Errorf("expected knowledge domains in output, got: %s", out)
+	}
+}
+
+func TestRoot_EmptyVersionUsesEmbeddedRelease(t *testing.T) {
+	t.Parallel()
+
+	var stdout, stderr bytes.Buffer
+	if err := cli.Execute([]string{"--version"}, &stdout, &stderr, ""); err != nil {
+		t.Fatalf("--version with empty version failed: %v", err)
+	}
+	if got, want := strings.TrimSpace(stdout.String()), version.Release(); got != want {
+		t.Errorf("--version with empty version = %q, want %q", got, want)
 	}
 }
 

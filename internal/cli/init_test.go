@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/ChiaYuChang/agentplaybook/internal/cli"
+	"github.com/ChiaYuChang/agentplaybook/internal/version"
 )
 
 func TestCLI_Init_DefaultStdout(t *testing.T) {
@@ -30,6 +31,10 @@ func TestCLI_Init_DefaultStdout(t *testing.T) {
 	}
 	if !strings.Contains(outStr, "Peer-Session Primacy over Subagents") {
 		t.Errorf("expected stdout to contain Peer-Session Primacy invariant")
+	}
+	expectedHeader := "AgentPlaybook " + version.Release() + " Living Memory Blueprint"
+	if !strings.Contains(outStr, expectedHeader) {
+		t.Errorf("expected init output to contain canonical release header %q", expectedHeader)
 	}
 
 	// Verify zero filesystem writes occurred
@@ -475,8 +480,9 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 	}
 
 	// 2. Verify mandatory structural strings
+	expectedHeader := "AgentPlaybook " + version.Release() + " Living Memory Blueprint"
 	requiredStrings := []string{
-		"AgentPlaybook v0.4.5 Living Memory Blueprint",
+		expectedHeader,
 		"Peer-Session Primacy over Subagents",
 		"invoke_subagent",
 		"Blind Barrier",
@@ -509,16 +515,6 @@ func TestCLI_Init_TemplateContent(t *testing.T) {
 		}
 	}
 
-	// 3. Verify synchronized release header against scripts/VERSION
-	versionBytes, err := os.ReadFile("../../scripts/VERSION")
-	if err != nil {
-		t.Fatalf("failed to read scripts/VERSION: %v", err)
-	}
-	currentVer := strings.TrimSpace(string(versionBytes))
-	expectedHeader := "AgentPlaybook " + currentVer + " Living Memory Blueprint"
-	if !strings.Contains(template, expectedHeader) {
-		t.Errorf("template does not contain synchronized release header %q", expectedHeader)
-	}
 }
 
 func TestCLI_Init_ZeroWriteStdout(t *testing.T) {

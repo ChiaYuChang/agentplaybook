@@ -34,28 +34,21 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Validate release version
+        env:
+          REQUESTED_VERSION: ${{ github.event.inputs.version || github.ref_name }}
+        run: |
+          set -eu
+          expected_version="$(sh scripts/read-version.sh)"
+          if [ "${REQUESTED_VERSION}" != "${expected_version}" ]; then
+            echo "Release version mismatch: requested '${REQUESTED_VERSION}' but canonical version is '${expected_version}'." >&2
+            exit 1
+          fi
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-
-      - name: Validate release version
-        run: |
-          set -eu
-          VERSION="${{ github.event.inputs.version || github.ref_name }}"
-          case "${VERSION}" in
-            v[0-9]*)
-              ;;
-            *)
-              echo "Invalid release version '${VERSION}': expected a version starting with v[0-9]." >&2
-              exit 1
-              ;;
-          esac
-          expected_version="$(tr -d '[:space:]' < scripts/VERSION)"
-          if [ "${VERSION}" != "${expected_version}" ]; then
-            echo "Release version mismatch: resolved '${VERSION}' but scripts/VERSION contains '${expected_version}'." >&2
-            exit 1
-          fi
 
       - name: Build archive
         env:
@@ -63,10 +56,9 @@ jobs:
           TARGET_ARCH: ${{ matrix.arch }}
         run: |
           set -eu
-          VERSION="${{ github.event.inputs.version || github.ref_name }}"
           mkdir -p dist
           archive_name="agentplaybook-${TARGET_OS}-${TARGET_ARCH}.tar.gz"
-          GOOS="${TARGET_OS}" GOARCH="${TARGET_ARCH}" CGO_ENABLED=0 go build -ldflags "-X main.version=${VERSION}" -o dist/agentplaybook .
+          GOOS="${TARGET_OS}" GOARCH="${TARGET_ARCH}" CGO_ENABLED=0 go build -o dist/agentplaybook .
           tar -czf "dist/${archive_name}" -C dist agentplaybook
           rm -f dist/agentplaybook
 
