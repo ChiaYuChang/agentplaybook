@@ -13,16 +13,18 @@
     ]
   },
   {
-    "id": "mandatory-alignment",
-    "title": "Mandatory Implementation Alignment Protocol",
+    "id": "bounded-builder-autonomy",
+    "title": "Bounded Builder Autonomy & Escalation Protocol",
     "category": "protocol",
-    "summary": "Builder must conduct structured alignment with Planner covering intent, boundaries, and failure modes before editing any application code.",
-    "details": "When receiving an approved build plan or sub-build plan, Builder must not immediately edit code. Builder and Planner conduct coverage-based inquiry covering root intent, exact file boundaries, failure modes, and verification commands without rigid ceremonial round requirements.",
+    "summary": "Builder autonomously modifies relevant files and tests within an authorized module/behavior boundary plus explicit exclusions, escalating shared or public contract changes to Planner without mandatory pre-code alignment.",
+    "details": "Ordinary workflow replaces procedural alignment ceremonies with bounded implementation autonomy. Builder operates within the authorized module/behavior boundary defined in the approved build plan, respecting explicit file exclusions. Within these boundaries, Builder executes autonomous TDD (RED -> GREEN -> refactor) and local verification. When unexpected cross-boundary dependencies, shared contract modifications, or new requirements arise, Builder halts and escalates to Planner rather than widening scope unilaterally.",
     "guidelines": [
-      "Goal & Intent: Clarify root intent, affected system behaviors, and core logic.",
-      "Scope & Boundaries: Confirm exact in-scope files allowed for edits and out-of-scope files strictly forbidden from modification.",
-      "Edge Cases & Checks: Confirm boundary conditions, failure scenarios, and self-testing verification commands.",
-      "Builder may only proceed to code implementation once Planner confirms ALIGNMENT_COMPLETE."
+      "Builder operates autonomously within the authorized module/behavior boundary and explicit exclusions defined in the approved build plan.",
+      "Mandatory pre-implementation alignment ceremonies are retired in favor of bounded execution autonomy.",
+      "Public Given/When/Then scenarios drive autonomous TDD: RED asserts intended behavior (distinguished from setup errors), GREEN implements fix, refactor cleans code.",
+      "Non-behavioral tasks supply static or specification evidence without artificial failing tests.",
+      "Builder must escalate to Planner upon encountering protected shared or public contract changes, boundary ambiguities, or new requirements.",
+      "Planner arbitrates escalations and updates task plans; Builder does not unilaterally expand in-scope file boundaries."
     ]
   },
   {
@@ -34,6 +36,8 @@
     "guidelines": [
       "Track A verification applies to local behavioral changes and bug fixes, requiring a Red (failing) reproduction test before modifying application code.",
       "Planner verifies the reproduction failure is an assertion failure expressing the reported defect, not a compile, fixture, or timeout failure.",
+      "Drive implementation from public Given/When/Then scenarios; Reviewer evaluates test assertions independently after submission with no hidden test fixtures as prerequisites.",
+      "Reproduction failures must express intended behavioral defect assertions rather than setup, compile, or fixture errors; discovering new requirements returns to Planner.",
       "Planner records a baseline reference (revision ID or snapshot) and the complete frozen test dependency surface (test files, helpers, fixtures, mocks, golden files, generated inputs, and pre-existing dependencies the reproduction test depends on).",
       "Builder must not alter any frozen path during the fix phase.",
       "Planner compares all frozen paths to the baseline reference before accepting the fix handoff.",
@@ -86,10 +90,10 @@
     "id": "interaction-contract-gate",
     "title": "Interaction Contract Design & Independent Review Gate",
     "category": "architecture",
-    "summary": "Requires finalized scenario-driven interaction contracts and a separate Reviewer approval after concept/method review and before Builder handoff.",
-    "details": "The planning lifecycle has two independent approvals. Phase 1 preserves the existing concept/method Plan-Review or Sub-Plan Gate; PLAN_REVIEW_PASS or SUBPLAN_PLAN_PASS is necessary but not sufficient for Builder dispatch. Only after that pass, Planner designs Interaction Contracts and Reviewer independently approves them through CONTRACT_REVIEW_PASS. Contracts describe intended interactions, not implementation bodies or implementation tests. Changed intent, scope, consumers, or shared boundaries re-enter the appropriate concept gate; a contract-only revision returns to contract review. A blueprint-level phase covers only shared interactions known there, while sub-plan-specific contracts are designed and reviewed JIT. A shared-contract amendment returns to Blueprint Gate and invalidates dependent sub-plan approvals.",
+    "summary": "Governs interaction contract design: ordinary single-plan work combines contract and plan review into one substantive internal approval, while legacy Blueprint flows retain dual gates; ordinary contract changes invalidate only affected consumers.",
+    "details": "In ordinary workflows, interaction contract design is incorporated directly into the single reviewed build plan, requiring one substantive internal technical approval before Builder handoff rather than a separate procedural gate. Changes to shared contracts in ordinary single-plan tasks identify affected consumers and invalidate only affected prior plan approvals and evidence. In contrast, the opt-in legacy Blueprint flow retains two independent approvals (concept and contract gates) where shared-contract amendments invalidate all dependent sub-plans.",
     "guidelines": [
-      "Retain the concept/method gate as Phase 1; its pass is necessary but never substitutes for a distinct contract-review approval before Builder handoff.",
+      "In opt-in legacy Blueprint flows, retain the concept/method gate as Phase 1 where its pass is necessary but never substitutes for a distinct contract-review approval before Builder handoff; in ordinary workflows, interaction contracts are evaluated within the single internal PLAN_REVIEW_PASS.",
       "Write primary Given/When/Then scenarios first, then identify actual calls, state exchanges, interacting symbols, owning packages, and consumers; do not invent interactions for unrelated symbols.",
       "For each interacting symbol, record contract ID and purpose; structs with named fields and types; interfaces with interacting methods; functions with declaration/signature and no body, named typed parameters, return names/types or explicit none, error outcomes including absence of error, scenario IDs with observable outcomes, and relevant boundary side effects.",
       "After scenario and boundary identification, search reuse candidates in this order: owning package first, then repository pkgs/ if present; never use internal/ as the repository-wide shared-helper search target. Record searched locations, candidate symbols, suitability decisions, and when pkgs/ is absent.",
@@ -98,7 +102,10 @@
       "When no interaction boundary exists, record a concrete not-applicable rationale and obtain independent Reviewer approval; a phase-1 draft may mark contract sections pending but is never Builder-ready.",
       "Review plans map each contract or absence rationale to independent verification paths and remain Planner/Reviewer-only; detailed review criteria never enter Builder handoff or shared resolution.",
       "Contract-only rejection loops return to contract review; changed concept, scope, consumer, or sub-plan boundary re-enters its concept gate; shared blueprint-contract changes return to Blueprint Gate and invalidate dependent approvals.",
-      "Blueprint contract review covers shared interactions only; defer sub-plan-specific contracts to JIT Sub-Plan and contract gates. Keep this design gate distinct from falsifiable behavioral contract tests required for changed runtime boundaries."
+      "Blueprint contract review covers shared interactions only; defer sub-plan-specific contracts to JIT Sub-Plan and contract gates. Keep this design gate distinct from falsifiable behavioral contract tests required for changed runtime boundaries.",
+      "In ordinary workflows, scenario-driven interaction contracts are authored within the single build-plan and approved via one internal Plan-Review Gate.",
+      "Ordinary shared-contract changes identify affected consumers and invalidate only affected prior plan approvals and verification evidence, requiring targeted reassessment and integration acceptance.",
+      "The 17-step legacy Blueprint flow remains an explicit opt-in compatibility path retaining separate concept and contract gates."
     ]
   },
   {
@@ -166,7 +173,8 @@
       "Milestone acceptance seals candidate revisions locally and enforces Finalization Equivalence (tree(Final) == tree(Verified)).",
       "Publishing to remote repositories requires explicit, separate human publication authorization.",
       "If authorization is denied (AUTHORIZATION_DENIED), Planner returns to Step 2 awaiting renewed user intent; autonomous re-drafting is strictly forbidden.",
-      "Candidate revision identity must be stabilized and verified unchanged before sealing locally under Planner VCS governance."
+      "Candidate revision identity must be stabilized and verified unchanged before sealing locally under Planner VCS governance.",
+      "Optional user-requested external review evaluates candidate evidence independently but never substitutes for human milestone acceptance or separate remote publication authorization."
     ]
   },
   {
@@ -556,6 +564,21 @@
       "Generated credential directories, including injected real-value residue, are removed after execution before reporting; evidence bundles carry file names only, never secret file contents.",
       "Verifier self-checks the sandbox credential directory against the specification allowlist by name before execution, rejecting unexpected entries and directory links.",
       "Historical packages without a Secrets Policy remain untouched, but runs against policy-less specifications are preflight-blocked with CLARIFICATION_REQUIRED before provisioning or container start; final-admission failure alone is prohibited."
+    ]
+  },
+  {
+    "id": "user-requested-external-review",
+    "title": "User-Requested External Review Protocol",
+    "category": "protocol",
+    "summary": "External Reviewer evaluates fixed candidate evidence only on explicit user request; reports privately to Planner via external-review-report without standing gates and never authorizes remote push; Planner provides sanitized remediation.",
+    "details": "External review is an optional, user-requested assessment conducted by a fresh peer-session External Reviewer. It is never an automatic pipeline gate for commit or push. The review evaluates a fixed candidate revision or revision set provided by Planner. External Reviewer reports structured findings privately to Planner through the external-review-report message artifact. Planner sanitizes actionable remediation for Builder. When no external review is requested, repositories must be represented honestly as not externally assessed. External review approval may occur after local seal and never substitutes for explicit human publication authorization.",
+    "guidelines": [
+      "External review begins only on explicit user request; no standing or automatic external review gate exists for commit or publication.",
+      "External Reviewer evaluates a fixed candidate revision or revision set provided by Planner, with zero direct access to Builder or user.",
+      "External Reviewer communicates findings privately to Planner via external-review-report; Planner sanitizes findings into sanitized actionable remediation for Builder.",
+      "External Reviewer is strictly prohibited from accessing private review-plan or raw review-findings artifacts.",
+      "External review outcome (PASS, FINDINGS, INCOMPLETE) evaluates fixed candidate evidence only; PASS does not authorize remote push or milestone publication.",
+      "External assessment may take place after local seal; lack of external review must be documented honestly as not externally assessed."
     ]
   }
 ]

@@ -25,6 +25,10 @@ const (
 	RoleCartographer Role = "cartographer"
 	RoleVerifier     Role = "verifier"
 	RoleUser         Role = "user"
+
+	// RoleExternalReviewer is a distinct, user-requested peer-session reviewer.
+	// RoleReviewer remains the Internal Reviewer for E2E and legacy Blueprint flows.
+	RoleExternalReviewer Role = "external-reviewer"
 )
 
 // RoleDefinition defines the identity and boundaries of a participant role.

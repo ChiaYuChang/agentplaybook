@@ -10,7 +10,8 @@
       "reviewer",
       "navigator",
       "cartographer",
-      "verifier"
+      "verifier",
+      "external-reviewer"
     ],
     "path": "AGENTS.md",
     "type": "document",
@@ -45,12 +46,13 @@
   {
     "name": "build-plan",
     "title": "Build Plan",
-    "description": "Task-specific implementation plan authored and persisted in the out-of-tree plan vault (~/.agentplaybook/<project>/plan/) and provided to Builder only after both concept/method and interaction-contract review gates pass.",
+    "description": "Task-specific implementation plan authored and persisted in the out-of-tree plan vault (~/.agentplaybook/<project>/plan/) and provided to Builder after single internal technical PLAN_REVIEW_PASS (retaining both concept/method and interaction-contract review gates strictly for opt-in legacy Blueprint flows).",
     "owner": "planner",
     "visibility": [
       "planner",
       "builder",
-      "reviewer"
+      "reviewer",
+      "external-reviewer"
     ],
     "path": "plan/{timestamp}/{slug}.plan.md",
     "path_variables": {
@@ -85,6 +87,11 @@
         "description": "Concrete conditions that determine successful implementation."
       },
       {
+        "name": "TDD Scenarios",
+        "required": true,
+        "description": "Public Given/When/Then scenarios driving implementation and test verification; stated before implementation begins."
+      },
+      {
         "name": "Interaction Contracts",
         "required": true,
         "description": "Scenario-first, Builder-visible declarations for actual interacting symbols only: contract ID and purpose; owning package and consumer; structs with named fields/types; interfaces with interacting methods; and functions with body-free signatures and named typed parameters. Record return names/types or explicit none, error outcomes including no error, Given/When/Then scenario IDs and observable outcomes, and relevant side effects. Include ordered reuse evidence and link each principal function to usable or planned helpers. A phase-1 draft may mark this section pending contract review, but Builder handoff requires finalized contracts or a Reviewer-approved concrete not-applicable rationale; never include implementation bodies."
@@ -98,6 +105,11 @@
         "name": "E2E Verification",
         "required": true,
         "description": "Explicit declaration of E2E verification requirements (required vs not-required with rationale), mode, package path, scenario IDs with Given/When/Then, environments, timeout, skip policy, and acceptance criteria."
+      },
+      {
+        "name": "Architectural View (Optional)",
+        "required": false,
+        "description": "Optional architectural Blueprint view inside the single task plan for multi-component features without entering the legacy Blueprint lifecycle."
       }
     ]
   },
@@ -162,7 +174,8 @@
     "visibility": [
       "planner",
       "reviewer",
-      "builder"
+      "builder",
+      "external-reviewer"
     ],
     "path": "plan/{timestamp}/{slug}.blueprint.md",
     "path_variables": {
@@ -316,7 +329,8 @@
       "builder",
       "navigator",
       "cartographer",
-      "verifier"
+      "verifier",
+      "external-reviewer"
     ],
     "path": "plan/{timestamp}/sub/{slug}.resolution.md",
     "path_variables": {
@@ -416,7 +430,8 @@
       "reviewer",
       "navigator",
       "cartographer",
-      "verifier"
+      "verifier",
+      "external-reviewer"
     ],
     "path": "plan/{timestamp}/{slug}.resolution.md",
     "path_variables": {
@@ -428,7 +443,7 @@
       {
         "name": "Outcome",
         "required": true,
-        "description": "Final review disposition: APPROVED, WAIVED, or REVISED."
+        "description": "Final review disposition: APPROVED, WAIVED, or REVISED; reflects internal technical approval and records external review status (or that repository is not externally assessed)."
       },
       {
         "name": "Resolved Findings",
@@ -818,6 +833,49 @@
         "name": "clarification_question",
         "required": true,
         "description": "Targeted question for Planner regarding intended execution configuration."
+      }
+    ]
+  },
+  {
+    "name": "external-review-report",
+    "title": "External Review Report",
+    "description": "Planner-private message artifact containing structured findings from user-requested External Reviewer on a fixed candidate revision or revision set; Planner sanitizes actionable remediation for Builder; does not authorize remote push.",
+    "owner": "external-reviewer",
+    "visibility": [
+      "planner",
+      "external-reviewer"
+    ],
+    "type": "message",
+    "fields": [
+      {
+        "name": "candidate_ref",
+        "required": true,
+        "description": "Required fixed candidate revision ID or immutable revision-set identifier evaluated during external review."
+      },
+      {
+        "name": "scope",
+        "required": true,
+        "description": "Reviewed requirements, boundaries, and change scope."
+      },
+      {
+        "name": "outcome",
+        "required": true,
+        "description": "Review outcome disposition: PASS, FINDINGS, or INCOMPLETE."
+      },
+      {
+        "name": "evidence",
+        "required": true,
+        "description": "Concrete observable evidence supporting the review disposition or reason for incompleteness."
+      },
+      {
+        "name": "findings",
+        "required": false,
+        "description": "Optional structured actionable findings detailing defect location, severity, and description."
+      },
+      {
+        "name": "verification_assessment",
+        "required": true,
+        "description": "Independent assessment of supplied verification evidence, test adequacy, and reproduction results."
       }
     ]
   }

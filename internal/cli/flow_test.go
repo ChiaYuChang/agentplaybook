@@ -74,41 +74,31 @@ func TestFlow_QueryFull(t *testing.T) {
 		if err := json.Unmarshal(stdout.Bytes(), &f); err != nil {
 			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
 		}
-		if len(f.Steps) != 8 {
-			t.Fatalf("expected 8 steps in plan flow, got %d", len(f.Steps))
+		if len(f.Steps) != 7 {
+			t.Fatalf("expected 7 steps in plan flow, got %d", len(f.Steps))
 		}
-		if !strings.Contains(f.Steps[0].Action, "Hierarchical Blueprint") {
-			t.Errorf("expected plan step 1 action to mention Hierarchical Blueprint, got: %s", f.Steps[0].Action)
+		if !strings.Contains(f.Steps[0].Action, "CONSULTATION_REQUESTED") || !strings.Contains(f.Steps[0].Action, "DIRECT_PLANNING") {
+			t.Errorf("expected plan step 1 action to mention consultation or direct planning, got: %s", f.Steps[0].Action)
 		}
-		if !strings.Contains(f.Steps[2].Action, "Counterfactual Decomposition Challenge") {
-			t.Errorf("expected plan step 3 action to mention Counterfactual Decomposition Challenge, got: %s", f.Steps[2].Action)
+		if f.Steps[4].Actor != knowledge.RoleReviewer {
+			t.Errorf("expected step 5 actor to be reviewer, got: %s", f.Steps[4].Actor)
 		}
-		phase1Conditions := make(map[string]int)
-		for _, condition := range f.Steps[2].Conditions {
-			phase1Conditions[condition.When] = condition.Then
+		planConditions := make(map[string]int)
+		for _, condition := range f.Steps[4].Conditions {
+			planConditions[condition.When] = condition.Then
 		}
-		if phase1Conditions["PLAN_REVIEW_PASS"] != 5 || phase1Conditions["PLAN_REVIEW_REJECT"] != 4 {
-			t.Errorf("unexpected phase-1 plan gate transitions: %v", phase1Conditions)
-		}
-		if f.Steps[4].Actor != knowledge.RolePlanner || !strings.Contains(f.Steps[4].Action, "scenario-driven interaction boundaries") {
-			t.Errorf("expected step 5 to draft interaction contracts after concept pass, got: %+v", f.Steps[4])
-		}
-		contractConditions := make(map[string]int)
-		for _, condition := range f.Steps[5].Conditions {
-			contractConditions[condition.When] = condition.Then
-		}
-		if f.Steps[5].Actor != knowledge.RoleReviewer || contractConditions["CONTRACT_REVIEW_PASS"] != 8 || contractConditions["CONTRACT_REVIEW_REJECT"] != 7 {
-			t.Errorf("unexpected contract review gate: %+v, transitions=%v", f.Steps[5], contractConditions)
+		if planConditions["PLAN_REVIEW_PASS"] != 7 || planConditions["PLAN_REVIEW_REJECT"] != 6 {
+			t.Errorf("unexpected plan gate transitions: %v", planConditions)
 		}
 		revisionConditions := make(map[string]int)
-		for _, condition := range f.Steps[6].Conditions {
+		for _, condition := range f.Steps[5].Conditions {
 			revisionConditions[condition.When] = condition.Then
 		}
-		if revisionConditions["CONTRACT_ONLY_REVISION"] != 6 || revisionConditions["FOUNDATION_OR_SCOPE_CHANGED"] != 2 {
-			t.Errorf("unexpected contract revision transitions: %v", revisionConditions)
+		if revisionConditions["PLANS_REVISED"] != 4 {
+			t.Errorf("unexpected plan revision transitions: %v", revisionConditions)
 		}
-		if !strings.Contains(f.Steps[7].Action, "PLAN_REVIEW_PASS and CONTRACT_REVIEW_PASS") {
-			t.Errorf("expected finalization to require both approvals, got: %s", f.Steps[7].Action)
+		if !strings.Contains(f.Steps[6].Action, "PLAN_REVIEW_PASS") {
+			t.Errorf("expected finalization to require PLAN_REVIEW_PASS, got: %s", f.Steps[6].Action)
 		}
 	}
 

@@ -452,7 +452,7 @@ func TestCLI_Init_Minimal_Invariants(t *testing.T) {
 		"ADVISORY_ISSUED",
 		"async non-blocking",
 		"diagram-design",
-		"PLAN_PASS",
+		"PLAN_REVIEW_PASS",
 		"REVIEW_PASS",
 		"IMPLEMENTATION_REVIEW_PASS",
 		"plus diagram messages",

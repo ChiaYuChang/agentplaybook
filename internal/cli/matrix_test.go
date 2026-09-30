@@ -130,7 +130,8 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "coherent-plan-units"},
 		{"rule", "explain", "anti-rubber-stamp-plan-gate"},
 		{"rule", "explain", "evidence-proportional-persistence"},
-		{"rule", "explain", "mandatory-alignment"},
+		{"rule", "explain", "bounded-builder-autonomy"},
+		{"rule", "explain", "user-requested-external-review"},
 		{"rule", "explain", "interaction-contract-gate"},
 		{"rule", "explain", "tdd-reproduction"},
 		{"rule", "explain", "repo-context-storage"},
@@ -801,17 +802,17 @@ func TestCLI_InteractionContractGate(t *testing.T) {
 	if err := json.Unmarshal(queryJSON("flow", "plan"), &planFlow); err != nil {
 		t.Fatalf("failed to decode plan flow: %v", err)
 	}
-	if len(planFlow.Steps) != 8 {
-		t.Fatalf("expected 8 plan-flow steps, got %d", len(planFlow.Steps))
+	if len(planFlow.Steps) != 7 {
+		t.Fatalf("expected 7 plan-flow steps, got %d", len(planFlow.Steps))
 	}
-	planContractPassTarget := 0
-	for _, condition := range planFlow.Steps[5].Conditions {
-		if condition.When == "CONTRACT_REVIEW_PASS" {
-			planContractPassTarget = condition.Then
+	planReviewPassTarget := 0
+	for _, condition := range planFlow.Steps[4].Conditions {
+		if condition.When == "PLAN_REVIEW_PASS" {
+			planReviewPassTarget = condition.Then
 		}
 	}
-	if planContractPassTarget != 8 || planFlow.Steps[7].Actor != knowledge.RolePlanner {
-		t.Errorf("single-plan route must finalize only after the separate contract pass, target=%d step8=%+v", planContractPassTarget, planFlow.Steps[7])
+	if planReviewPassTarget != 7 || planFlow.Steps[6].Actor != knowledge.RolePlanner {
+		t.Errorf("single-plan route must finalize after single internal PLAN_REVIEW_PASS, target=%d step7=%+v", planReviewPassTarget, planFlow.Steps[6])
 	}
 
 	var blueprintFlow knowledge.Flow
@@ -888,16 +889,16 @@ func TestCLI_InteractionContractGate(t *testing.T) {
 	if err := json.Unmarshal(queryJSON("role", "builder"), &builder); err != nil {
 		t.Fatalf("failed to decode builder role: %v", err)
 	}
-	if !slices.Contains(planner.Responsibilities, "Author scenario-first, typed Interaction Contracts with ordered helper-reuse evidence; route Builder handoff only after independent concept/method and contract gates pass.") {
+	if !slices.Contains(planner.Responsibilities, "Author scenario-first, typed Interaction Contracts with ordered helper-reuse evidence; route Builder handoff after internal technical PLAN_REVIEW_PASS (or after independent concept/method and contract gates in opt-in legacy Blueprint flows).") {
 		t.Error("Planner role must own contract authorship and gate ordering")
 	}
-	if !slices.Contains(reviewer.Responsibilities, "Independently approve or reject finalized Interaction Contracts and concrete no-interaction rationales after the concept/method gate; preserve detailed verification criteria in Planner/Reviewer-only review plans.") {
+	if !slices.Contains(reviewer.Responsibilities, "Independently approve or reject finalized Interaction Contracts and concrete no-interaction rationales within the single PLAN_REVIEW_PASS for ordinary workflows (or after the concept/method gate in opt-in legacy Blueprint flows); preserve detailed verification criteria in Planner/Reviewer-only review plans.") {
 		t.Error("Reviewer role must independently approve contracts and protect private criteria")
 	}
 	if !slices.Contains(builder.Responsibilities, "Implement only finalized, Reviewer-approved Interaction Contracts in the approved build-plan or sub-build-plan; treat contract declarations as design, not implementation tests.") {
 		t.Error("Builder role must receive only finalized public contracts")
 	}
-	if !slices.Contains(builder.Boundaries, "DO NOT treat a pending Interaction Contracts section or concept/method pass alone as Builder authorization; escalate incomplete or changed public contracts to Planner.") {
+	if !slices.Contains(builder.Boundaries, "DO NOT treat a pending Interaction Contracts section or concept/method pass alone as Builder authorization; require PLAN_REVIEW_PASS (and separate CONTRACT_REVIEW_PASS strictly in legacy Blueprint flows), escalating incomplete or changed public contracts to Planner.") {
 		t.Error("Builder role must not treat pending contracts as authorization")
 	}
 
@@ -1516,8 +1517,8 @@ func TestCLI_AIReviewerSpecThreeTierIntegration(t *testing.T) {
 		if resolution.PathVariables["timestamp"] == "" || resolution.PathVariables["slug"] == "" {
 			t.Errorf("expected path_variables timestamp and slug in review-resolution, got %+v", resolution.PathVariables)
 		}
-		if len(resolution.Visibility) != 6 || resolution.Visibility[0] != knowledge.RolePlanner || resolution.Visibility[1] != knowledge.RoleBuilder || resolution.Visibility[2] != knowledge.RoleReviewer || resolution.Visibility[3] != knowledge.RoleNavigator || resolution.Visibility[4] != knowledge.RoleCartographer || resolution.Visibility[5] != knowledge.RoleVerifier {
-			t.Errorf("expected resolution visibility [planner builder reviewer navigator cartographer verifier], got %v", resolution.Visibility)
+		if len(resolution.Visibility) != 7 || resolution.Visibility[0] != knowledge.RolePlanner || resolution.Visibility[1] != knowledge.RoleBuilder || resolution.Visibility[2] != knowledge.RoleReviewer || resolution.Visibility[3] != knowledge.RoleNavigator || resolution.Visibility[4] != knowledge.RoleCartographer || resolution.Visibility[5] != knowledge.RoleVerifier || resolution.Visibility[6] != knowledge.RoleExternalReviewer {
+			t.Errorf("expected resolution visibility [planner builder reviewer navigator cartographer verifier external-reviewer], got %v", resolution.Visibility)
 		}
 		for _, reqPhrase := range []string{"sanitization", "review-plan criteria", "hidden test fixtures", "private inspection methods"} {
 			if !strings.Contains(resolution.Description, reqPhrase) {

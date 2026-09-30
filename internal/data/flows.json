@@ -72,83 +72,75 @@
   },
   {
     "name": "plan",
-    "description": "Apply independent concept/method and interaction-contract design gates before finalizing task plans or routing work to Builder.",
+    "description": "Apply one substantive internal technical plan review including affected interaction contracts and public Given/When/Then TDD cases before routing work to Builder; optional consultation precedes formal planning.",
     "steps": [
       {
         "index": 1,
         "actor": "planner",
-        "action": "Assess feature scope and complexity to branch between Hierarchical Blueprint and Single Plan; author phase-1 task build-plan (or blueprint-plan) and review-plan in the resolved plan vault (~/.agentplaybook/<project>/plan/) with mandatory E2E Verification and E2E Coverage sections, independent paths for every material invariant, optional Track B definition, and Interaction Contracts marked pending contract review."
+        "action": "Assess feature requirements and choose between optional pre-planning consultation (CONSULTATION_REQUESTED) or direct plan drafting (DIRECT_PLANNING); for multi-component work within single task plan, an optional architectural Blueprint view may be included. The 17-step legacy Blueprint flow remains an explicit opt-in compatibility path.",
+        "conditions": [
+          {
+            "when": "CONSULTATION_REQUESTED",
+            "then": 2
+          },
+          {
+            "when": "DIRECT_PLANNING",
+            "then": 3
+          }
+        ]
       },
       {
         "index": 2,
-        "actor": "planner",
-        "action": "Submit phase-1 plan artifacts to Reviewer for concept/method gate review."
+        "actor": "reviewer",
+        "action": "Provide optional technical and architectural consultation advice upon Planner inquiry before formal plan drafting; consultation advice is not plan approval and never authorizes Builder work.",
+        "conditions": [
+          {
+            "when": "CONSULTATION_CONCLUDED",
+            "then": 3
+          }
+        ]
       },
       {
         "index": 3,
-        "actor": "reviewer",
-        "action": "Review concept, intent, decomposition, affected consumers, invariants, independent verification paths, and E2E classification; execute Counterfactual Decomposition Challenge (SPLIT_ATTEMPT and SPLIT_REJECTED_BECAUSE). PLAN_REVIEW_PASS is necessary but not sufficient for Builder dispatch.",
-        "conditions": [
-          {
-            "when": "PLAN_REVIEW_REJECT",
-            "then": 4
-          },
-          {
-            "when": "PLAN_REVIEW_PASS",
-            "then": 5
-          }
-        ]
+        "actor": "planner",
+        "action": "Author coherent task build-plan (including public Given/When/Then TDD scenarios published before implementation, authorized module/behavior boundary, explicit exclusions, and affected interaction contracts with reuse evidence) and private review-plan in the resolved plan vault (~/.agentplaybook/<project>/plan/); ordinary shared-contract changes identify affected consumers to invalidate only affected prior plan approvals and require integration acceptance."
       },
       {
         "index": 4,
         "actor": "planner",
-        "action": "Revise phase-1 concept/method artifacts based on Reviewer feedback, decomposition rationale, and Track B requirements.",
+        "action": "Submit task build-plan and review-plan to Reviewer for one substantive internal technical plan review."
+      },
+      {
+        "index": 5,
+        "actor": "reviewer",
+        "action": "Review build-plan and review-plan for intent, scope, decomposition, affected interaction contracts, Given/When/Then TDD scenarios, independent verification paths, and E2E classification; evaluate plan structure and evidence without mandating ceremonial split challenges. PLAN_REVIEW_PASS provides internal technical approval and is the sole approval required for Builder dispatch.",
         "conditions": [
           {
-            "when": "PLANS_REVISED",
-            "then": 2
+            "when": "PLAN_REVIEW_REJECT",
+            "then": 6
+          },
+          {
+            "when": "PLAN_REVIEW_PASS",
+            "then": 7
           }
         ]
       },
       {
-        "index": 5,
-        "actor": "planner",
-        "action": "After PLAN_REVIEW_PASS, identify scenario-driven interaction boundaries, record ordered reuse evidence, and finalize typed Interaction Contracts; for blueprint-plan, cover shared interactions known at blueprint level only and defer sub-plan details to JIT review. Document concrete not-applicable rationale when no interactions exist."
-      },
-      {
         "index": 6,
-        "actor": "reviewer",
-        "action": "Independently review Interaction Contracts or the not-applicable rationale; CONTRACT_REVIEW_PASS is a separate approval and does not imply code review or E2E admission.",
+        "actor": "planner",
+        "action": "Revise task build-plan and review-plan based on Reviewer feedback, decomposition rationale, and verification requirements.",
         "conditions": [
           {
-            "when": "CONTRACT_REVIEW_REJECT",
-            "then": 7
-          },
-          {
-            "when": "CONTRACT_REVIEW_PASS",
-            "then": 8
+            "when": "PLANS_REVISED",
+            "then": 4
           }
         ]
       },
       {
         "index": 7,
         "actor": "planner",
-        "action": "Revise rejected Interaction Contracts; contract-only changes return to contract review, while changed concept, scope, consumers, or shared boundaries re-enter phase-1 review.",
-        "conditions": [
-          {
-            "when": "CONTRACT_ONLY_REVISION",
-            "then": 6
-          },
-          {
-            "when": "FOUNDATION_OR_SCOPE_CHANGED",
-            "then": 2
-          }
-        ]
-      },
-      {
-        "index": 8,
-        "actor": "planner",
-        "action": "Finalize plan artifacts only after PLAN_REVIEW_PASS and CONTRACT_REVIEW_PASS; route single-plan work to build flow or hierarchical work to blueprint flow."
+        "action": "Finalize plan artifacts after PLAN_REVIEW_PASS, record coverage and affected revision identities for ordinary shared-contract changes, and route single-plan work to build flow via blind handover.",
+        "terminal": true
       }
     ]
   },
@@ -373,42 +365,53 @@
   },
   {
     "name": "build",
-    "description": "Execute blind handover only after independent PLAN_REVIEW_PASS and CONTRACT_REVIEW_PASS, perform mandatory alignment, implement minimal changes, and verify locally.",
+    "description": "Execute blind handover after internal PLAN_REVIEW_PASS, implement changes autonomously within authorized module/behavior boundary, and verify locally.",
     "steps": [
       {
         "index": 1,
         "actor": "planner",
-        "action": "After PLAN_REVIEW_PASS and separate CONTRACT_REVIEW_PASS, dispatch the finalized approved build-plan to Builder via blind handover; strictly withhold review-plan artifacts and private criteria. Direct build entry without both approvals is prohibited."
+        "action": "After internal technical PLAN_REVIEW_PASS, dispatch the finalized approved build-plan to Builder via blind handover; strictly withhold review-plan artifacts and private criteria. Direct build entry without approval is prohibited."
       },
       {
         "index": 2,
         "actor": "builder",
-        "action": "Initiate implementation alignment with Planner regarding intent, scope, and edge cases before editing code."
+        "action": "Autonomously implement minimal required changes within the authorized module/behavior boundary plus explicit exclusions using public Given/When/Then scenarios; execute TDD RED (distinguishing intended assertion failures from setup errors), GREEN, and refactor; non-behavioral tasks supply static/specification evidence; escalate any protected shared or public contract modification or new requirement to Planner.",
+        "conditions": [
+          {
+            "when": "ESCALATION_REQUIRED",
+            "then": 3
+          },
+          {
+            "when": "IMPLEMENTATION_COMPLETE",
+            "then": 5
+          }
+        ]
       },
       {
         "index": 3,
         "actor": "planner",
-        "action": "Answer alignment inquiries and confirm scope boundaries and self-testing expectations.",
+        "action": "Arbitrate escalation from Builder: for minor boundary clarifications, resolve inquiry and authorize Builder resumption (ESCALATION_RESOLVED -> 2); upon encountering protected shared or public contract changes, boundary expansions, or new requirements, stop affected work and return to amended plan review before Builder resumes (PLAN_AMENDMENT_REQUIRED -> 4).",
         "conditions": [
           {
-            "when": "CLARIFICATION_REQUIRED",
+            "when": "ESCALATION_RESOLVED",
             "then": 2
           },
           {
-            "when": "ALIGNMENT_COMPLETE",
+            "when": "PLAN_AMENDMENT_REQUIRED",
             "then": 4
           }
         ]
       },
       {
         "index": 4,
-        "actor": "builder",
-        "action": "Implement minimal required changes strictly within allowed files and verify with local automated tests."
+        "actor": "planner",
+        "action": "Stop affected implementation work upon new requirement or protected contract change, and return to the plan flow for amended plan review before Builder resumes.",
+        "terminal": true
       },
       {
         "index": 5,
         "actor": "builder",
-        "action": "Hand off the verified working copy diff and test execution logs to Planner without committing."
+        "action": "Verify implemented changes against acceptance criteria using local automated tests or static/specification evidence, and hand off the verified working copy diff and test execution logs to Planner without committing."
       },
       {
         "index": 6,
@@ -429,7 +432,7 @@
       {
         "index": 2,
         "actor": "reviewer",
-        "action": "When Track B is selected, assert the pinned baseline identity tuple (repository_identity, baseline_identity) before evaluating differential measurements and emit BASELINE_STALE on drift; inspect code diff against the review-plan artifact for scope compliance, correctness, test adequacy, Track B differentials, and classify findings into formal severities (Blocker, Major, Minor, Other) with evidence mode (unresolved Blocker blocks REVIEW_PASS; resolved or arbitrated Blocker and resolved or waived Major may pass; Minor and Other do not block).",
+        "action": "When Track B is selected, assert the pinned baseline identity tuple (repository_identity, baseline_identity) before evaluating differential measurements and emit BASELINE_STALE on drift; inspect code diff against the review-plan artifact for scope compliance, correctness, test adequacy, independent counterexamples, Track B differentials, and classify findings into formal severities (Blocker, Major, Minor, Other) with concrete evidence vs preference; unresolved Blocker blocks REVIEW_PASS; resolved or arbitrated Blocker and resolved or waived Major may pass; Minor and Other do not block; Delta-review material changes rather than restarting unchanged checks; no advance secret fixture is required; approval represents internal technical approval and not an independent external assessment.",
         "conditions": [
           {
             "when": "BASELINE_STALE",
@@ -487,7 +490,7 @@
       {
         "index": 6,
         "actor": "planner",
-        "action": "Planner classifies approved plan: if E2E is required (E2E_REQUIRED), freeze candidate revision and route to e2e flow; if E2E is not required (E2E_NOT_REQUIRED with documented rationale) or admitted E2E evidence is verified, synthesize sanitized review-resolution artifact in the plan vault, confirm REVIEW_PASS, and advance to the commit flow.",
+        "action": "Planner classifies approved plan: if E2E is required (E2E_REQUIRED), freeze candidate revision and route to e2e flow (paused or unexecuted E2E blocks final REVIEW_PASS and required E2E is never relabeled as not required); if E2E is not required (E2E_NOT_REQUIRED with documented rationale) or admitted E2E evidence is verified, synthesize sanitized review-resolution artifact in the plan vault recording coverage and affected revision identities, confirm REVIEW_PASS, and advance to the commit flow.",
         "terminal": true
       },
       {
@@ -523,7 +526,7 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "Confirm independent review approval (REVIEW_PASS or FEATURE_REVIEW_PASS) and establish candidate baseline."
+        "action": "Confirm internal technical review approval (REVIEW_PASS or FEATURE_REVIEW_PASS with verified E2E_EVIDENCE_ADMITTED when E2E is required) before seeking user authorization for local seal, and establish candidate baseline."
       },
       {
         "index": 2,
@@ -588,7 +591,7 @@
       {
         "index": 8,
         "actor": "planner",
-        "action": "Verify unchanged candidate identity and seal milestone revision locally as ACCEPTED under Planner VCS governance via active VCS mechanism capability.",
+        "action": "Verify unchanged candidate identity and seal milestone revision locally as ACCEPTED under Planner VCS governance via active VCS mechanism capability; user-requested external review of fixed candidate (or noting repository is not externally assessed) may occur after local seal and never substitutes for publication authorization.",
         "conditions": [
           {
             "when": "PUBLICATION_AUTHORIZED",

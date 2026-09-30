@@ -25,10 +25,10 @@ func TestLoad_Success(t *testing.T) {
 
 	// 2. Verify Roles
 	roles := k.Roles()
-	if len(roles) != 7 {
-		t.Fatalf("expected 7 roles, got %d", len(roles))
+	if len(roles) != 8 {
+		t.Fatalf("expected 8 roles, got %d", len(roles))
 	}
-	for _, expected := range []string{"planner", "builder", "reviewer", "scout", "navigator", "cartographer", "verifier"} {
+	for _, expected := range []string{"planner", "builder", "reviewer", "scout", "navigator", "cartographer", "verifier", "external-reviewer"} {
 		r, ok := k.Role(expected)
 		if !ok {
 			t.Errorf("expected role %q to exist", expected)
@@ -164,46 +164,38 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("expected non-existent flow to return false")
 	}
 
-	// Verify two-phase plan flow and deterministic contract-gate routing.
+	// Verify single-approval plan flow and deterministic gate routing.
 	planFlow, ok := k.Flow("plan")
 	if !ok {
 		t.Fatalf("expected plan flow to exist")
 	}
-	if len(planFlow.Steps) != 8 {
-		t.Fatalf("expected 8 steps in plan flow, got %d", len(planFlow.Steps))
+	if len(planFlow.Steps) != 7 {
+		t.Fatalf("expected 7 steps in plan flow, got %d", len(planFlow.Steps))
 	}
-	planStep3, _ := k.FlowStep("plan", 3)
-	planStep3Conditions := make(map[string]int)
-	for _, c := range planStep3.Conditions {
-		planStep3Conditions[c.When] = c.Then
+	planStep5, _ := k.FlowStep("plan", 5)
+	planStep5Conditions := make(map[string]int)
+	for _, c := range planStep5.Conditions {
+		planStep5Conditions[c.When] = c.Then
 	}
-	if planStep3Conditions["PLAN_REVIEW_PASS"] != 5 || planStep3Conditions["PLAN_REVIEW_REJECT"] != 4 {
-		t.Errorf("unexpected phase-1 plan gate conditions: %v", planStep3Conditions)
+	if planStep5Conditions["PLAN_REVIEW_PASS"] != 7 || planStep5Conditions["PLAN_REVIEW_REJECT"] != 6 {
+		t.Errorf("unexpected plan gate conditions: %v", planStep5Conditions)
 	}
 	planStep6, _ := k.FlowStep("plan", 6)
 	planStep6Conditions := make(map[string]int)
 	for _, c := range planStep6.Conditions {
 		planStep6Conditions[c.When] = c.Then
 	}
-	if planStep6Conditions["CONTRACT_REVIEW_PASS"] != 8 || planStep6Conditions["CONTRACT_REVIEW_REJECT"] != 7 {
-		t.Errorf("unexpected plan contract gate conditions: %v", planStep6Conditions)
-	}
-	planStep7, _ := k.FlowStep("plan", 7)
-	planStep7Conditions := make(map[string]int)
-	for _, c := range planStep7.Conditions {
-		planStep7Conditions[c.When] = c.Then
-	}
-	if planStep7Conditions["CONTRACT_ONLY_REVISION"] != 6 || planStep7Conditions["FOUNDATION_OR_SCOPE_CHANGED"] != 2 {
-		t.Errorf("unexpected plan revision routing: %v", planStep7Conditions)
+	if planStep6Conditions["PLANS_REVISED"] != 4 {
+		t.Errorf("unexpected plan revision routing: %v", planStep6Conditions)
 	}
 
-	// Verify direct build entry documents both independent approval preconditions.
+	// Verify direct build entry documents internal PLAN_REVIEW_PASS.
 	buildFlow, ok := k.Flow("build")
 	if !ok {
 		t.Fatalf("expected build flow to exist")
 	}
-	if len(buildFlow.Steps) == 0 || !strings.Contains(buildFlow.Steps[0].Action, "PLAN_REVIEW_PASS") || !strings.Contains(buildFlow.Steps[0].Action, "CONTRACT_REVIEW_PASS") {
-		t.Errorf("expected build entry to require both plan and contract passes, got: %+v", buildFlow)
+	if len(buildFlow.Steps) == 0 || !strings.Contains(buildFlow.Steps[0].Action, "PLAN_REVIEW_PASS") {
+		t.Errorf("expected build entry to require PLAN_REVIEW_PASS, got: %+v", buildFlow)
 	}
 
 	// Verify blueprint concept/shared-contract approvals and JIT gate ordering.
@@ -458,8 +450,8 @@ func TestLoad_Success(t *testing.T) {
 
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
-	if len(artifacts) != 17 {
-		t.Fatalf("expected 17 artifacts, got %d", len(artifacts))
+	if len(artifacts) != 18 {
+		t.Fatalf("expected 18 artifacts, got %d", len(artifacts))
 	}
 	for _, expected := range []string{
 		"agents-md",
@@ -471,6 +463,7 @@ func TestLoad_Success(t *testing.T) {
 		"sub-review-resolution",
 		"review-findings",
 		"review-resolution",
+		"external-review-report",
 		"scout-survey",
 		"diagram-brief",
 		"diagram-completion",
@@ -491,11 +484,11 @@ func TestLoad_Success(t *testing.T) {
 
 	// Regression check: plan artifact section counts and visibility
 	buildPlan, _ := k.Artifact("build-plan")
-	if len(buildPlan.Visibility) != 3 {
-		t.Errorf("expected build-plan visibility to have 3 roles, got %v", buildPlan.Visibility)
+	if len(buildPlan.Visibility) != 4 {
+		t.Errorf("expected build-plan visibility to have 4 roles, got %v", buildPlan.Visibility)
 	}
-	if len(buildPlan.Sections) != 8 {
-		t.Errorf("expected build-plan to have 8 sections, got %d", len(buildPlan.Sections))
+	if len(buildPlan.Sections) != 10 {
+		t.Errorf("expected build-plan to have 10 sections, got %d", len(buildPlan.Sections))
 	}
 	subBuildPlan, _ := k.Artifact("sub-build-plan")
 	if len(subBuildPlan.Sections) != 8 {
@@ -530,8 +523,8 @@ func TestLoad_Success(t *testing.T) {
 	if len(reviewResolution.Sections) != 5 {
 		t.Errorf("expected review-resolution to have 5 sections, got %d", len(reviewResolution.Sections))
 	}
-	if len(reviewResolution.Visibility) != 6 {
-		t.Errorf("expected review-resolution visibility to include 6 roles, got %v", reviewResolution.Visibility)
+	if len(reviewResolution.Visibility) != 7 {
+		t.Errorf("expected review-resolution visibility to include 7 roles, got %v", reviewResolution.Visibility)
 	}
 
 	// Verify diagram-brief and diagram-completion metadata
@@ -621,7 +614,8 @@ func TestLoad_Success(t *testing.T) {
 	}
 	for _, expected := range []string{
 		"anti-cheating",
-		"mandatory-alignment",
+		"bounded-builder-autonomy",
+		"user-requested-external-review",
 		"tdd-reproduction",
 		"coherent-plan-units",
 		"anti-rubber-stamp-plan-gate",
