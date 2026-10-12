@@ -836,101 +836,105 @@
   },
   {
     "name": "e2e",
-    "description": "Execute end-to-end verification in an isolated out-of-tree sandbox, quarantining test logs and delivering compact evidence to Planner.",
+    "description": "Execute end-to-end verification against protected candidate source with run-scoped outputs, independent bounded cleanup, and complete structured report delivered to Planner.",
     "steps": [
       {
         "index": 1,
         "actor": "planner",
-        "action": "Formulate structured e2e-brief artifact specifying immutable candidate revision SHA, fresh unique run_id, mode, package path, Secrets Policy inventory classifying each credential entity as throwaway-capable versus external-real-only, and any per-name real-credential authorization, requiring IMPLEMENTATION_REVIEW_PASS before initial dispatch or after any remediation. All-throwaway runs proceed silently; runs with real-only entities require per-name explicit human authorization recorded in the brief, and wholesale secret store access is prohibited."
+        "action": "Admit only an approved plan and IMPLEMENTATION_REVIEW_PASS, freeze immutable candidate revision identity, and issue complete e2e-brief execution contract (including Secrets Policy and credential authorization) to Verifier.",
+        "conditions": [
+          {
+            "when": "BRIEF_DISPATCHED",
+            "then": 2
+          }
+        ]
       },
       {
         "index": 2,
-        "actor": "planner",
-        "action": "Dispatch e2e-brief message artifact, including Secrets Policy reference and credential authorization record, to Verifier."
+        "actor": "verifier",
+        "action": "Perform read-only preflight in strict sequence: validate brief and credential policy/authorization; a policy-less or ambiguous brief halts with CLARIFICATION_REQUIRED where no provisioning or container start occurs; check credential allowlist and environment readiness; a provider denial after valid human authorization emits a non-admissible ENV_BLOCKED report to Planner without provisioning credentials or starting services; then verify candidate and material identity.",
+        "conditions": [
+          {
+            "when": "PREFLIGHT_READY",
+            "then": 3
+          },
+          {
+            "when": "CLARIFICATION_REQUIRED",
+            "then": 4
+          },
+          {
+            "when": "CANDIDATE_STALE",
+            "then": 4
+          },
+          {
+            "when": "PREFLIGHT_BLOCKED_REPORT",
+            "then": 4
+          }
+        ]
       },
       {
         "index": 3,
         "actor": "verifier",
-        "action": "Evaluate the execution package Secrets Policy before provisioning or container start; a policy-less specification is preflight-blocked with CLARIFICATION_REQUIRED and no provisioning or container start occurs. Self-check the sandbox credential directory against the specification allowlist by name, provision declared credentials with throwaway-by-default generation, then render infrastructure and start containers strictly after credential provisioning. Unsatisfied policy fails closed as ENV_BLOCKED with no step-skipping. Historical policy-less packages remain untouched on disk."
+        "action": "Execute fresh formal test execution with run-scoped output and resource names; partial startup, test failure, timeout, or cancellation still proceeds through independent bounded stop/cleanup and one complete structured report. If the runner is lost, controller emits a complete non-accepting terminal report from the run ledger.",
+        "conditions": [
+          {
+            "when": "E2E_REPORT_RECEIVED",
+            "then": 4
+          }
+        ]
       },
       {
         "index": 4,
-        "actor": "verifier",
-        "action": "Execute test scenarios with provisioned credentials confined to the sandbox credential directory, redirecting and quarantining verbose stdout/stderr and trace logs to persistent E2E vault sandbox disk storage."
-      },
-      {
-        "index": 5,
-        "actor": "verifier",
-        "action": "Remove generated credential directories including injected real-value residue and tear down containers before reporting, keeping credential file names only in evidence, and emit lightweight e2e-report message artifact carrying secrets_attestation with mode to Planner.",
-        "conditions": [
-          {
-            "when": "E2E_RESULT_PASS",
-            "then": 6
-          },
-          {
-            "when": "E2E_PRODUCT_FAILURE",
-            "then": 7
-          },
-          {
-            "when": "E2E_BUILD_FAILURE",
-            "then": 7
-          },
-          {
-            "when": "E2E_ENV_BLOCKED",
-            "then": 9
-          },
-          {
-            "when": "E2E_CLARIFICATION_REQUIRED",
-            "then": 9
-          },
-          {
-            "when": "E2E_TIMEOUT",
-            "then": 10
-          },
-          {
-            "when": "E2E_CANCELLED",
-            "then": 10
-          },
-          {
-            "when": "E2E_INVALID_EVIDENCE",
-            "then": 10
-          }
-        ]
-      },
-      {
-        "index": 6,
         "actor": "planner",
-        "action": "Evaluate Verifier report against admission criteria (candidate SHA match, scenario coverage, allowed skips, artifact digest provenance, secrets attestation presence with mode matching brief authorization, and token budget <150 tokens). Missing or mismatched attestation, or evidence containing credential material, fails closed as E2E_INVALID_EVIDENCE.",
+        "action": "Handle clarification or runner-loss events, validate report structure and correlation (including secrets_attestation presence with mode matching brief authorization, failing closed as E2E_INVALID_EVIDENCE on mismatch or credential leaks), and arbitrate evidence admission, environment-only retry with fresh run ID on unchanged candidate after confirmed cleanup, candidate remediation, or non-accepting halt.",
         "conditions": [
           {
             "when": "E2E_EVIDENCE_ADMITTED",
-            "then": 11
+            "then": 5
           },
           {
-            "when": "E2E_EVIDENCE_STALE",
+            "when": "BRIEF_AMENDED_NO_CANDIDATE_CHANGE",
             "then": 1
           },
           {
-            "when": "E2E_INVALID_EVIDENCE",
-            "then": 10
-          }
-        ]
-      },
-      {
-        "index": 7,
-        "actor": "planner",
-        "action": "Arbitrate product or build failure, sanitize defect trace into actionable remediation instructions for Builder (strictly withholding review-plan artifacts), and coordinate code or package fixes.",
-        "conditions": [
+            "when": "CLARIFICATION_UNRESOLVABLE",
+            "then": 8
+          },
           {
-            "when": "REMEDIATION_DISPATCHED",
+            "when": "ENVIRONMENT_RETRY_AUTHORIZED",
+            "then": 1
+          },
+          {
+            "when": "CANDIDATE_REMEDIATION_REQUIRED",
+            "then": 6
+          },
+          {
+            "when": "E2E_EXECUTION_HALTED",
             "then": 8
           }
         ]
       },
       {
-        "index": 8,
+        "index": 5,
+        "actor": "planner",
+        "action": "Incorporate verified, admitted E2E evidence with confirmed cleanup and valid secrets_attestation into Review Resolution or milestone record, and advance to ordinary final review.",
+        "terminal": true
+      },
+      {
+        "index": 6,
+        "actor": "builder",
+        "action": "Remediate product or test changes under ordinary approved build plan boundary, running local development tests as needed.",
+        "conditions": [
+          {
+            "when": "REMEDIATION_READY_FOR_REVIEW",
+            "then": 7
+          }
+        ]
+      },
+      {
+        "index": 7,
         "actor": "reviewer",
-        "action": "Independently inspect remediation diffs and updated test packages; emit IMPLEMENTATION_REVIEW_PASS only when all fixes and regression tests are verified.",
+        "action": "Independently inspect candidate remediation diffs and tests; emit IMPLEMENTATION_REVIEW_PASS only when fixes are verified to advance to a fresh E2E run on newly frozen candidate.",
         "conditions": [
           {
             "when": "IMPLEMENTATION_REVIEW_PASS",
@@ -938,58 +942,18 @@
           },
           {
             "when": "FINDINGS_REPORTED",
-            "then": 7
+            "then": 6
+          },
+          {
+            "when": "REMEDIATION_HALTED",
+            "then": 8
           }
         ]
       },
       {
-        "index": 9,
+        "index": 8,
         "actor": "planner",
-        "action": "Resolve environment blockers, including credential provisioning blocks, or answer clarification requests, formulating amended execution parameters or routing package defects to remediation.",
-        "conditions": [
-          {
-            "when": "E2E_INPUTS_AMENDED",
-            "then": 1
-          },
-          {
-            "when": "CLARIFICATION_RESOLVED",
-            "then": 1
-          },
-          {
-            "when": "PACKAGE_DEFECT_ESCALATED",
-            "then": 7
-          }
-        ]
-      },
-      {
-        "index": 10,
-        "actor": "planner",
-        "action": "Investigate timeout, cancellation, or invalid evidence, including secrets attestation failures, arbitrating retry authorization on unchanged candidate, escalating package/code defects to remediation, or halting execution.",
-        "conditions": [
-          {
-            "when": "E2E_RETRY_AUTHORIZED",
-            "then": 1
-          },
-          {
-            "when": "PACKAGE_DEFECT_ESCALATED",
-            "then": 7
-          },
-          {
-            "when": "E2E_EXECUTION_HALTED",
-            "then": 12
-          }
-        ]
-      },
-      {
-        "index": 11,
-        "actor": "planner",
-        "action": "Incorporate verified and admitted E2E evidence into Feature Composition Gate or Review Resolution and advance to final review.",
-        "terminal": true
-      },
-      {
-        "index": 12,
-        "actor": "planner",
-        "action": "Terminate E2E verification without acceptance upon fatal error, unresolvable defect, or cancellation; record non-acceptance disposition and halt pipeline without dispatching further runs or admitting candidate to commit flow.",
+        "action": "Terminate E2E verification without acceptance upon unresolvable defect, fatal error, cancellation, or unconfirmed cleanup; record non-acceptance disposition and halt pipeline without admitting candidate to final review or commit flow.",
         "terminal": true
       }
     ]

@@ -110,7 +110,7 @@ func TestExternalReviewer_ArtifactVisibilityAllowlist(t *testing.T) {
 			t.Errorf("artifact %q must be visible to external-reviewer, got %v", name, a.Visibility)
 		}
 	}
-	for _, private := range []string{"review-plan", "review-findings", "sub-review-plan", "sub-build-plan", "e2e-brief", "e2e-report", "e2e-test-spec", "e2e-clarification-request", "scout-survey"} {
+	for _, private := range []string{"review-plan", "review-findings", "sub-review-plan", "sub-build-plan", "e2e-brief", "e2e-report", "e2e-clarification-request", "scout-survey"} {
 		a, ok := k.Artifact(private)
 		if !ok {
 			t.Fatalf("expected artifact %q", private)

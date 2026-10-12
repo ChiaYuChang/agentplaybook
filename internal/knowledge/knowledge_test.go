@@ -418,40 +418,43 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("unexpected navigator-cartography step 4 conditions: %v", navCartStep4Conditions)
 	}
 
-	// Verify e2e flow (12 steps)
+	// Verify e2e flow (8 steps)
 	e2eFlow, ok := k.Flow("e2e")
 	if !ok {
 		t.Fatalf("expected e2e flow to exist")
 	}
-	if len(e2eFlow.Steps) != 12 {
-		t.Fatalf("expected 12 steps in e2e flow, got %d", len(e2eFlow.Steps))
+	if len(e2eFlow.Steps) != 8 {
+		t.Fatalf("expected 8 steps in e2e flow, got %d", len(e2eFlow.Steps))
 	}
-	if e2eFlow.Steps[0].Actor != knowledge.RolePlanner || e2eFlow.Steps[1].Actor != knowledge.RolePlanner {
-		t.Errorf("expected e2e steps 1-2 actor to be planner")
+	if e2eFlow.Steps[0].Actor != knowledge.RolePlanner {
+		t.Errorf("expected e2e step 1 actor to be planner")
 	}
-	if e2eFlow.Steps[2].Actor != knowledge.RoleVerifier || e2eFlow.Steps[3].Actor != knowledge.RoleVerifier || e2eFlow.Steps[4].Actor != knowledge.RoleVerifier {
-		t.Errorf("expected e2e steps 3-5 actor to be verifier")
+	if e2eFlow.Steps[1].Actor != knowledge.RoleVerifier || e2eFlow.Steps[2].Actor != knowledge.RoleVerifier {
+		t.Errorf("expected e2e steps 2-3 actor to be verifier")
 	}
-	if e2eFlow.Steps[5].Actor != knowledge.RolePlanner || e2eFlow.Steps[6].Actor != knowledge.RolePlanner {
-		t.Errorf("expected e2e steps 6-7 actor to be planner")
+	if e2eFlow.Steps[3].Actor != knowledge.RolePlanner || e2eFlow.Steps[4].Actor != knowledge.RolePlanner {
+		t.Errorf("expected e2e steps 4-5 actor to be planner")
 	}
-	if e2eFlow.Steps[7].Actor != knowledge.RoleReviewer {
-		t.Errorf("expected e2e step 8 actor to be reviewer")
+	if e2eFlow.Steps[5].Actor != knowledge.RoleBuilder {
+		t.Errorf("expected e2e step 6 actor to be builder")
 	}
-	if e2eFlow.Steps[8].Actor != knowledge.RolePlanner || e2eFlow.Steps[9].Actor != knowledge.RolePlanner || e2eFlow.Steps[10].Actor != knowledge.RolePlanner || e2eFlow.Steps[11].Actor != knowledge.RolePlanner {
-		t.Errorf("expected e2e steps 9-12 actor to be planner")
+	if e2eFlow.Steps[6].Actor != knowledge.RoleReviewer {
+		t.Errorf("expected e2e step 7 actor to be reviewer")
 	}
-	if !e2eFlow.Steps[10].Terminal || len(e2eFlow.Steps[10].Conditions) != 0 {
-		t.Errorf("expected e2e step 11 to be terminal: true with 0 conditions")
+	if e2eFlow.Steps[7].Actor != knowledge.RolePlanner {
+		t.Errorf("expected e2e step 8 actor to be planner")
 	}
-	if !e2eFlow.Steps[11].Terminal || len(e2eFlow.Steps[11].Conditions) != 0 {
-		t.Errorf("expected e2e step 12 to be terminal: true with 0 conditions")
+	if !e2eFlow.Steps[4].Terminal || len(e2eFlow.Steps[4].Conditions) != 0 {
+		t.Errorf("expected e2e step 5 to be terminal: true with 0 conditions")
+	}
+	if !e2eFlow.Steps[7].Terminal || len(e2eFlow.Steps[7].Conditions) != 0 {
+		t.Errorf("expected e2e step 8 to be terminal: true with 0 conditions")
 	}
 
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
-	if len(artifacts) != 18 {
-		t.Fatalf("expected 18 artifacts, got %d", len(artifacts))
+	if len(artifacts) != 17 {
+		t.Fatalf("expected 17 artifacts, got %d", len(artifacts))
 	}
 	for _, expected := range []string{
 		"agents-md",
@@ -470,7 +473,6 @@ func TestLoad_Success(t *testing.T) {
 		"diagram-clarification-request",
 		"e2e-brief",
 		"e2e-report",
-		"e2e-test-spec",
 		"e2e-clarification-request",
 	} {
 		a, ok := k.Artifact(expected)
@@ -569,8 +571,8 @@ func TestLoad_Success(t *testing.T) {
 	if len(e2eBrief.Visibility) != 2 || e2eBrief.Visibility[0] != knowledge.RolePlanner || e2eBrief.Visibility[1] != knowledge.RoleVerifier {
 		t.Errorf("expected e2e-brief visibility [planner verifier], got %v", e2eBrief.Visibility)
 	}
-	if len(e2eBrief.Fields) != 7 {
-		t.Errorf("expected e2e-brief to have 7 fields, got %d", len(e2eBrief.Fields))
+	if len(e2eBrief.Fields) != 20 {
+		t.Errorf("expected e2e-brief to have 20 fields, got %d", len(e2eBrief.Fields))
 	}
 
 	e2eReport, _ := k.Artifact("e2e-report")
@@ -580,22 +582,11 @@ func TestLoad_Success(t *testing.T) {
 	if len(e2eReport.Visibility) != 3 || e2eReport.Visibility[0] != knowledge.RolePlanner || e2eReport.Visibility[1] != knowledge.RoleVerifier || e2eReport.Visibility[2] != knowledge.RoleReviewer {
 		t.Errorf("expected e2e-report visibility [planner verifier reviewer], got %v", e2eReport.Visibility)
 	}
-	if len(e2eReport.Fields) != 15 {
-		t.Errorf("expected e2e-report to have 15 fields, got %d", len(e2eReport.Fields))
+	if len(e2eReport.Fields) != 23 {
+		t.Errorf("expected e2e-report to have 23 fields, got %d", len(e2eReport.Fields))
 	}
 
-	// Verify e2e-test-spec and e2e-clarification-request metadata
-	e2eTestSpec, _ := k.Artifact("e2e-test-spec")
-	if e2eTestSpec.Owner != knowledge.RoleBuilder || e2eTestSpec.Type != "document" {
-		t.Errorf("unexpected e2e-test-spec metadata: %+v", e2eTestSpec)
-	}
-	if len(e2eTestSpec.Visibility) != 4 || e2eTestSpec.Visibility[0] != knowledge.RolePlanner || e2eTestSpec.Visibility[1] != knowledge.RoleReviewer || e2eTestSpec.Visibility[2] != knowledge.RoleBuilder || e2eTestSpec.Visibility[3] != knowledge.RoleVerifier {
-		t.Errorf("expected e2e-test-spec visibility [planner reviewer builder verifier], got %v", e2eTestSpec.Visibility)
-	}
-	if len(e2eTestSpec.Sections) != 6 {
-		t.Errorf("expected e2e-test-spec to have 6 sections, got %d", len(e2eTestSpec.Sections))
-	}
-
+	// Verify e2e-clarification-request metadata
 	e2eClarification, _ := k.Artifact("e2e-clarification-request")
 	if e2eClarification.Owner != knowledge.RoleVerifier || e2eClarification.Type != "message" {
 		t.Errorf("unexpected e2e-clarification-request metadata: %+v", e2eClarification)
@@ -1472,486 +1463,521 @@ func TestValidate_TerminalStepsAndReachability(t *testing.T) {
 		}
 	}
 
-	// 4. Reachability test: e2e Step 11 is Terminal: true, has zero conditions, and cannot reach Step 12
+	// 4. Reachability test: e2e Step 5 is Terminal: true, has zero conditions, and cannot reach Step 6
 	{
 		e2eFlow, ok := k.Flow("e2e")
 		if !ok {
 			t.Fatalf("expected e2e flow to exist")
 		}
-		var step11 *knowledge.FlowStep
+		var step5 *knowledge.FlowStep
 		for _, s := range e2eFlow.Steps {
-			if s.Index == 11 {
+			if s.Index == 5 {
 				sCopy := s
-				step11 = &sCopy
+				step5 = &sCopy
 				break
 			}
 		}
-		if step11 == nil {
-			t.Fatalf("expected e2e step 11 to exist")
+		if step5 == nil {
+			t.Fatalf("expected e2e step 5 to exist")
 		}
-		if !step11.Terminal {
-			t.Errorf("expected e2e step 11 to be terminal: true")
+		if !step5.Terminal {
+			t.Errorf("expected e2e step 5 to be terminal: true")
 		}
-		if len(step11.Conditions) != 0 {
-			t.Errorf("expected e2e step 11 to have zero conditions, got %d", len(step11.Conditions))
+		if len(step5.Conditions) != 0 {
+			t.Errorf("expected e2e step 5 to have zero conditions, got %d", len(step5.Conditions))
 		}
-		for _, c := range step11.Conditions {
-			if c.Then == 12 {
-				t.Errorf("e2e step 11 must not transition to step 12")
+		for _, c := range step5.Conditions {
+			if c.Then == 6 {
+				t.Errorf("e2e step 5 must not transition to step 6")
 			}
 		}
 	}
 
-	// 5. Reachability test: e2e Step 12 is Terminal: true, has zero conditions, and cannot reach Step 1, 2, or 11
+	// 5. Reachability test: e2e Step 8 is Terminal: true, has zero conditions, and cannot reach Step 1, 2, or 5
 	{
 		e2eFlow, ok := k.Flow("e2e")
 		if !ok {
 			t.Fatalf("expected e2e flow to exist")
 		}
-		var step12 *knowledge.FlowStep
+		var step8 *knowledge.FlowStep
 		for _, s := range e2eFlow.Steps {
-			if s.Index == 12 {
+			if s.Index == 8 {
 				sCopy := s
-				step12 = &sCopy
+				step8 = &sCopy
 				break
 			}
 		}
-		if step12 == nil {
-			t.Fatalf("expected e2e step 12 to exist")
+		if step8 == nil {
+			t.Fatalf("expected e2e step 8 to exist")
 		}
-		if !step12.Terminal {
-			t.Errorf("expected e2e step 12 to be terminal: true")
+		if !step8.Terminal {
+			t.Errorf("expected e2e step 8 to be terminal: true")
 		}
-		if len(step12.Conditions) != 0 {
-			t.Errorf("expected e2e step 12 to have zero conditions, got %d", len(step12.Conditions))
+		if len(step8.Conditions) != 0 {
+			t.Errorf("expected e2e step 8 to have zero conditions, got %d", len(step8.Conditions))
 		}
-		for _, c := range step12.Conditions {
-			if c.Then == 1 || c.Then == 2 || c.Then == 11 {
-				t.Errorf("e2e step 12 must not transition to step %d", c.Then)
+		for _, c := range step8.Conditions {
+			if c.Then == 1 || c.Then == 2 || c.Then == 5 {
+				t.Errorf("e2e step 8 must not transition to step %d", c.Then)
 			}
 		}
+	}
+}
+
+func validTestBrief() knowledge.E2EBriefContext {
+	return knowledge.E2EBriefContext{
+		RunID:             "e2e-run-20261012T220000Z-7f8a9b",
+		RepoRef:           "github.com/ChiaYuChang/agentplaybook",
+		CandidateRef:      "0123456789abcdef0123456789abcdef01234567",
+		TestPackage:       "e2e/core-flow",
+		Mode:              "build-and-run",
+		Command:           []string{"go", "test", "-count=1", "./e2e/core-flow/..."},
+		BuildCommand:      []string{"go", "build", "-o", "bin/agentplaybook", "./cmd/agentplaybook"},
+		TimeoutMS:         180000,
+		GoVersion:         "go1.24.0",
+		Platforms:         []string{"linux/amd64"},
+		DependencyLockRef: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		Environment: []knowledge.E2EEnvironmentInput{
+			{Name: "APP_ENV", Source: "LITERAL", Value: "test"},
+		},
+		ExpectedOutputs: []string{"test-report.json"},
+		Scenarios: []knowledge.E2EScenarioContract{
+			{ID: "SC-01", Preconditions: "Clean DB", Steps: []string{"Step 1"}, ExpectedResult: "Pass", Verification: "Assert 200"},
+			{ID: "SC-02", Preconditions: "Clean DB", Steps: []string{"Step 2"}, ExpectedResult: "Pass", Verification: "Assert 200"},
+			{ID: "SC-03", Preconditions: "Clean DB", Steps: []string{"Step 3"}, ExpectedResult: "Skip", Verification: "Assert skip"},
+		},
+		AllowedSkipIDs: []string{"SC-03"},
+		Services:       []knowledge.E2EServiceRequirement{},
+		CleanupObligations: []knowledge.E2ECleanupObligation{
+			{ResourceID: "test-data", Kind: "TEST_DATA", Owner: "verifier", Action: "rm -rf"},
+		},
+		CredentialPolicy: []knowledge.E2ECredentialPolicyEntry{
+			{Name: "test-token", GenerationMode: "THROWAWAY", GenerationInstruction: "generate ephemeral token"},
+		},
+		CredentialAuthorization: nil,
+		PriorCleanupResolution:  nil,
+	}
+}
+
+func validTestBriefState() knowledge.E2EBriefValidationContext {
+	return knowledge.E2EBriefValidationContext{
+		RunIDUnique:                     true,
+		CredentialAuthorizationVerified: true,
+		PriorCleanup:                    knowledge.E2EPriorCleanupContext{Required: false},
+	}
+}
+
+func validTestReport(brief knowledge.E2EBriefContext) knowledge.E2EReportPayload {
+	attestation, _ := knowledge.ComputeCanonicalSecretsAttestation(brief.CredentialPolicy, brief.CredentialAuthorization)
+	bmd := knowledge.ComputeBuildMaterialDigest(brief.RepoRef, brief.CandidateRef, "sha256:1111111111111111111111111111111111111111111111111111111111111111", brief.BuildCommand, brief.GoVersion, brief.Platforms, brief.DependencyLockRef)
+	artifactRef := knowledge.FormatTestedArtifactRef("2222222222222222222222222222222222222222222222222222222222222222", brief.CandidateRef, bmd, "FRESH")
+
+	mat := validTestMaterial(brief)
+	execRef := knowledge.ComputeExecutionMaterialRef(brief, mat)
+
+	return knowledge.E2EReportPayload{
+		RunID:             brief.RunID,
+		RepoRef:           brief.RepoRef,
+		CandidateRef:      brief.CandidateRef,
+		TestPackage:       brief.TestPackage,
+		StageOutcome:      "PASS",
+		BuildOutcome:      "PASS",
+		ExecutionOutcome:  "PASS",
+		ScenariosSelected: 3,
+		ScenariosPassed:   2,
+		ScenariosFailed:   0,
+		ScenariosSkipped:  1,
+		ScenariosNotRun:   0,
+		ScenariosUnknown:  0,
+		ScenarioResults: []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "PASS"},
+			{ScenarioID: "SC-02", Outcome: "PASS"},
+			{ScenarioID: "SC-03", Outcome: "SKIP"},
+		},
+		ResultCompleteness:   "COMPLETE",
+		TestedArtifactRef:    artifactRef,
+		ExecutionMaterialRef: execRef,
+		DurationMS:           12500,
+		Diagnostic:           "All selected scenarios passed with 1 authorized skip.",
+		EvidenceURI:          "file:///tmp/e2e-run-7f8a9b/evidence.tar.gz",
+		CleanupStatus:        "CONFIRMED",
+		CleanupEvidenceURI:   "file:///tmp/e2e-run-7f8a9b/cleanup.json",
+		SecretsAttestation:   attestation,
+	}
+}
+
+func validTestReportState(report knowledge.E2EReportPayload) knowledge.E2EReportValidationContext {
+	provState := "SUCCEEDED"
+	if strings.HasPrefix(report.SecretsAttestation, "NOT_PROVISIONED") {
+		provState = "NOT_STARTED"
+	}
+	return knowledge.E2EReportValidationContext{
+		RunIDUnique:                     true,
+		CredentialAuthorizationVerified: true,
+		PriorCleanupResolved:            true,
+		PreflightOutcome:                "READY",
+		BuildProcessState:               "PASS",
+		ExecutionProcessState:           "PASS",
+		ExecutionStarted:                true,
+		ServiceStartupAttempted:         false,
+		CredentialProvisioningState:     provState,
+		ResourcesAllocated:              true,
+		AllocatedResourceIDs:            []string{"test-data"},
+		UnresolvedResourceIDs:           nil,
+		CleanupRequired:                 true,
+		CleanupStatus:                   "CONFIRMED",
+		CleanupRecordVerified:           true,
+		Finalization: knowledge.E2EReportFinalizationContext{
+			State:                   "FIRST_FINALIZATION",
+			Authority:               "VERIFIER",
+			IncomingReportDigest:    knowledge.ComputeReportDigest(report),
+			TerminalReportImmutable: true,
+		},
+	}
+}
+
+func validTestMaterial(brief knowledge.E2EBriefContext) knowledge.E2EExecutionMaterialContext {
+	treeRef := "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+	bmd := knowledge.ComputeBuildMaterialDigest(brief.RepoRef, brief.CandidateRef, treeRef, brief.BuildCommand, brief.GoVersion, brief.Platforms, brief.DependencyLockRef)
+
+	return knowledge.E2EExecutionMaterialContext{
+		RepoRef:                   brief.RepoRef,
+		CandidateTreeRef:          treeRef,
+		SourceTreeBeforeRef:       treeRef,
+		SourceTreeAfterRef:        treeRef,
+		CheckoutCleanBefore:       true,
+		CheckoutCleanAfter:        true,
+		InputProtectionMode:       "READ_ONLY_MATERIALIZATION",
+		ProtectionProofRef:        "ro-proof-12345",
+		ProtectedIntervalComplete: true,
+		ProtectionProofVerified:   true,
+		TestPackagePath:           brief.TestPackage,
+		TestPackageTreeRef:        "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+		Command:                   brief.Command,
+		BuildCommand:              brief.BuildCommand,
+		GoVersion:                 brief.GoVersion,
+		Platforms:                 brief.Platforms,
+		DependencyLockRef:         brief.DependencyLockRef,
+		ServiceRefs:               nil,
+		FreshTestExecution:        true,
+		ArtifactSHA256:            "2222222222222222222222222222222222222222222222222222222222222222",
+		ArtifactCandidateRef:      brief.CandidateRef,
+		ArtifactBuildMaterialRef:  "sha256:" + bmd,
+		ArtifactSource:            "FRESH",
 	}
 }
 
 func TestValidateE2EReport(t *testing.T) {
 	t.Parallel()
 
-	validBrief := func() knowledge.E2EBriefContext {
-		return knowledge.E2EBriefContext{
-			RunID:        "e2e-run-20260908T220000Z-7f8a9b",
-			CandidateRef: "0123456789abcdef0123456789abcdef01234567",
-			TestPackage:  "e2e/core-flow",
-			Mode:         "build-and-run",
-			TimeoutMS:    180000,
-		}
-	}
-
-	validCoverage := func() knowledge.E2EScenarioCoverageContext {
-		return knowledge.E2EScenarioCoverageContext{
-			SelectedScenarioIDs: []string{"SC-01", "SC-02", "SC-03"},
-			SkippedScenarioIDs:  []string{"SC-03"},
-			AllowedSkipIDs:      []string{"SC-03"},
-		}
-	}
-
-	validReport := func() knowledge.E2EReportPayload {
-		return knowledge.E2EReportPayload{
-			RunID:              "e2e-run-20260908T220000Z-7f8a9b",
-			CandidateRef:       "0123456789abcdef0123456789abcdef01234567",
-			StageOutcome:       "PASS",
-			BuildOutcome:       "PASS",
-			ExecutionOutcome:   "PASS",
-			ScenariosSelected:  3,
-			ScenariosPassed:    2,
-			ScenariosFailed:    0,
-			ScenariosSkipped:   1,
-			ResultCompleteness: "COMPLETE",
-			TestedArtifactRef:  "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 [bin/agentplaybook]",
-			DurationMS:         12500,
-			Diagnostic:         "All 2 selected scenarios passed with 1 authorized skip.",
-			EvidenceURI:        "file:///tmp/e2e-sandbox-7f8a9b/evidence.tar.gz",
-		}
-	}
+	brief := validTestBrief()
+	report := validTestReport(brief)
+	state := validTestReportState(report)
 
 	// 1. Success test: build-and-run
-	{
-		brief := validBrief()
-		report := validReport()
-		cov := validCoverage()
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err != nil {
-			t.Fatalf("expected valid report to pass: %v", err)
-		}
-		// Deterministic token budget test
-		tokenCount := knowledge.EstimateTokenCount(knowledge.FormatE2EReport(report))
-		if tokenCount >= 150 {
-			t.Errorf("expected token count < 150, got %d", tokenCount)
-		}
+	if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+		t.Fatalf("expected valid build-and-run report to pass: %v", err)
 	}
 
-	// 2. Success test: run-only
+	// 2. Deterministic Format and Digest assertions
+	formatted := knowledge.FormatE2EReport(report)
+	if !strings.HasPrefix(formatted, "run_id: ") {
+		t.Errorf("expected formatted report to start with run_id, got: %s", formatted)
+	}
+	if !strings.Contains(formatted, "SC-01: PASS") {
+		t.Errorf("expected formatted report to contain scenario results, got: %s", formatted)
+	}
+	digest := knowledge.ComputeReportDigest(report)
+	if len(digest) != 64 {
+		t.Errorf("expected 64-char sha256 hex digest, got %d chars: %s", len(digest), digest)
+	}
+
+	// 3. Success test: run-only
 	{
-		brief := validBrief()
-		brief.Mode = "run-only"
-		report := validReport()
-		report.BuildOutcome = "NOT_RUN"
-		cov := validCoverage()
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err != nil {
+		runOnlyBrief := brief
+		runOnlyBrief.Mode = "run-only"
+		runOnlyReport := report
+		runOnlyReport.BuildOutcome = "NOT_RUN"
+		runOnlyState := validTestReportState(runOnlyReport)
+		runOnlyState.BuildProcessState = "NOT_STARTED"
+		runOnlyState.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(runOnlyReport)
+		if err := knowledge.ValidateE2EReport(runOnlyBrief, runOnlyReport, runOnlyState); err != nil {
 			t.Fatalf("expected valid run-only report to pass: %v", err)
 		}
 	}
 
-	// 3. Pre-provisioning failure test with UNAVAILABLE evidence and NONE artifact
+	// 4. Preflight AUTHORIZATION_DENIED test
 	{
-		brief := validBrief()
-		report := validReport()
-		report.StageOutcome = "ENV_BLOCKED"
-		report.BuildOutcome = "ENV_ERROR"
-		report.ExecutionOutcome = "NOT_RUN"
-		report.ResultCompleteness = "NONE"
-		report.TestedArtifactRef = "NONE"
-		report.EvidenceURI = "UNAVAILABLE"
-		report.ScenariosSelected = 1
-		report.ScenariosPassed = 0
-		report.ScenariosFailed = 0
-		report.ScenariosSkipped = 1
-		cov := knowledge.E2EScenarioCoverageContext{
-			SelectedScenarioIDs: []string{"SC-01"},
-			SkippedScenarioIDs:  []string{"SC-01"},
-			AllowedSkipIDs:      []string{"SC-01"},
+		deniedBrief := brief
+		deniedBrief.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{
+			{Name: "prod-db-token", GenerationMode: "REAL_ONLY"},
 		}
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err != nil {
-			t.Fatalf("expected pre-provisioning failure report to pass: %v", err)
+		deniedBrief.CredentialAuthorization = []knowledge.E2ECredentialAuthorization{
+			{
+				Name:             "prod-db-token",
+				Purpose:          "Integration test",
+				Lifetime:         "SINGLE_RUN",
+				AuthorizedBy:     "operator",
+				AuthorizedAt:     "2026-10-12T20:00:00Z",
+				AuthorizationRef: "auth-12345",
+			},
+		}
+
+		deniedReport := report
+		deniedReport.StageOutcome = "ENV_BLOCKED"
+		deniedReport.BuildOutcome = "NOT_RUN"
+		deniedReport.ExecutionOutcome = "ENV_ERROR"
+		deniedReport.ScenariosSelected = 3
+		deniedReport.ScenariosPassed = 0
+		deniedReport.ScenariosFailed = 0
+		deniedReport.ScenariosSkipped = 0
+		deniedReport.ScenariosNotRun = 3
+		deniedReport.ScenariosUnknown = 0
+		deniedReport.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+		deniedReport.ResultCompleteness = "NONE"
+		deniedReport.TestedArtifactRef = "NONE"
+		deniedReport.ExecutionMaterialRef = "UNAVAILABLE"
+		deniedReport.EvidenceURI = "UNAVAILABLE"
+		deniedReport.CleanupStatus = "CONFIRMED"
+		deniedReport.CleanupEvidenceURI = "NOT_REQUIRED"
+		deniedReport.SecretsAttestation = "ENV_BLOCKED:AUTHORIZATION_DENIED"
+
+		deniedState := knowledge.E2EReportValidationContext{
+			RunIDUnique:                     true,
+			CredentialAuthorizationVerified: true,
+			PriorCleanupResolved:            true,
+			PreflightOutcome:                "AUTHORIZATION_DENIED",
+			BuildProcessState:               "NOT_STARTED",
+			ExecutionProcessState:           "NOT_STARTED",
+			ExecutionStarted:                false,
+			ServiceStartupAttempted:         false,
+			CredentialProvisioningState:     "NOT_STARTED",
+			ResourcesAllocated:              false,
+			CleanupRequired:                 false,
+			CleanupStatus:                   "CONFIRMED",
+			Finalization: knowledge.E2EReportFinalizationContext{
+				State:                   "FIRST_FINALIZATION",
+				Authority:               "VERIFIER",
+				IncomingReportDigest:    knowledge.ComputeReportDigest(deniedReport),
+				TerminalReportImmutable: true,
+			},
+		}
+
+		if err := knowledge.ValidateE2EReport(deniedBrief, deniedReport, deniedState); err != nil {
+			t.Fatalf("expected AUTHORIZATION_DENIED report to pass: %v", err)
+		}
+
+		// Negative: AUTHORIZATION_DENIED with attempted execution
+		invalidDeniedState := deniedState
+		invalidDeniedState.ExecutionStarted = true
+		if err := knowledge.ValidateE2EReport(deniedBrief, deniedReport, invalidDeniedState); err == nil {
+			t.Error("expected error when AUTHORIZATION_DENIED has executionStarted true")
 		}
 	}
 
-	// 4. Mode mismatch: build-and-run mode with build_outcome: NOT_RUN
+	// 5. Negative: ledger uniqueness violation
 	{
-		brief := validBrief()
-		brief.Mode = "build-and-run"
-		report := validReport()
-		report.BuildOutcome = "NOT_RUN"
-		cov := validCoverage()
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for build-and-run mode with build_outcome NOT_RUN")
+		badState := validTestReportState(report)
+		badState.RunIDUnique = false
+		if err := knowledge.ValidateE2EReport(brief, report, badState); err == nil {
+			t.Error("expected error when run_id is not unique in ledger")
 		}
 	}
 
-	// 5. Zero selection: scenarios_selected: 0
+	// 6. Negative: prior cleanup unconfirmed
 	{
-		brief := validBrief()
-		report := validReport()
-		report.ScenariosSelected = 0
-		cov := validCoverage()
-		cov.SelectedScenarioIDs = nil
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for scenarios_selected == 0")
+		badState := validTestReportState(report)
+		badState.PriorCleanupResolved = false
+		if err := knowledge.ValidateE2EReport(brief, report, badState); err == nil {
+			t.Error("expected error when prior cleanup is not resolved")
 		}
 	}
 
-	// 6. Count reconciliation mismatch
+	// 7. Negative: correlation mismatch
 	{
-		brief := validBrief()
-		report := validReport()
-		report.ScenariosSelected = 5
-		report.ScenariosPassed = 3
-		report.ScenariosFailed = 1
-		report.ScenariosSkipped = 0 // 3+1+0 != 5
-		cov := validCoverage()
-		cov.SelectedScenarioIDs = []string{"S1", "S2", "S3", "S4", "S5"}
-		cov.SkippedScenarioIDs = nil
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for count reconciliation mismatch")
+		mismatchReport := report
+		mismatchReport.RunID = "different-run-id"
+		mismatchState := validTestReportState(mismatchReport)
+		if err := knowledge.ValidateE2EReport(brief, mismatchReport, mismatchState); err == nil {
+			t.Error("expected error for run_id mismatch")
+		}
+
+		mismatchReport = report
+		mismatchReport.CandidateRef = "ffffffffffffffffffffffffffffffffffffffff"
+		mismatchState = validTestReportState(mismatchReport)
+		if err := knowledge.ValidateE2EReport(brief, mismatchReport, mismatchState); err == nil {
+			t.Error("expected error for candidate_ref mismatch")
 		}
 	}
 
-	// 7. Duplicate scenario IDs in SelectedScenarioIDs or SkippedScenarioIDs
+	// 8. Negative: diagnostic multi-line or length > 160 bytes
 	{
-		brief := validBrief()
-		report := validReport()
-		cov := validCoverage()
-		cov.SelectedScenarioIDs = []string{"SC-01", "SC-01", "SC-02"}
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for duplicate SelectedScenarioIDs")
+		multiLineReport := report
+		multiLineReport.Diagnostic = "Line 1\nLine 2"
+		multiLineState := validTestReportState(multiLineReport)
+		if err := knowledge.ValidateE2EReport(brief, multiLineReport, multiLineState); err == nil {
+			t.Error("expected error for multi-line diagnostic")
 		}
 
-		cov2 := validCoverage()
-		cov2.SkippedScenarioIDs = []string{"SC-03", "SC-03"}
-		report.ScenariosSkipped = 2
-		report.ScenariosPassed = 1
-		if err := knowledge.ValidateE2EReport(brief, report, cov2); err == nil {
-			t.Error("expected error for duplicate SkippedScenarioIDs")
+		longReport := report
+		longReport.Diagnostic = strings.Repeat("a", 161)
+		longState := validTestReportState(longReport)
+		if err := knowledge.ValidateE2EReport(brief, longReport, longState); err == nil {
+			t.Error("expected error for diagnostic exceeding 160 bytes")
 		}
 	}
 
-	// 8. Skipped scenario ID absent from SelectedScenarioIDs
+	// 9. Negative: count reconciliation mismatch
 	{
-		brief := validBrief()
-		report := validReport()
-		cov := validCoverage()
-		cov.SkippedScenarioIDs = []string{"SC-UNKNOWN"}
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error when skipped scenario ID is not in SelectedScenarioIDs")
+		badCountReport := report
+		badCountReport.ScenariosPassed = 1 // 1 + 0 + 1 + 0 + 0 = 2 != 3
+		badCountState := validTestReportState(badCountReport)
+		if err := knowledge.ValidateE2EReport(brief, badCountReport, badCountState); err == nil {
+			t.Error("expected error for scenario count reconciliation mismatch")
 		}
 	}
 
-	// 9. Unauthorized skip IDs for stage_outcome == PASS
+	// 10. Negative: unauthorized skip on PASS
 	{
-		brief := validBrief()
-		report := validReport()
-		cov := validCoverage()
-		cov.AllowedSkipIDs = []string{"SC-OTHER"} // SC-03 is skipped but not authorized
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for unauthorized skipped scenario with PASS stage outcome")
+		badSkipBrief := brief
+		badSkipBrief.AllowedSkipIDs = nil // no skips allowed
+		badSkipState := validTestReportState(report)
+		if err := knowledge.ValidateE2EReport(badSkipBrief, report, badSkipState); err == nil {
+			t.Error("expected error when unauthorized skip is present with PASS outcome")
 		}
 	}
 
-	// 10. BUILD_FAILURE misclassification
+	// 11. Negative: UNCONFIRMED cleanup status
 	{
-		// ENV_ERROR misclassified as BUILD_FAILURE
-		brief := validBrief()
-		report := validReport()
-		report.StageOutcome = "BUILD_FAILURE"
-		report.BuildOutcome = "ENV_ERROR"
-		report.ExecutionOutcome = "NOT_RUN"
-		report.TestedArtifactRef = "NONE"
-		cov := validCoverage()
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error when build ENV_ERROR is misclassified as BUILD_FAILURE")
-		}
-
-		// TIMEOUT misclassified as BUILD_FAILURE
-		report.BuildOutcome = "TIMEOUT"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error when build TIMEOUT is misclassified as BUILD_FAILURE")
+		unconfirmedReport := report
+		unconfirmedReport.CleanupStatus = "UNCONFIRMED"
+		unconfirmedState := validTestReportState(unconfirmedReport)
+		unconfirmedState.CleanupStatus = "UNCONFIRMED"
+		unconfirmedState.UnresolvedResourceIDs = []string{"dangling-volume"}
+		// UNCONFIRMED with PASS stage outcome must fail
+		if err := knowledge.ValidateE2EReport(brief, unconfirmedReport, unconfirmedState); err == nil {
+			t.Error("expected error when stage outcome is PASS but cleanup is UNCONFIRMED")
 		}
 	}
 
-	// 11. Contradictory states
+	// 12. Negative: invalid SecretsAttestation
 	{
-		// BUILD_FAILURE with execution_outcome: PASS
-		brief := validBrief()
-		report := validReport()
-		report.StageOutcome = "BUILD_FAILURE"
-		report.BuildOutcome = "FAIL"
-		report.ExecutionOutcome = "PASS"
-		report.TestedArtifactRef = "NONE"
-		cov := validCoverage()
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for BUILD_FAILURE with execution_outcome: PASS")
+		badAttestReport := report
+		badAttestReport.SecretsAttestation = "ATTESTED:THROWAWAY sha256:0000000000000000000000000000000000000000000000000000000000000000"
+		badAttestState := validTestReportState(badAttestReport)
+		if err := knowledge.ValidateE2EReport(brief, badAttestReport, badAttestState); err == nil {
+			t.Error("expected error for secrets attestation hash mismatch")
 		}
+	}
+}
 
-		// PRODUCT_FAILURE with scenarios_failed: 0
-		report = validReport()
-		report.StageOutcome = "PRODUCT_FAILURE"
-		report.BuildOutcome = "PASS"
-		report.ExecutionOutcome = "FAIL"
-		report.ScenariosFailed = 0
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for PRODUCT_FAILURE with scenarios_failed: 0")
-		}
+func TestEvaluateE2EAdmission(t *testing.T) {
+	t.Parallel()
 
-		// TIMEOUT with execution_outcome: PASS
-		report = validReport()
-		report.StageOutcome = "TIMEOUT"
-		report.BuildOutcome = "TIMEOUT"
-		report.ExecutionOutcome = "PASS"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for TIMEOUT with execution_outcome: PASS")
-		}
+	brief := validTestBrief()
+	report := validTestReport(brief)
+	mat := validTestMaterial(brief)
+	state := validTestReportState(report)
 
-		// CANCELLED with execution_outcome: PASS
-		report = validReport()
-		report.StageOutcome = "CANCELLED"
-		report.BuildOutcome = "CANCELLED"
-		report.ExecutionOutcome = "PASS"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for CANCELLED with execution_outcome: PASS")
-		}
+	// 1. Success test: complete fresh PASS admission
+	if err := knowledge.EvaluateE2EAdmission(brief, report, mat, state); err != nil {
+		t.Fatalf("expected valid admission to pass: %v", err)
+	}
 
-		// ENV_BLOCKED with build_outcome: PASS & execution_outcome: PASS
-		report = validReport()
-		report.StageOutcome = "ENV_BLOCKED"
-		report.BuildOutcome = "PASS"
-		report.ExecutionOutcome = "PASS"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for ENV_BLOCKED with build_outcome: PASS & execution_outcome: PASS")
-		}
-
-		// CLARIFICATION_REQUIRED with execution_outcome: PASS
-		report = validReport()
-		report.StageOutcome = "CLARIFICATION_REQUIRED"
-		report.BuildOutcome = "NOT_RUN"
-		report.ExecutionOutcome = "PASS"
-		report.ResultCompleteness = "NONE"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for CLARIFICATION_REQUIRED with execution_outcome: PASS")
-		}
-
-		// INVALID_EVIDENCE with stage_outcome: PASS
-		report = validReport()
-		report.StageOutcome = "PASS"
-		report.ExecutionOutcome = "INVALID_EVIDENCE"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for INVALID_EVIDENCE with stage_outcome: PASS")
+	// 2. Denied: non-PASS stage outcome
+	{
+		failReport := report
+		failReport.StageOutcome = "PRODUCT_FAILURE"
+		failReport.ExecutionOutcome = "FAIL"
+		failReport.ScenariosFailed = 1
+		failReport.ScenariosPassed = 1
+		failReport.ScenarioResults[0].Outcome = "FAIL"
+		failState := validTestReportState(failReport)
+		failState.ExecutionProcessState = "FAIL"
+		if err := knowledge.EvaluateE2EAdmission(brief, failReport, mat, failState); err == nil {
+			t.Error("expected admission denied for non-PASS outcome")
 		}
 	}
 
-	// 12. Identity mismatch
+	// 3. Denied: unconfirmed cleanup
 	{
-		brief := validBrief()
-		report := validReport()
-		cov := validCoverage()
-
-		report.RunID = "different-run-id"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for RunID mismatch")
-		}
-
-		report = validReport()
-		report.CandidateRef = "fedcba9876543210fedcba9876543210fedcba98"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for CandidateRef mismatch")
+		unconfirmedReport := report
+		unconfirmedReport.CleanupStatus = "UNCONFIRMED"
+		unconfirmedState := validTestReportState(unconfirmedReport)
+		unconfirmedState.CleanupStatus = "UNCONFIRMED"
+		unconfirmedState.UnresolvedResourceIDs = []string{"res-leak"}
+		if err := knowledge.EvaluateE2EAdmission(brief, unconfirmedReport, mat, unconfirmedState); err == nil {
+			t.Error("expected admission denied for UNCONFIRMED cleanup")
 		}
 	}
 
-	// 13. Absent provenance (run-only)
+	// 4. Denied: transient source mutation (SourceTreeAfterRef != CandidateTreeRef)
 	{
-		brief := validBrief()
-		brief.Mode = "run-only"
-		report := validReport()
-		report.BuildOutcome = "NOT_RUN"
-		cov := validCoverage()
-
-		report.TestedArtifactRef = "N/A"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for tested_artifact_ref: N/A")
-		}
-
-		report.TestedArtifactRef = "bin/agentplaybook" // missing sha256:
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for tested_artifact_ref without sha256 prefix")
-		}
-
-		report.TestedArtifactRef = "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945" // bare digest without provenance descriptor
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for bare digest tested_artifact_ref without provenance descriptor")
+		mutatedMat := mat
+		mutatedMat.SourceTreeAfterRef = "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+		if err := knowledge.EvaluateE2EAdmission(brief, report, mutatedMat, state); err == nil {
+			t.Error("expected admission denied for source tree mutation")
 		}
 	}
 
-	// 14. Budget overflow (token count >= 150)
+	// 5. Denied: checkout dirty before or after
 	{
-		brief := validBrief()
-		report := validReport()
-		cov := validCoverage()
-		report.Diagnostic = strings.Repeat("Extremely verbose diagnostic message detailing multiple failure traces and long logs. ", 15)
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error when diagnostic overflows 150-token budget")
+		dirtyMat := mat
+		dirtyMat.CheckoutCleanBefore = false
+		if err := knowledge.EvaluateE2EAdmission(brief, report, dirtyMat, state); err == nil {
+			t.Error("expected admission denied when checkout is not clean before execution")
 		}
 	}
 
-	// 15. CandidateRef syntax validation
+	// 6. Denied: unverified protection proof
 	{
-		brief := validBrief()
-		report := validReport()
-		cov := validCoverage()
-
-		// Brief CandidateRef symbolic "main"
-		brief.CandidateRef = "main"
-		report.CandidateRef = "main"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for symbolic CandidateRef 'main'")
-		}
-
-		// Brief CandidateRef short hex
-		brief = validBrief()
-		brief.CandidateRef = "0123456789abcdef"
-		report.CandidateRef = "0123456789abcdef"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for short hex CandidateRef")
-		}
-
-		// Report CandidateRef invalid syntax
-		brief = validBrief()
-		report = validReport()
-		report.CandidateRef = "not-valid-hex-length-and-characters-!!!"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for invalid report CandidateRef syntax")
+		unverifiedMat := mat
+		unverifiedMat.ProtectionProofVerified = false
+		if err := knowledge.EvaluateE2EAdmission(brief, report, unverifiedMat, state); err == nil {
+			t.Error("expected admission denied when protection proof is not verified")
 		}
 	}
 
-	// 16. TestPackage syntax validation
+	// 7. Denied: non-fresh execution (cached test verdicts)
 	{
-		brief := validBrief()
-		report := validReport()
-		cov := validCoverage()
-
-		brief.TestPackage = "../outside"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for TestPackage directory traversal '../outside'")
-		}
-
-		brief.TestPackage = "pkg/core"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for TestPackage outside e2e/ 'pkg/core'")
-		}
-
-		brief.TestPackage = "e2e/../escape"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for TestPackage traversal in e2e/ 'e2e/../escape'")
+		cachedMat := mat
+		cachedMat.FreshTestExecution = false
+		if err := knowledge.EvaluateE2EAdmission(brief, report, cachedMat, state); err == nil {
+			t.Error("expected admission denied for non-fresh test execution")
 		}
 	}
 
-	// 17. EvidenceURI syntax and UNAVAILABLE sentinel restrictions
+	// 8. Denied: command missing -count=1
 	{
-		brief := validBrief()
-		report := validReport()
-		cov := validCoverage()
-
-		// Invalid EvidenceURI syntax
-		report.EvidenceURI = "not-a-uri"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for invalid EvidenceURI 'not-a-uri'")
+		noCountMat := mat
+		noCountMat.Command = []string{"go", "test", "./e2e/core-flow/..."}
+		noCountBrief := brief
+		noCountBrief.Command = noCountMat.Command
+		if err := knowledge.EvaluateE2EAdmission(noCountBrief, report, noCountMat, state); err == nil {
+			t.Error("expected admission denied when test command lacks -count=1")
 		}
+	}
 
-		// UNAVAILABLE prohibited on PASS
-		report = validReport()
-		report.EvidenceURI = "UNAVAILABLE"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for EvidenceURI UNAVAILABLE with PASS")
+	// 9. Denied: artifact provenance mismatch
+	{
+		mismatchMat := mat
+		mismatchMat.ArtifactCandidateRef = "ffffffffffffffffffffffffffffffffffffffff"
+		if err := knowledge.EvaluateE2EAdmission(brief, report, mismatchMat, state); err == nil {
+			t.Error("expected admission denied for artifact candidate ref mismatch")
 		}
+	}
 
-		// UNAVAILABLE prohibited on PRODUCT_FAILURE
-		report = validReport()
-		report.StageOutcome = "PRODUCT_FAILURE"
-		report.BuildOutcome = "PASS"
-		report.ExecutionOutcome = "FAIL"
-		report.ScenariosFailed = 1
-		report.ScenariosPassed = 1
-		report.ScenariosSkipped = 1
-		report.EvidenceURI = "UNAVAILABLE"
-		if err := knowledge.ValidateE2EReport(brief, report, cov); err == nil {
-			t.Error("expected error for EvidenceURI UNAVAILABLE with PRODUCT_FAILURE")
-		}
-
-		// UNAVAILABLE prohibited when scenarios were executed (scenarios_passed > 0)
-		report = validReport()
-		report.StageOutcome = "ENV_BLOCKED"
-		report.BuildOutcome = "ENV_ERROR"
-		report.ExecutionOutcome = "ENV_ERROR"
-		report.ResultCompleteness = "NONE"
-		report.TestedArtifactRef = "NONE"
-		report.EvidenceURI = "UNAVAILABLE"
-		report.ScenariosSelected = 2
-		report.ScenariosPassed = 1
-		report.ScenariosFailed = 0
-		report.ScenariosSkipped = 1
-		covExecuted := knowledge.E2EScenarioCoverageContext{
-			SelectedScenarioIDs: []string{"SC-01", "SC-02"},
-			SkippedScenarioIDs:  []string{"SC-02"},
-			AllowedSkipIDs:      []string{"SC-02"},
-		}
-		if err := knowledge.ValidateE2EReport(brief, report, covExecuted); err == nil {
-			t.Error("expected error for EvidenceURI UNAVAILABLE when scenarios_passed > 0")
+	// 10. Denied: execution material ref mismatch
+	{
+		mismatchReport := report
+		mismatchReport.ExecutionMaterialRef = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+		mismatchState := validTestReportState(mismatchReport)
+		if err := knowledge.EvaluateE2EAdmission(brief, mismatchReport, mat, mismatchState); err == nil {
+			t.Error("expected admission denied for execution_material_ref mismatch")
 		}
 	}
 }
@@ -2035,6 +2061,2307 @@ func TestValidate_NavigatorCartographyFlowActors(t *testing.T) {
 		setArtifacts(&invalid, artifacts)
 		if err := knowledge.Validate(&invalid); err == nil {
 			t.Error("expected error when Navigator is in non-allowlisted artifact visibility")
+		}
+	}
+}
+
+func TestExecutionMaterial_GoldenCanonicalJSON(t *testing.T) {
+	t.Parallel()
+
+	brief := knowledge.E2EBriefContext{
+		RunID:             "run-1",
+		RepoRef:           "github.com/org/repo",
+		CandidateRef:      "0123456789abcdef0123456789abcdef01234567",
+		TestPackage:       "e2e/test",
+		Mode:              "build-and-run",
+		Command:           []string{"go", "test", "-count=1", "./..."},
+		BuildCommand:      []string{"go", "build", "./..."},
+		TimeoutMS:         60000,
+		GoVersion:         "go1.24.0",
+		Platforms:         []string{"linux/amd64"},
+		DependencyLockRef: "NONE",
+		Environment:       []knowledge.E2EEnvironmentInput{},
+		ExpectedOutputs:   []string{},
+		Scenarios: []knowledge.E2EScenarioContract{
+			{
+				ID:             "S1",
+				Preconditions:  "none",
+				Steps:          []string{"step1"},
+				ExpectedResult: "ok",
+				Verification:   "assert",
+			},
+		},
+		AllowedSkipIDs:     []string{},
+		Services:           nil,
+		CleanupObligations: []knowledge.E2ECleanupObligation{},
+		CredentialPolicy:   []knowledge.E2ECredentialPolicyEntry{},
+	}
+
+	mat := knowledge.E2EExecutionMaterialContext{
+		RepoRef:             "github.com/org/repo",
+		CandidateTreeRef:    "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+		DependencyLockRef:   "NONE",
+		GoVersion:           "go1.24.0",
+		InputProtectionMode: "READ_ONLY_MATERIALIZATION",
+		Platforms:           []string{"linux/amd64"},
+		ProtectionProofRef:  "proof-1",
+		ServiceRefs:         nil,
+		TestPackagePath:     "e2e/test",
+		TestPackageTreeRef:  "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+	}
+
+	expectedGoldenJSON := `{"brief":{"allowed_skip_ids":[],"build_command":["go","build","./..."],"candidate_ref":"0123456789abcdef0123456789abcdef01234567","cleanup_obligations":[],"command":["go","test","-count=1","./..."],"credential_authorization":null,"credential_policy":[],"dependency_lock_ref":"NONE","environment":[],"expected_outputs":[],"go_version":"go1.24.0","mode":"build-and-run","platforms":["linux/amd64"],"prior_cleanup_resolution":null,"repo_ref":"github.com/org/repo","run_id":"run-1","scenarios":[{"expected_result":"ok","id":"S1","preconditions":"none","steps":["step1"],"verification":"assert"}],"services":null,"test_package":"e2e/test","timeout_ms":60000},"candidate_tree_ref":"sha256:1111111111111111111111111111111111111111111111111111111111111111","dependency_lock_ref":"NONE","go_version":"go1.24.0","input_protection_mode":"READ_ONLY_MATERIALIZATION","platforms":["linux/amd64"],"protection_proof_ref":"proof-1","repo_ref":"github.com/org/repo","service_refs":null,"test_package_path":"e2e/test","test_package_tree_ref":"sha256:2222222222222222222222222222222222222222222222222222222222222222"}`
+	expectedGoldenDigest := "sha256:4c6fc89b8f7505ac9a60858a9cd0855d452519dfa517885f4dbf85a00665ac17"
+
+	// 1. Direct CanonicalJSON test
+	cem := knowledge.CanonicalExecutionMaterial{
+		Brief:               brief,
+		CandidateTreeRef:    mat.CandidateTreeRef,
+		DependencyLockRef:   mat.DependencyLockRef,
+		GoVersion:           mat.GoVersion,
+		InputProtectionMode: mat.InputProtectionMode,
+		Platforms:           mat.Platforms,
+		ProtectionProofRef:  mat.ProtectionProofRef,
+		RepoRef:             mat.RepoRef,
+		ServiceRefs:         mat.ServiceRefs,
+		TestPackagePath:     mat.TestPackagePath,
+		TestPackageTreeRef:  mat.TestPackageTreeRef,
+	}
+	canonicalBytes, err := knowledge.CanonicalJSON(cem)
+	if err != nil {
+		t.Fatalf("CanonicalJSON failed: %v", err)
+	}
+	if string(canonicalBytes) != expectedGoldenJSON {
+		t.Errorf("CanonicalJSON bytes mismatch:\nexpected: %s\ngot:      %s", expectedGoldenJSON, string(canonicalBytes))
+	}
+
+	// 2. Computed execution material ref test
+	ref := knowledge.ComputeExecutionMaterialRef(brief, mat)
+	if ref != expectedGoldenDigest {
+		t.Errorf("ComputeExecutionMaterialRef mismatch: expected %q, got %q", expectedGoldenDigest, ref)
+	}
+}
+
+func TestValidateE2EBrief_NilVsEmptyListsAndPathConfinement(t *testing.T) {
+	t.Parallel()
+
+	state := validTestBriefState()
+
+	// 1. Omitted CredentialPolicy (nil) is rejected; explicit empty [] is accepted
+	{
+		b := validTestBrief()
+		b.CredentialPolicy = nil
+		if err := knowledge.ValidateE2EBrief(b, state); err == nil {
+			t.Error("expected error for nil CredentialPolicy")
+		} else if !strings.Contains(err.Error(), "credential_policy is required") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		b.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{}
+		if err := knowledge.ValidateE2EBrief(b, state); err != nil {
+			t.Errorf("expected explicit empty CredentialPolicy to pass, got: %v", err)
+		}
+	}
+
+	// 2. Omitted ExpectedOutputs (nil) is rejected; explicit empty [] is accepted
+	{
+		b := validTestBrief()
+		b.ExpectedOutputs = nil
+		if err := knowledge.ValidateE2EBrief(b, state); err == nil {
+			t.Error("expected error for nil ExpectedOutputs")
+		} else if !strings.Contains(err.Error(), "expected_outputs is required") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		b.ExpectedOutputs = []string{}
+		if err := knowledge.ValidateE2EBrief(b, state); err != nil {
+			t.Errorf("expected explicit empty ExpectedOutputs to pass, got: %v", err)
+		}
+	}
+
+	// 3. Omitted CleanupObligations (nil) is rejected; explicit empty [] without services is accepted
+	{
+		b := validTestBrief()
+		b.CleanupObligations = nil
+		if err := knowledge.ValidateE2EBrief(b, state); err == nil {
+			t.Error("expected error for nil CleanupObligations")
+		} else if !strings.Contains(err.Error(), "cleanup_obligations is required") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		b.CleanupObligations = []knowledge.E2ECleanupObligation{}
+		if err := knowledge.ValidateE2EBrief(b, state); err != nil {
+			t.Errorf("expected explicit empty CleanupObligations to pass, got: %v", err)
+		}
+	}
+
+	// 4. Scenario steps validation: non-empty steps required
+	{
+		b := validTestBrief()
+		b.Scenarios[0].Steps = []string{""}
+		if err := knowledge.ValidateE2EBrief(b, state); err == nil {
+			t.Error("expected error for empty step string in scenario")
+		}
+
+		b.Scenarios[0].Steps = []string{"   "}
+		if err := knowledge.ValidateE2EBrief(b, state); err == nil {
+			t.Error("expected error for whitespace step string in scenario")
+		}
+	}
+
+	// 5. ExpectedOutputs path confinement: reject absolute and directory traversal
+	{
+		b := validTestBrief()
+		b.ExpectedOutputs = []string{"/etc/passwd"}
+		if err := knowledge.ValidateE2EBrief(b, state); err == nil {
+			t.Error("expected error for absolute path in ExpectedOutputs")
+		}
+
+		b.ExpectedOutputs = []string{"../out.json"}
+		if err := knowledge.ValidateE2EBrief(b, state); err == nil {
+			t.Error("expected error for directory traversal in ExpectedOutputs")
+		}
+
+		b.ExpectedOutputs = []string{"artifacts/../out.json"}
+		if err := knowledge.ValidateE2EBrief(b, state); err == nil {
+			t.Error("expected error for directory traversal in ExpectedOutputs")
+		}
+
+		b.ExpectedOutputs = []string{"~/out.json"}
+		if err := knowledge.ValidateE2EBrief(b, state); err == nil {
+			t.Error("expected error for home-relative path in ExpectedOutputs")
+		}
+
+		b.ExpectedOutputs = []string{"reports/e2e-summary.json"}
+		if err := knowledge.ValidateE2EBrief(b, state); err != nil {
+			t.Errorf("expected clean relative path to pass, got: %v", err)
+		}
+	}
+}
+
+func TestValidateE2EReport_LifecycleFailClosed(t *testing.T) {
+	t.Parallel()
+
+	brief := validTestBrief()
+
+	// 1. Unknown / invalid PreflightOutcome
+	{
+		report := validTestReport(brief)
+		state := validTestReportState(report)
+		state.PreflightOutcome = "UNKNOWN"
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for invalid PreflightOutcome UNKNOWN")
+		}
+	}
+
+	// 2. PASS requires PreflightOutcome READY
+	{
+		report := validTestReport(brief)
+		state := validTestReportState(report)
+		state.PreflightOutcome = "AUTHORIZATION_DENIED"
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for PASS report with PreflightOutcome AUTHORIZATION_DENIED")
+		}
+	}
+
+	// 3. PASS requires ExecutionStarted == true
+	{
+		report := validTestReport(brief)
+		state := validTestReportState(report)
+		state.ExecutionStarted = false
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for PASS report with ExecutionStarted == false")
+		}
+	}
+
+	// 4. Provisioning / allocation attempted implies CleanupRequired == true
+	{
+		report := validTestReport(brief)
+		state := validTestReportState(report)
+		state.ServiceStartupAttempted = true
+		state.CleanupRequired = false
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when ServiceStartupAttempted is true but CleanupRequired is false")
+		}
+
+		state = validTestReportState(report)
+		state.CredentialProvisioningState = "SUCCEEDED"
+		state.CleanupRequired = false
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when CredentialProvisioningState is not NOT_STARTED but CleanupRequired is false")
+		}
+
+		state = validTestReportState(report)
+		state.ResourcesAllocated = true
+		state.CleanupRequired = false
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when ResourcesAllocated is true but CleanupRequired is false")
+		}
+	}
+
+	// 5. CleanupRequired == true prohibits NOT_REQUIRED evidence URI and requires verified cleanup record
+	{
+		report := validTestReport(brief)
+		report.CleanupEvidenceURI = "NOT_REQUIRED"
+		state := validTestReportState(report)
+		state.CleanupRequired = true
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when CleanupRequired is true but CleanupEvidenceURI is NOT_REQUIRED")
+		}
+
+		report = validTestReport(brief)
+		state = validTestReportState(report)
+		state.CleanupRequired = true
+		state.CleanupRecordVerified = false
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when CleanupRequired is true but CleanupRecordVerified is false")
+		}
+	}
+
+	// 6. ResourcesAllocated consistency with AllocatedResourceIDs
+	{
+		report := validTestReport(brief)
+		state := validTestReportState(report)
+		state.ResourcesAllocated = true
+		state.AllocatedResourceIDs = nil
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when ResourcesAllocated is true but AllocatedResourceIDs is empty")
+		}
+
+		state = validTestReportState(report)
+		state.ResourcesAllocated = false
+		state.AllocatedResourceIDs = []string{"res-1"}
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when ResourcesAllocated is false but AllocatedResourceIDs is non-empty")
+		}
+	}
+
+	// 7. CleanupStatus consistency
+	{
+		report := validTestReport(brief)
+		state := validTestReportState(report)
+		state.CleanupStatus = "CONFIRMED"
+		state.UnresolvedResourceIDs = []string{"res-1"}
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when CleanupStatus is CONFIRMED but UnresolvedResourceIDs is non-empty")
+		}
+
+		report = validTestReport(brief)
+		report.CleanupStatus = "UNCONFIRMED"
+		state = validTestReportState(report)
+		state.CleanupStatus = "UNCONFIRMED"
+		state.UnresolvedResourceIDs = nil
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when CleanupStatus is UNCONFIRMED but UnresolvedResourceIDs is empty")
+		}
+	}
+}
+
+func TestValidateE2EReport_ProviderDenialAuthorizationRecord(t *testing.T) {
+	t.Parallel()
+
+	// 1. Negative: PreflightOutcome AUTHORIZATION_DENIED without authorization record in brief
+	{
+		brief := validTestBrief()
+		report := validTestReport(brief)
+		report.StageOutcome = "ENV_BLOCKED"
+		report.BuildOutcome = "NOT_RUN"
+		report.ExecutionOutcome = "ENV_ERROR"
+		report.ResultCompleteness = "NONE"
+		report.TestedArtifactRef = "NONE"
+		report.ExecutionMaterialRef = "UNAVAILABLE"
+		report.EvidenceURI = "UNAVAILABLE"
+		report.CleanupStatus = "CONFIRMED"
+		report.CleanupEvidenceURI = "NOT_REQUIRED"
+		report.SecretsAttestation = "ENV_BLOCKED:AUTHORIZATION_DENIED"
+		report.ScenariosPassed = 0
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = report.ScenariosSelected
+		report.ScenariosUnknown = 0
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+
+		state := knowledge.E2EReportValidationContext{
+			RunIDUnique:                     true,
+			CredentialAuthorizationVerified: true,
+			PriorCleanupResolved:            true,
+			PreflightOutcome:                "AUTHORIZATION_DENIED",
+			BuildProcessState:               "NOT_STARTED",
+			ExecutionProcessState:           "NOT_STARTED",
+			ExecutionStarted:                false,
+			CredentialProvisioningState:     "NOT_STARTED",
+			CleanupStatus:                   "CONFIRMED",
+			Finalization: knowledge.E2EReportFinalizationContext{
+				State:                   "FIRST_FINALIZATION",
+				Authority:               "VERIFIER",
+				IncomingReportDigest:    knowledge.ComputeReportDigest(report),
+				TerminalReportImmutable: true,
+			},
+		}
+
+		// brief has THROWAWAY credential only, no REAL_ONLY, no authorization record
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for AUTHORIZATION_DENIED when brief lacks REAL_ONLY credential authorization records")
+		}
+	}
+
+	// 2. Negative: PreflightOutcome AUTHORIZATION_DENIED with unverified controller context
+	{
+		brief := validTestBrief()
+		brief.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{
+			{Name: "prod-db-token", GenerationMode: "REAL_ONLY"},
+		}
+		brief.CredentialAuthorization = []knowledge.E2ECredentialAuthorization{
+			{
+				Name:             "prod-db-token",
+				Purpose:          "Integration test",
+				Lifetime:         "SINGLE_RUN",
+				AuthorizedBy:     "operator",
+				AuthorizedAt:     "2026-10-12T20:00:00Z",
+				AuthorizationRef: "auth-12345",
+			},
+		}
+		report := validTestReport(brief)
+		report.StageOutcome = "ENV_BLOCKED"
+		report.BuildOutcome = "NOT_RUN"
+		report.ExecutionOutcome = "ENV_ERROR"
+		report.ResultCompleteness = "NONE"
+		report.TestedArtifactRef = "NONE"
+		report.ExecutionMaterialRef = "UNAVAILABLE"
+		report.EvidenceURI = "UNAVAILABLE"
+		report.CleanupStatus = "CONFIRMED"
+		report.CleanupEvidenceURI = "NOT_REQUIRED"
+		report.SecretsAttestation = "ENV_BLOCKED:AUTHORIZATION_DENIED"
+		report.ScenariosPassed = 0
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = report.ScenariosSelected
+		report.ScenariosUnknown = 0
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+
+		state := knowledge.E2EReportValidationContext{
+			RunIDUnique:                     true,
+			CredentialAuthorizationVerified: false, // unverified!
+			PriorCleanupResolved:            true,
+			PreflightOutcome:                "AUTHORIZATION_DENIED",
+			BuildProcessState:               "NOT_STARTED",
+			ExecutionProcessState:           "NOT_STARTED",
+			ExecutionStarted:                false,
+			CredentialProvisioningState:     "NOT_STARTED",
+			CleanupStatus:                   "CONFIRMED",
+			Finalization: knowledge.E2EReportFinalizationContext{
+				State:                   "FIRST_FINALIZATION",
+				Authority:               "VERIFIER",
+				IncomingReportDigest:    knowledge.ComputeReportDigest(report),
+				TerminalReportImmutable: true,
+			},
+		}
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for AUTHORIZATION_DENIED when CredentialAuthorizationVerified is false")
+		}
+	}
+}
+
+func TestEvaluateE2EAdmission_ServiceBindingAndCommandInvocation(t *testing.T) {
+	t.Parallel()
+
+	brief := validTestBrief()
+	mat := validTestMaterial(brief)
+	report := validTestReport(brief)
+	state := validTestReportState(report)
+
+	// 1. ServiceRefs mismatch when brief declares services
+	{
+		svcBrief := brief
+		svcBrief.Services = []knowledge.E2EServiceRequirement{
+			{
+				ID:               "postgres",
+				Kind:             "TESTCONTAINER",
+				ImageOrVersion:   "postgres:16-alpine",
+				ReadyCondition:   "port 5432 open",
+				StartupTimeoutMS: 30000,
+			},
+		}
+		svcBrief.CleanupObligations = append(svcBrief.CleanupObligations, knowledge.E2ECleanupObligation{
+			ResourceID: "postgres", Kind: "SERVICE", Owner: "verifier", Action: "stop",
+		})
+
+		svcMat := mat
+		svcMat.ServiceRefs = nil // count mismatch
+		if err := knowledge.EvaluateE2EAdmission(svcBrief, report, svcMat, state); err == nil {
+			t.Error("expected admission denied when service_refs count does not match brief services count")
+		}
+
+		svcMat.ServiceRefs = []string{"postgres=postgres:15-alpine"} // version mismatch
+		if err := knowledge.EvaluateE2EAdmission(svcBrief, report, svcMat, state); err == nil {
+			t.Error("expected admission denied when service ref version does not match brief image/version")
+		}
+	}
+
+	// 2. Command not a genuine Go test command
+	{
+		nonGoMat := mat
+		nonGoMat.Command = []string{"bash", "-c", "echo -count=1"}
+		nonGoBrief := brief
+		nonGoBrief.Command = nonGoMat.Command
+		if err := knowledge.EvaluateE2EAdmission(nonGoBrief, report, nonGoMat, state); err == nil {
+			t.Error("expected admission denied when command executable is not go")
+		}
+
+		nonTestMat := mat
+		nonTestMat.Command = []string{"go", "run", "-count=1", "main.go"}
+		nonTestBrief := brief
+		nonTestBrief.Command = nonTestMat.Command
+		if err := knowledge.EvaluateE2EAdmission(nonTestBrief, report, nonTestMat, state); err == nil {
+			t.Error("expected admission denied when subcommand is not test")
+		}
+	}
+
+	// 3. Command lacks distinct -count=1 flag (mere substring)
+	{
+		substrMat := mat
+		substrMat.Command = []string{"go", "test", "-tags=-count=1", "./..."}
+		substrBrief := brief
+		substrBrief.Command = substrMat.Command
+		if err := knowledge.EvaluateE2EAdmission(substrBrief, report, substrMat, state); err == nil {
+			t.Error("expected admission denied when -count=1 is a mere flag substring")
+		}
+	}
+}
+
+func TestValidateE2EReport_RunnerLossMappings(t *testing.T) {
+	t.Parallel()
+
+	brief := validTestBrief()
+	mat := validTestMaterial(brief)
+	policyDigest := knowledge.ComputePolicyDigest(brief.CredentialPolicy)
+
+	// 1. Runner loss before build: NOT_STARTED -> NOT_RUN, attestation NOT_PROVISIONED
+	{
+		report := validTestReport(brief)
+		report.StageOutcome = "RUNNER_LOST"
+		report.BuildOutcome = "NOT_RUN"
+		report.ExecutionOutcome = "NOT_RUN"
+		report.ScenariosSelected = 3
+		report.ScenariosPassed = 0
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = 3
+		report.ScenariosUnknown = 0
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+		report.ResultCompleteness = "NONE"
+		report.TestedArtifactRef = "NONE"
+		report.ExecutionMaterialRef = "UNAVAILABLE"
+		report.EvidenceURI = "UNAVAILABLE"
+		report.SecretsAttestation = "NOT_PROVISIONED sha256:" + policyDigest
+		report.CleanupEvidenceURI = "NOT_REQUIRED"
+		report.Diagnostic = "Runner lost before build commenced."
+
+		state := knowledge.E2EReportValidationContext{
+			RunIDUnique:                     true,
+			CredentialAuthorizationVerified: true,
+			PriorCleanupResolved:            true,
+			PreflightOutcome:                "READY",
+			BuildProcessState:               "NOT_STARTED",
+			ExecutionProcessState:           "NOT_STARTED",
+			ExecutionStarted:                false,
+			ServiceStartupAttempted:         false,
+			CredentialProvisioningState:     "NOT_STARTED",
+			ResourcesAllocated:              false,
+			CleanupRequired:                 false,
+			CleanupStatus:                   "CONFIRMED",
+			CleanupRecordVerified:           false,
+			Finalization: knowledge.E2EReportFinalizationContext{
+				State:                   "FIRST_FINALIZATION",
+				Authority:               "CONTROLLER_RUNNER_LOST",
+				IncomingReportDigest:    knowledge.ComputeReportDigest(report),
+				TerminalReportImmutable: true,
+			},
+		}
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected valid pre-build RUNNER_LOST report to pass: %v", err)
+		}
+		if err := knowledge.EvaluateE2EAdmission(brief, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to deny admission for RUNNER_LOST report")
+		}
+	}
+
+	// 2. Runner loss during build: build RUNNING -> UNKNOWN, execution NOT_STARTED -> NOT_RUN
+	{
+		report := validTestReport(brief)
+		report.StageOutcome = "RUNNER_LOST"
+		report.BuildOutcome = "UNKNOWN"
+		report.ExecutionOutcome = "NOT_RUN"
+		report.ScenariosSelected = 3
+		report.ScenariosPassed = 0
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = 3
+		report.ScenariosUnknown = 0
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+		report.ResultCompleteness = "NONE"
+		report.TestedArtifactRef = "NONE"
+		report.ExecutionMaterialRef = "UNAVAILABLE"
+		report.EvidenceURI = "UNAVAILABLE"
+		report.SecretsAttestation = "NOT_PROVISIONED sha256:" + policyDigest
+		report.CleanupEvidenceURI = "NOT_REQUIRED"
+		report.Diagnostic = "Runner lost during binary compilation."
+
+		state := knowledge.E2EReportValidationContext{
+			RunIDUnique:                     true,
+			CredentialAuthorizationVerified: true,
+			PriorCleanupResolved:            true,
+			PreflightOutcome:                "READY",
+			BuildProcessState:               "RUNNING",
+			ExecutionProcessState:           "NOT_STARTED",
+			ExecutionStarted:                false,
+			ServiceStartupAttempted:         false,
+			CredentialProvisioningState:     "NOT_STARTED",
+			ResourcesAllocated:              false,
+			AllocatedResourceIDs:            nil,
+			CleanupRequired:                 false,
+			CleanupStatus:                   "CONFIRMED",
+			Finalization: knowledge.E2EReportFinalizationContext{
+				State:                   "FIRST_FINALIZATION",
+				Authority:               "CONTROLLER_RUNNER_LOST",
+				IncomingReportDigest:    knowledge.ComputeReportDigest(report),
+				TerminalReportImmutable: true,
+			},
+		}
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected valid in-build RUNNER_LOST report to pass: %v", err)
+		}
+	}
+
+	// 3. Runner loss during execution: execution RUNNING -> UNKNOWN, in-flight scenario UNKNOWN, attestation UNVERIFIED:RUNNER_LOST
+	{
+		report := validTestReport(brief)
+		report.StageOutcome = "RUNNER_LOST"
+		report.BuildOutcome = "PASS"
+		report.ExecutionOutcome = "UNKNOWN"
+		report.ScenariosSelected = 3
+		report.ScenariosPassed = 1
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = 1
+		report.ScenariosUnknown = 1
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "PASS"},
+			{ScenarioID: "SC-02", Outcome: "UNKNOWN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+		report.ResultCompleteness = "PARTIAL"
+		report.SecretsAttestation = "UNVERIFIED:RUNNER_LOST"
+		report.Diagnostic = "Runner terminated abruptly during scenario execution."
+
+		state := knowledge.E2EReportValidationContext{
+			RunIDUnique:                     true,
+			CredentialAuthorizationVerified: true,
+			PriorCleanupResolved:            true,
+			PreflightOutcome:                "READY",
+			BuildProcessState:               "PASS",
+			ExecutionProcessState:           "RUNNING",
+			ExecutionStarted:                true,
+			ServiceStartupAttempted:         false,
+			CredentialProvisioningState:     "UNKNOWN",
+			ResourcesAllocated:              true,
+			AllocatedResourceIDs:            []string{"test-data"},
+			CleanupRequired:                 true,
+			CleanupStatus:                   "CONFIRMED",
+			CleanupRecordVerified:           true,
+			Finalization: knowledge.E2EReportFinalizationContext{
+				State:                   "FIRST_FINALIZATION",
+				Authority:               "CONTROLLER_RUNNER_LOST",
+				IncomingReportDigest:    knowledge.ComputeReportDigest(report),
+				TerminalReportImmutable: true,
+			},
+		}
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected valid in-execution RUNNER_LOST report to pass: %v", err)
+		}
+		if err := knowledge.EvaluateE2EAdmission(brief, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to deny admission for in-execution RUNNER_LOST")
+		}
+	}
+}
+
+func TestValidateE2EReport_FinalizationReplayAndConflicts(t *testing.T) {
+	t.Parallel()
+
+	brief := validTestBrief()
+	report := validTestReport(brief)
+	reportDigest := knowledge.ComputeReportDigest(report)
+
+	// 1. Success: FIRST_FINALIZATION with VERIFIER authority
+	{
+		state := validTestReportState(report)
+		state.Finalization = knowledge.E2EReportFinalizationContext{
+			State:                   "FIRST_FINALIZATION",
+			Authority:               "VERIFIER",
+			IncomingReportDigest:    reportDigest,
+			TerminalReportImmutable: true,
+		}
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected valid FIRST_FINALIZATION to pass: %v", err)
+		}
+	}
+
+	// 2. Negative: FIRST_FINALIZATION with CONTROLLER_RUNNER_LOST for normal non-RUNNER_LOST report
+	{
+		state := validTestReportState(report)
+		state.Finalization = knowledge.E2EReportFinalizationContext{
+			State:                   "FIRST_FINALIZATION",
+			Authority:               "CONTROLLER_RUNNER_LOST",
+			IncomingReportDigest:    reportDigest,
+			TerminalReportImmutable: true,
+		}
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when non-RUNNER_LOST report uses CONTROLLER_RUNNER_LOST authority")
+		}
+	}
+
+	// 3. Success: DUPLICATE_IDENTICAL replay
+	{
+		state := validTestReportState(report)
+		state.Finalization = knowledge.E2EReportFinalizationContext{
+			State:                           "DUPLICATE_IDENTICAL",
+			Authority:                       "VERIFIER",
+			ExistingTerminalReportAuthority: "VERIFIER",
+			ExistingTerminalReportDigest:    reportDigest,
+			IncomingReportDigest:            reportDigest,
+			TerminalReportImmutable:         true,
+		}
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected idempotent DUPLICATE_IDENTICAL replay to pass: %v", err)
+		}
+	}
+
+	// 4. Negative: DUPLICATE_IDENTICAL with mismatched digest
+	{
+		state := validTestReportState(report)
+		state.Finalization = knowledge.E2EReportFinalizationContext{
+			State:                           "DUPLICATE_IDENTICAL",
+			Authority:                       "VERIFIER",
+			ExistingTerminalReportAuthority: "VERIFIER",
+			ExistingTerminalReportDigest:    "0000000000000000000000000000000000000000000000000000000000000000",
+			IncomingReportDigest:            reportDigest,
+			TerminalReportImmutable:         true,
+		}
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for DUPLICATE_IDENTICAL digest mismatch")
+		}
+	}
+
+	// 5. Negative: DUPLICATE_IDENTICAL with mismatched authority
+	{
+		state := validTestReportState(report)
+		state.Finalization = knowledge.E2EReportFinalizationContext{
+			State:                           "DUPLICATE_IDENTICAL",
+			Authority:                       "VERIFIER",
+			ExistingTerminalReportAuthority: "CONTROLLER_RUNNER_LOST",
+			ExistingTerminalReportDigest:    reportDigest,
+			IncomingReportDigest:            reportDigest,
+			TerminalReportImmutable:         true,
+		}
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for DUPLICATE_IDENTICAL authority mismatch")
+		}
+	}
+
+	// 6. Negative: CONFLICTING state
+	{
+		state := validTestReportState(report)
+		state.Finalization = knowledge.E2EReportFinalizationContext{
+			State:                   "CONFLICTING",
+			Authority:               "VERIFIER",
+			IncomingReportDigest:    reportDigest,
+			TerminalReportImmutable: true,
+		}
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for CONFLICTING finalization state")
+		}
+	}
+
+	// 7. Negative: LATE_AFTER_FINAL state
+	{
+		state := validTestReportState(report)
+		state.Finalization = knowledge.E2EReportFinalizationContext{
+			State:                   "LATE_AFTER_FINAL",
+			Authority:               "VERIFIER",
+			IncomingReportDigest:    reportDigest,
+			TerminalReportImmutable: true,
+		}
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for LATE_AFTER_FINAL finalization state")
+		}
+	}
+
+	// 8. Negative: TerminalReportImmutable == false
+	{
+		state := validTestReportState(report)
+		state.Finalization = knowledge.E2EReportFinalizationContext{
+			State:                   "FIRST_FINALIZATION",
+			Authority:               "VERIFIER",
+			IncomingReportDigest:    reportDigest,
+			TerminalReportImmutable: false,
+		}
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when TerminalReportImmutable is false")
+		}
+	}
+}
+
+func TestValidateE2EReport_CredentialProvisioningStates(t *testing.T) {
+	t.Parallel()
+
+	brief := validTestBrief()
+	policyDigest := knowledge.ComputePolicyDigest(brief.CredentialPolicy)
+
+	// 1. NOT_STARTED: requires NOT_PROVISIONED sha256:<hex>
+	{
+		report := validTestReport(brief)
+		report.StageOutcome = "ENV_BLOCKED"
+		report.BuildOutcome = "ENV_ERROR"
+		report.ExecutionOutcome = "NOT_RUN"
+		report.ScenariosPassed = 0
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = 3
+		report.ScenariosUnknown = 0
+		report.ResultCompleteness = "NONE"
+		report.TestedArtifactRef = "NONE"
+		report.ExecutionMaterialRef = "UNAVAILABLE"
+		report.EvidenceURI = "UNAVAILABLE"
+		report.CleanupEvidenceURI = "NOT_REQUIRED"
+		report.SecretsAttestation = "NOT_PROVISIONED sha256:" + policyDigest
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+
+		state := validTestReportState(report)
+		state.BuildProcessState = "ENV_ERROR"
+		state.ExecutionProcessState = "NOT_STARTED"
+		state.ExecutionStarted = false
+		state.CredentialProvisioningState = "NOT_STARTED"
+		state.ResourcesAllocated = false
+		state.AllocatedResourceIDs = nil
+		state.CleanupRequired = false
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected valid NOT_STARTED provisioning report to pass: %v", err)
+		}
+	}
+
+	// 2. Empty policy: NOT_STARTED maps to NOT_PROVISIONED; SUCCEEDED and FAILED are rejected
+	{
+		emptyBrief := brief
+		emptyBrief.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{}
+		report := validTestReport(emptyBrief)
+		emptyDigest := knowledge.ComputePolicyDigest(emptyBrief.CredentialPolicy)
+		report.SecretsAttestation = "NOT_PROVISIONED sha256:" + emptyDigest
+		state := validTestReportState(report)
+		state.CredentialProvisioningState = "NOT_STARTED"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		// Positive: empty-policy with NOT_STARTED passes
+		if err := knowledge.ValidateE2EReport(emptyBrief, report, state); err != nil {
+			t.Fatalf("expected valid empty-policy NOT_STARTED report to pass: %v", err)
+		}
+
+		// Negative: empty-policy with SUCCEEDED must be rejected
+		badSucceededState := state
+		badSucceededState.CredentialProvisioningState = "SUCCEEDED"
+		if err := knowledge.ValidateE2EReport(emptyBrief, report, badSucceededState); err == nil {
+			t.Error("expected error when CredentialPolicy is empty but CredentialProvisioningState is SUCCEEDED")
+		}
+
+		// Negative: empty-policy with FAILED must be rejected
+		badFailedState := state
+		badFailedState.CredentialProvisioningState = "FAILED"
+		if err := knowledge.ValidateE2EReport(emptyBrief, report, badFailedState); err == nil {
+			t.Error("expected error when CredentialPolicy is empty but CredentialProvisioningState is FAILED")
+		}
+	}
+
+	// 3. FAILED: requires ENV_BLOCKED:PROVISIONING_FAILED with non-empty policy
+	{
+		report := validTestReport(brief)
+		report.StageOutcome = "ENV_BLOCKED"
+		report.BuildOutcome = "NOT_RUN"
+		report.ExecutionOutcome = "ENV_ERROR"
+		report.ScenariosPassed = 0
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = 3
+		report.ScenariosUnknown = 0
+		report.ResultCompleteness = "NONE"
+		report.TestedArtifactRef = "NONE"
+		report.ExecutionMaterialRef = "UNAVAILABLE"
+		report.EvidenceURI = "UNAVAILABLE"
+		report.SecretsAttestation = "ENV_BLOCKED:PROVISIONING_FAILED"
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+
+		state := validTestReportState(report)
+		state.BuildProcessState = "NOT_STARTED"
+		state.ExecutionProcessState = "ENV_ERROR"
+		state.ExecutionStarted = false
+		state.CredentialProvisioningState = "FAILED"
+		state.ResourcesAllocated = false
+		state.AllocatedResourceIDs = nil
+		state.CleanupRequired = true
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected valid FAILED provisioning report to pass: %v", err)
+		}
+
+		// Negative: FAILED with empty policy must fail
+		emptyBrief := brief
+		emptyBrief.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{}
+		if err := knowledge.ValidateE2EReport(emptyBrief, report, state); err == nil {
+			t.Error("expected error when CredentialProvisioningState is FAILED but CredentialPolicy is empty")
+		}
+	}
+
+	// 4. UNKNOWN: requires UNVERIFIED:RUNNER_LOST and StageOutcome RUNNER_LOST
+	{
+		report := validTestReport(brief)
+		report.StageOutcome = "RUNNER_LOST"
+		report.BuildOutcome = "PASS"
+		report.ExecutionOutcome = "UNKNOWN"
+		report.ScenariosPassed = 1
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosUnknown = 1
+		report.ScenariosNotRun = 1
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "PASS"},
+			{ScenarioID: "SC-02", Outcome: "UNKNOWN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+		report.ResultCompleteness = "PARTIAL"
+		report.SecretsAttestation = "UNVERIFIED:RUNNER_LOST"
+
+		state := validTestReportState(report)
+		state.BuildProcessState = "PASS"
+		state.ExecutionProcessState = "RUNNING"
+		state.CredentialProvisioningState = "UNKNOWN"
+		state.Finalization = knowledge.E2EReportFinalizationContext{
+			State:                   "FIRST_FINALIZATION",
+			Authority:               "CONTROLLER_RUNNER_LOST",
+			IncomingReportDigest:    knowledge.ComputeReportDigest(report),
+			TerminalReportImmutable: true,
+		}
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected valid UNKNOWN provisioning report with RUNNER_LOST to pass: %v", err)
+		}
+
+		// Negative: UNKNOWN provisioning with stage outcome PASS must fail
+		badReport := report
+		badReport.StageOutcome = "PASS"
+		badState := state
+		badState.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(badReport)
+		if err := knowledge.ValidateE2EReport(brief, badReport, badState); err == nil {
+			t.Error("expected error when CredentialProvisioningState is UNKNOWN but StageOutcome is PASS")
+		}
+	}
+
+	// 5. Positive non-empty throwaway policy: SUCCEEDED maps to ATTESTED:THROWAWAY
+	{
+		throwawayBrief := brief
+		throwawayBrief.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{
+			{Name: "ephemeral-token", GenerationMode: "THROWAWAY", GenerationInstruction: "create token"},
+		}
+		throwawayBrief.CredentialAuthorization = nil
+		report := validTestReport(throwawayBrief)
+		state := validTestReportState(report)
+		state.CredentialProvisioningState = "SUCCEEDED"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.ValidateE2EReport(throwawayBrief, report, state); err != nil {
+			t.Fatalf("expected valid throwaway SUCCEEDED provisioning report to pass: %v", err)
+		}
+	}
+
+	// 6. Positive non-empty mixed policy: SUCCEEDED maps to ATTESTED:MIXED
+	{
+		mixedBrief := brief
+		mixedBrief.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{
+			{Name: "db-secret", GenerationMode: "REAL_ONLY"},
+		}
+		mixedBrief.CredentialAuthorization = []knowledge.E2ECredentialAuthorization{
+			{
+				Name:             "db-secret",
+				Purpose:          "Integration",
+				Lifetime:         "SINGLE_RUN",
+				AuthorizedBy:     "operator",
+				AuthorizedAt:     "2026-10-12T20:00:00Z",
+				AuthorizationRef: "auth-mixed-1",
+			},
+		}
+		report := validTestReport(mixedBrief)
+		state := validTestReportState(report)
+		state.CredentialProvisioningState = "SUCCEEDED"
+		state.CredentialAuthorizationVerified = true
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.ValidateE2EReport(mixedBrief, report, state); err != nil {
+			t.Fatalf("expected valid mixed SUCCEEDED provisioning report to pass: %v", err)
+		}
+	}
+}
+
+func TestValidateE2EReport_TruthfulLifecycleFactsAndCompleteness(t *testing.T) {
+	t.Parallel()
+
+	brief := validTestBrief()
+
+	// 1. RUNNER_LOST report when all scenario results are durable and passing
+	{
+		report := validTestReport(brief)
+		report.StageOutcome = "RUNNER_LOST"
+		report.BuildOutcome = "PASS"
+		report.ExecutionOutcome = "PASS"
+		report.ScenariosPassed = len(brief.Scenarios)
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = 0
+		report.ScenariosUnknown = 0
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "PASS"},
+			{ScenarioID: "SC-02", Outcome: "PASS"},
+			{ScenarioID: "SC-03", Outcome: "PASS"},
+		}
+		report.ResultCompleteness = "COMPLETE"
+		report.CleanupStatus = "CONFIRMED"
+
+		state := validTestReportState(report)
+		state.BuildProcessState = "PASS"
+		state.ExecutionProcessState = "PASS"
+		state.ExecutionStarted = true
+		state.CleanupStatus = "CONFIRMED"
+		state.Finalization.Authority = "CONTROLLER_RUNNER_LOST"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		// Report validation must succeed (truthful durable facts preserved)
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected structurally consistent RUNNER_LOST with passing scenarios to pass: %v", err)
+		}
+
+		// Admission must fail closed
+		mat := validTestMaterial(brief)
+		if err := knowledge.EvaluateE2EAdmission(brief, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to deny RUNNER_LOST even with passing scenarios")
+		} else if !strings.Contains(err.Error(), "RUNNER_LOST") {
+			t.Errorf("unexpected admission error: %v", err)
+		}
+	}
+
+	// 2. RUNNER_LOST report when execution never started after successful build
+	{
+		report := validTestReport(brief)
+		report.StageOutcome = "RUNNER_LOST"
+		report.BuildOutcome = "PASS"
+		report.ExecutionOutcome = "NOT_RUN"
+		report.ScenariosPassed = 0
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = len(brief.Scenarios)
+		report.ScenariosUnknown = 0
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+		report.ResultCompleteness = "NONE"
+		report.CleanupStatus = "CONFIRMED"
+
+		state := validTestReportState(report)
+		state.BuildProcessState = "PASS"
+		state.ExecutionProcessState = "NOT_STARTED"
+		state.ExecutionStarted = false
+		state.CleanupStatus = "CONFIRMED"
+		state.Finalization.Authority = "CONTROLLER_RUNNER_LOST"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected RUNNER_LOST after successful build before execution start to pass: %v", err)
+		}
+
+		mat := validTestMaterial(brief)
+		if err := knowledge.EvaluateE2EAdmission(brief, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to deny non-started execution RUNNER_LOST")
+		}
+	}
+
+	// 3. TIMEOUT with all scenario states known (ResultCompleteness COMPLETE)
+	{
+		report := validTestReport(brief)
+		report.StageOutcome = "TIMEOUT"
+		report.BuildOutcome = "PASS"
+		report.ExecutionOutcome = "TIMEOUT"
+		report.ScenariosPassed = 2
+		report.ScenariosFailed = 1
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = 0
+		report.ScenariosUnknown = 0
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "PASS"},
+			{ScenarioID: "SC-02", Outcome: "PASS"},
+			{ScenarioID: "SC-03", Outcome: "FAIL"},
+		}
+		report.ResultCompleteness = "COMPLETE"
+
+		state := validTestReportState(report)
+		state.BuildProcessState = "PASS"
+		state.ExecutionProcessState = "TIMEOUT"
+		state.ExecutionStarted = true
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected TIMEOUT with COMPLETE completeness to pass: %v", err)
+		}
+
+		mat := validTestMaterial(brief)
+		if err := knowledge.EvaluateE2EAdmission(brief, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to deny TIMEOUT report")
+		}
+	}
+
+	// 4. CANCELLED with all scenario states known (ResultCompleteness COMPLETE)
+	{
+		report := validTestReport(brief)
+		report.StageOutcome = "CANCELLED"
+		report.BuildOutcome = "PASS"
+		report.ExecutionOutcome = "CANCELLED"
+		report.ScenariosPassed = 1
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = 2
+		report.ScenariosUnknown = 0
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "PASS"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+		report.ResultCompleteness = "COMPLETE"
+
+		state := validTestReportState(report)
+		state.BuildProcessState = "PASS"
+		state.ExecutionProcessState = "CANCELLED"
+		state.ExecutionStarted = true
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected CANCELLED with COMPLETE completeness to pass: %v", err)
+		}
+
+		mat := validTestMaterial(brief)
+		if err := knowledge.EvaluateE2EAdmission(brief, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to deny CANCELLED report")
+		}
+	}
+}
+
+func TestValidateE2EAdmission_CredentialProvisioningRequirements(t *testing.T) {
+	t.Parallel()
+
+	brief := validTestBrief()
+	mat := validTestMaterial(brief)
+
+	// 1. Nonempty policy with NOT_STARTED passes report validation (with NOT_PROVISIONED attestation) but is denied at admission
+	{
+		report := validTestReport(brief)
+		report.SecretsAttestation = "NOT_PROVISIONED sha256:" + knowledge.ComputePolicyDigest(brief.CredentialPolicy)
+		state := validTestReportState(report)
+		state.CredentialProvisioningState = "NOT_STARTED"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.EvaluateE2EAdmission(brief, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to reject credential state NOT_STARTED for nonempty policy")
+		} else if !strings.Contains(err.Error(), "SUCCEEDED required for non-empty credential policy") {
+			t.Errorf("unexpected error for state NOT_STARTED: %v", err)
+		}
+	}
+
+	// 2. Empty policy with NOT_STARTED is admitted
+	{
+		emptyBrief := validTestBrief()
+		emptyBrief.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{}
+		emptyReport := validTestReport(emptyBrief)
+		emptyReport.SecretsAttestation = "NOT_PROVISIONED sha256:" + knowledge.ComputePolicyDigest(emptyBrief.CredentialPolicy)
+		emptyState := validTestReportState(emptyReport)
+		emptyState.CredentialProvisioningState = "NOT_STARTED"
+		emptyState.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(emptyReport)
+		emptyMat := validTestMaterial(emptyBrief)
+
+		if err := knowledge.EvaluateE2EAdmission(emptyBrief, emptyReport, emptyMat, emptyState); err != nil {
+			t.Fatalf("expected empty credential policy with NOT_STARTED to pass admission: %v", err)
+		}
+	}
+
+	// 3. Empty policy with SUCCEEDED is rejected
+	{
+		emptyBrief := validTestBrief()
+		emptyBrief.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{}
+		emptyReport := validTestReport(emptyBrief)
+		emptyReport.SecretsAttestation = "NOT_PROVISIONED sha256:" + knowledge.ComputePolicyDigest(emptyBrief.CredentialPolicy)
+		emptyState := validTestReportState(emptyReport)
+		emptyState.CredentialProvisioningState = "SUCCEEDED"
+		emptyState.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(emptyReport)
+		emptyMat := validTestMaterial(emptyBrief)
+
+		if err := knowledge.EvaluateE2EAdmission(emptyBrief, emptyReport, emptyMat, emptyState); err == nil {
+			t.Error("expected EvaluateE2EAdmission to reject credential state SUCCEEDED for empty policy")
+		}
+	}
+}
+
+func TestValidateE2EReport_AuthorizationDeniedNameMatching(t *testing.T) {
+	t.Parallel()
+
+	brief := validTestBrief()
+	brief.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{
+		{Name: "db-secret", GenerationMode: "REAL_ONLY"},
+	}
+	// Mismatched name: authorization has "api-token", policy has "db-secret"
+	brief.CredentialAuthorization = []knowledge.E2ECredentialAuthorization{
+		{
+			Name:             "api-token",
+			Purpose:          "Integration",
+			Lifetime:         "SINGLE_RUN",
+			AuthorizedBy:     "operator",
+			AuthorizedAt:     "2026-10-12T20:00:00Z",
+			AuthorizationRef: "auth-1",
+		},
+	}
+
+	report := validTestReport(brief)
+	report.StageOutcome = "ENV_BLOCKED"
+	report.BuildOutcome = "NOT_RUN"
+	report.ExecutionOutcome = "ENV_ERROR"
+	report.ResultCompleteness = "NONE"
+	report.TestedArtifactRef = "NONE"
+	report.ExecutionMaterialRef = "UNAVAILABLE"
+	report.EvidenceURI = "UNAVAILABLE"
+	report.CleanupStatus = "CONFIRMED"
+	report.CleanupEvidenceURI = "NOT_REQUIRED"
+	report.SecretsAttestation = "ENV_BLOCKED:AUTHORIZATION_DENIED"
+	report.ScenariosPassed = 0
+	report.ScenariosFailed = 0
+	report.ScenariosSkipped = 0
+	report.ScenariosUnknown = 0
+	report.ScenariosNotRun = len(brief.Scenarios)
+	report.ScenarioResults = []knowledge.E2EScenarioResult{
+		{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+		{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+		{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+	}
+
+	state := validTestReportState(report)
+	state.PreflightOutcome = "AUTHORIZATION_DENIED"
+	state.CredentialAuthorizationVerified = true
+	state.BuildProcessState = "NOT_STARTED"
+	state.ExecutionProcessState = "NOT_STARTED"
+	state.ExecutionStarted = false
+	state.ServiceStartupAttempted = false
+	state.CredentialProvisioningState = "NOT_STARTED"
+	state.ResourcesAllocated = false
+	state.AllocatedResourceIDs = nil
+	state.CleanupRequired = false
+	state.CleanupStatus = "CONFIRMED"
+	state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+	// Name mismatch should be rejected
+	if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+		t.Error("expected error when authorization name does not match REAL_ONLY credential name")
+	} else if !strings.Contains(err.Error(), "does not match declared REAL_ONLY credential") {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// Correct matching name passes
+	brief.CredentialAuthorization[0].Name = "db-secret"
+	state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+	if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+		t.Fatalf("expected valid AUTHORIZATION_DENIED report with matching name to pass: %v", err)
+	}
+}
+
+func TestValidateE2EBrief_ServicesNilVsEmpty(t *testing.T) {
+	t.Parallel()
+
+	state := validTestBriefState()
+	b := validTestBrief()
+
+	b.Services = nil
+	if err := knowledge.ValidateE2EBrief(b, state); err == nil {
+		t.Error("expected error for brief with Services == nil")
+	} else if !strings.Contains(err.Error(), "services is required (use explicit empty list [] if none)") {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	b.Services = []knowledge.E2EServiceRequirement{}
+	if err := knowledge.ValidateE2EBrief(b, state); err != nil {
+		t.Errorf("expected brief with Services == [] to pass: %v", err)
+	}
+}
+
+func TestValidateGoTestCommand_EffectiveFlagSemantics(t *testing.T) {
+	t.Parallel()
+
+	briefState := validTestBriefState()
+
+	// 1. Non-test command
+	{
+		b := validTestBrief()
+		b.Command = []string{"pytest", "test", "cases"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error for non-go test command")
+		} else if !strings.Contains(err.Error(), "test command executable must be 'go'") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 2. Go subcommand not 'test'
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "run", "main.go"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error for go run")
+		} else if !strings.Contains(err.Error(), "test command subcommand must be 'test'") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 3. Missing -count=1 flag
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "./..."}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error for go test without -count=1")
+		} else if !strings.Contains(err.Error(), "must include distinct -count=1 flag") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 4. Later overriding -count value (-count=1 ... -count=2)
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-count=2"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error for overridden -count flag")
+		} else if !strings.Contains(err.Error(), "effective -count flag value must be '1'") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 5. Flags after -args that mimic test flags
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "./...", "-args", "-count=1"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error when -count=1 appears only after -args")
+		} else if !strings.Contains(err.Error(), "must include distinct -count=1 flag before -args") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 6. Valid -count=1 before -args with unrelated valid forwarded flags after -args
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-v", "--env=staging", "custom-arg"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+			t.Errorf("expected valid ordinary command with unrelated forwarded flags to pass: %v", err)
+		}
+	}
+
+	// 7. Forwarded -test.count=1 maintains repeat protection
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.count=1"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+			t.Errorf("expected forwarded -test.count=1 to pass: %v", err)
+		}
+	}
+
+	// 8. Forwarded -count=2 override rejected at brief preflight
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-count=2"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error for forwarded -count=2 override")
+		} else if !strings.Contains(err.Error(), "overrides effective test count") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 9. Forwarded -test.count=2 override rejected at brief preflight
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.count=2"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error for forwarded -test.count=2 override")
+		} else if !strings.Contains(err.Error(), "overrides effective test count") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 10. Forwarded -test.count 2 (two args) rejected at brief preflight
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.count", "2"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error for forwarded -test.count 2 override")
+		} else if !strings.Contains(err.Error(), "overrides effective test count") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 11. Forwarded -count=0 override rejected at brief preflight
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-count=0"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error for forwarded -count=0 override")
+		} else if !strings.Contains(err.Error(), "overrides effective test count") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 12. Forwarded test flags after '--' are treated as positional arguments
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "--", "-test.count=2"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+			t.Errorf("expected -test.count=2 after '--' to be treated as positional and pass: %v", err)
+		}
+	}
+
+	// 13. Valid -count 1 (two arguments)
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count", "1", "./..."}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+			t.Errorf("expected valid -count 1 to pass: %v", err)
+		}
+	}
+
+	// 14. EvaluateE2EAdmission enforces driver-side check
+	{
+		b := validTestBrief()
+		report := validTestReport(b)
+		state := validTestReportState(report)
+		mat := validTestMaterial(b)
+		mat.Command = []string{"go", "test", "-count=1", "./...", "-count=0"}
+
+		if err := knowledge.EvaluateE2EAdmission(b, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to reject overridden -count=0")
+		} else if !strings.Contains(err.Error(), "effective -count flag value must be '1'") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 15. EvaluateE2EAdmission enforces forwarded test-count override check
+	{
+		b := validTestBrief()
+		report := validTestReport(b)
+		state := validTestReportState(report)
+		mat := validTestMaterial(b)
+		mat.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.count=2"}
+
+		if err := knowledge.EvaluateE2EAdmission(b, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to reject forwarded -test.count=2")
+		} else if !strings.Contains(err.Error(), "overrides effective test count") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 16. EvaluateE2EAdmission accepts unrelated forwarded flags
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-v", "--env=staging"}
+		report := validTestReport(b)
+		state := validTestReportState(report)
+		mat := validTestMaterial(b)
+		mat.Command = b.Command
+
+		if err := knowledge.EvaluateE2EAdmission(b, report, mat, state); err != nil {
+			t.Errorf("expected EvaluateE2EAdmission to accept unrelated forwarded flags: %v", err)
+		}
+	}
+
+	// 17. Known native value-taking flag consumes value even if beginning with '-' at brief preflight
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.outputdir", "-test.count=2"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+			t.Errorf("expected -test.outputdir consuming -test.count=2 as directory value to pass: %v", err)
+		}
+	}
+
+	// 18. Known native value-taking flag consumes non-dash value, then rejects subsequent count override
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.outputdir", "outdir", "-test.count=2"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error for count override following -test.outputdir outdir")
+		} else if !strings.Contains(err.Error(), "overrides effective test count to \"2\"") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 19. Known native value-taking flag missing required argument at end of command
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.outputdir"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error for -test.outputdir missing argument")
+		} else if !strings.Contains(err.Error(), "requires an argument") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 20. First positional argument stops flag parsing, preserving subsequent tokens as non-flags at brief preflight
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "my_target_arg", "-test.count=2"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+			t.Errorf("expected positional arg to stop flag parsing and pass: %v", err)
+		}
+	}
+
+	// 21. Direct count override before positional argument is rejected at brief preflight
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.count=2", "my_target_arg"}
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected error for direct count override before positional arg")
+		} else if !strings.Contains(err.Error(), "overrides effective test count to \"2\"") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 22. Known native value-taking flag consuming '-' value is admitted at EvaluateE2EAdmission
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.outputdir", "-test.count=2"}
+		report := validTestReport(b)
+		state := validTestReportState(report)
+		mat := validTestMaterial(b)
+		mat.Command = b.Command
+
+		if err := knowledge.EvaluateE2EAdmission(b, report, mat, state); err != nil {
+			t.Errorf("expected EvaluateE2EAdmission to admit count-preserving -test.outputdir form: %v", err)
+		}
+	}
+
+	// 23. Positional argument stopping flag parsing is admitted at EvaluateE2EAdmission
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "my_target_arg", "-test.count=2"}
+		report := validTestReport(b)
+		state := validTestReportState(report)
+		mat := validTestMaterial(b)
+		mat.Command = b.Command
+
+		if err := knowledge.EvaluateE2EAdmission(b, report, mat, state); err != nil {
+			t.Errorf("expected EvaluateE2EAdmission to admit count-preserving positional arg form: %v", err)
+		}
+	}
+
+	// 24. Direct count override before positional argument is rejected at EvaluateE2EAdmission
+	{
+		b := validTestBrief()
+		b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.count=2", "my_target_arg"}
+		report := validTestReport(b)
+		state := validTestReportState(report)
+		mat := validTestMaterial(b)
+		mat.Command = b.Command
+
+		if err := knowledge.EvaluateE2EAdmission(b, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to reject direct count override before positional arg")
+		} else if !strings.Contains(err.Error(), "overrides effective test count to \"2\"") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+}
+
+func TestValidateE2EReport_LosslessSerializationAndControlCharacters(t *testing.T) {
+	t.Parallel()
+
+	brief := validTestBrief()
+
+	// 1. Control character / newline in RunID
+	{
+		b := brief
+		b.RunID = "run-1\n"
+		report := validTestReport(b)
+		report.RunID = "run-1\n"
+		state := validTestReportState(report)
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.ValidateE2EReport(b, report, state); err == nil {
+			t.Error("expected error for newline in RunID")
+		} else if !strings.Contains(err.Error(), "field run_id contains illegal control character") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 2. Control character in ScenarioID
+	{
+		report := validTestReport(brief)
+		report.ScenarioResults[0].ScenarioID = "SC-01\x00"
+		state := validTestReportState(report)
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for control char in ScenarioID")
+		} else if !strings.Contains(err.Error(), "contains illegal control character") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 3. Invalid UTF-8 in TestPackage
+	{
+		b := brief
+		b.TestPackage = "e2e/\xff\xfe"
+		report := validTestReport(b)
+		report.TestPackage = "e2e/\xff\xfe"
+		state := validTestReportState(report)
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.ValidateE2EReport(b, report, state); err == nil {
+			t.Error("expected error for invalid UTF-8 in TestPackage")
+		} else if !strings.Contains(err.Error(), "contains invalid UTF-8") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 4. Lossless serialization
+	{
+		report := validTestReport(brief)
+		formatted := knowledge.FormatE2EReport(report)
+		if !strings.Contains(formatted, "run_id: "+report.RunID) {
+			t.Errorf("FormatE2EReport missing exact RunID: %s", formatted)
+		}
+		if !strings.Contains(formatted, "candidate_ref: "+report.CandidateRef) {
+			t.Errorf("FormatE2EReport missing exact CandidateRef: %s", formatted)
+		}
+	}
+}
+
+func TestValidateE2EReport_FinalizationAuthorityClosedEnum(t *testing.T) {
+	t.Parallel()
+
+	brief := validTestBrief()
+	report := validTestReport(brief)
+
+	// 1. FIRST_FINALIZATION with unknown authority
+	{
+		state := validTestReportState(report)
+		state.Finalization.Authority = "UNKNOWN"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for unknown authority in FIRST_FINALIZATION")
+		} else if !strings.Contains(err.Error(), "invalid finalization authority") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 2. DUPLICATE_IDENTICAL where both incoming and stored are identical unknown authority
+	{
+		state := validTestReportState(report)
+		state.Finalization.State = "DUPLICATE_IDENTICAL"
+		state.Finalization.Authority = "UNKNOWN"
+		state.Finalization.ExistingTerminalReportAuthority = "UNKNOWN"
+		state.Finalization.ExistingTerminalReportDigest = knowledge.ComputeReportDigest(report)
+		state.Finalization.IncomingReportDigest = state.Finalization.ExistingTerminalReportDigest
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for identical unknown authority in DUPLICATE_IDENTICAL")
+		} else if !strings.Contains(err.Error(), "invalid finalization authority") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 3. DUPLICATE_IDENTICAL where ExistingTerminalReportAuthority is unknown
+	{
+		state := validTestReportState(report)
+		state.Finalization.State = "DUPLICATE_IDENTICAL"
+		state.Finalization.Authority = "VERIFIER"
+		state.Finalization.ExistingTerminalReportAuthority = "UNKNOWN"
+		state.Finalization.ExistingTerminalReportDigest = knowledge.ComputeReportDigest(report)
+		state.Finalization.IncomingReportDigest = state.Finalization.ExistingTerminalReportDigest
+
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for unknown ExistingTerminalReportAuthority")
+		} else if !strings.Contains(err.Error(), "invalid existing terminal report authority") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 4. DUPLICATE_IDENTICAL with CONTROLLER_RUNNER_LOST for both passes
+	{
+		runnerLostReport := report
+		runnerLostReport.StageOutcome = "RUNNER_LOST"
+		state := validTestReportState(runnerLostReport)
+		state.Finalization.State = "DUPLICATE_IDENTICAL"
+		state.Finalization.Authority = "CONTROLLER_RUNNER_LOST"
+		state.Finalization.ExistingTerminalReportAuthority = "CONTROLLER_RUNNER_LOST"
+		digest := knowledge.ComputeReportDigest(runnerLostReport)
+		state.Finalization.ExistingTerminalReportDigest = digest
+		state.Finalization.IncomingReportDigest = digest
+
+		if err := knowledge.ValidateE2EReport(brief, runnerLostReport, state); err != nil {
+			t.Fatalf("expected valid DUPLICATE_IDENTICAL with CONTROLLER_RUNNER_LOST to pass: %v", err)
+		}
+	}
+}
+
+func TestValidateE2E_PlannerRemediationRegressions(t *testing.T) {
+	t.Parallel()
+
+	// 1. Provider-denial report exception:
+	// Preflight AUTHORIZATION_DENIED keeps both process states NOT_STARTED,
+	// allows approved report shape (ENV_BLOCKED, NOT_RUN, ENV_ERROR, NOT_RUN, NONE, attestation ENV_BLOCKED:AUTHORIZATION_DENIED).
+	// Validates structurally but never admits. Mismatched auth names or non-NOT_STARTED process states rejected.
+	{
+		brief := validTestBrief()
+		brief.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{
+			{Name: "prod-db-token", GenerationMode: "REAL_ONLY"},
+		}
+		brief.CredentialAuthorization = []knowledge.E2ECredentialAuthorization{
+			{
+				Name:             "prod-db-token",
+				Purpose:          "Integration test",
+				Lifetime:         "SINGLE_RUN",
+				AuthorizedBy:     "operator",
+				AuthorizedAt:     "2026-10-12T20:00:00Z",
+				AuthorizationRef: "auth-12345",
+			},
+		}
+		report := validTestReport(brief)
+		report.StageOutcome = "ENV_BLOCKED"
+		report.BuildOutcome = "NOT_RUN"
+		report.ExecutionOutcome = "ENV_ERROR"
+		report.ResultCompleteness = "NONE"
+		report.TestedArtifactRef = "NONE"
+		report.ExecutionMaterialRef = "UNAVAILABLE"
+		report.EvidenceURI = "UNAVAILABLE"
+		report.CleanupStatus = "CONFIRMED"
+		report.CleanupEvidenceURI = "NOT_REQUIRED"
+		report.SecretsAttestation = "ENV_BLOCKED:AUTHORIZATION_DENIED"
+		report.ScenariosPassed = 0
+		report.ScenariosFailed = 0
+		report.ScenariosSkipped = 0
+		report.ScenariosNotRun = report.ScenariosSelected
+		report.ScenariosUnknown = 0
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+
+		state := validTestReportState(report)
+		state.PreflightOutcome = "AUTHORIZATION_DENIED"
+		state.CredentialAuthorizationVerified = true
+		state.BuildProcessState = "NOT_STARTED"
+		state.ExecutionProcessState = "NOT_STARTED"
+		state.ExecutionStarted = false
+		state.ServiceStartupAttempted = false
+		state.CredentialProvisioningState = "NOT_STARTED"
+		state.ResourcesAllocated = false
+		state.AllocatedResourceIDs = nil
+		state.CleanupRequired = false
+		state.CleanupStatus = "CONFIRMED"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		// Positive: validates structurally
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected valid AUTHORIZATION_DENIED report with both process states NOT_STARTED to pass: %v", err)
+		}
+
+		// Negative: admission MUST be denied
+		mat := validTestMaterial(brief)
+		if err := knowledge.EvaluateE2EAdmission(brief, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to reject AUTHORIZATION_DENIED preflight")
+		} else if !strings.Contains(err.Error(), "preflight AUTHORIZATION_DENIED cannot be admitted") {
+			t.Errorf("unexpected admission error: %v", err)
+		}
+
+		// Negative: Fabricated ExecutionProcessState == "ENV_ERROR" must be rejected
+		badState := state
+		badState.ExecutionProcessState = "ENV_ERROR"
+		if err := knowledge.ValidateE2EReport(brief, report, badState); err == nil {
+			t.Error("expected error when AUTHORIZATION_DENIED has execution_process_state ENV_ERROR")
+		}
+
+		// Positive: Runner-loss after durable AUTHORIZATION_DENIED preflight preserves blocked attestation and NOT_STARTED process states
+		runnerLostReport := report
+		runnerLostReport.StageOutcome = "RUNNER_LOST"
+		runnerLostReport.BuildOutcome = "NOT_RUN"
+		runnerLostReport.ExecutionOutcome = "NOT_RUN"                            // unstarted phase preserved as NOT_RUN
+		runnerLostReport.SecretsAttestation = "ENV_BLOCKED:AUTHORIZATION_DENIED" // known authorization block preserved
+		runnerLostState := state
+		runnerLostState.Finalization.Authority = "CONTROLLER_RUNNER_LOST"
+		runnerLostState.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(runnerLostReport)
+
+		if err := knowledge.ValidateE2EReport(brief, runnerLostReport, runnerLostState); err != nil {
+			t.Fatalf("expected valid runner-loss report after AUTHORIZATION_DENIED to pass: %v", err)
+		}
+
+		// Negative: Runner-loss after AUTHORIZATION_DENIED is strictly non-admissible
+		if err := knowledge.EvaluateE2EAdmission(brief, runnerLostReport, mat, runnerLostState); err == nil {
+			t.Error("expected admission to be denied for runner-loss after AUTHORIZATION_DENIED")
+		}
+
+		// Negative: Fabricating ExecutionOutcome == ENV_ERROR under RUNNER_LOST must be rejected (must be NOT_RUN for unstarted phase)
+		badLossReport := runnerLostReport
+		badLossReport.ExecutionOutcome = "ENV_ERROR"
+		badLossState := runnerLostState
+		badLossState.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(badLossReport)
+		if err := knowledge.ValidateE2EReport(brief, badLossReport, badLossState); err == nil {
+			t.Error("expected error when RUNNER_LOST after AUTHORIZATION_DENIED fabricates ExecutionOutcome ENV_ERROR")
+		} else if !strings.Contains(err.Error(), "requires execution_outcome NOT_RUN") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Negative: Erasing known authorization block under RUNNER_LOST must be rejected
+		badAttestReport := runnerLostReport
+		badAttestReport.SecretsAttestation = "UNVERIFIED:RUNNER_LOST"
+		badAttestState := runnerLostState
+		badAttestState.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(badAttestReport)
+		if err := knowledge.ValidateE2EReport(brief, badAttestReport, badAttestState); err == nil {
+			t.Error("expected error when RUNNER_LOST after AUTHORIZATION_DENIED erases authorization block")
+		} else if !strings.Contains(err.Error(), "requires secrets_attestation ENV_BLOCKED:AUTHORIZATION_DENIED") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Negative: Normal AUTHORIZATION_DENIED attempting to use ExecutionOutcome == NOT_RUN (must be ENV_ERROR)
+		badNormalReport := report
+		badNormalReport.ExecutionOutcome = "NOT_RUN"
+		badNormalState := state
+		badNormalState.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(badNormalReport)
+		if err := knowledge.ValidateE2EReport(brief, badNormalReport, badNormalState); err == nil {
+			t.Error("expected error when normal AUTHORIZATION_DENIED report uses ExecutionOutcome NOT_RUN")
+		} else if !strings.Contains(err.Error(), "requires execution_outcome ENV_ERROR") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 2. Go test command effective-argv validation:
+	{
+		briefState := validTestBriefState()
+
+		// Positive: -test.count 1 alias
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-test.count", "1", "./..."}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+				t.Errorf("expected go test -test.count 1 to pass: %v", err)
+			}
+		}
+
+		// Positive: -count=2 followed by overriding -test.count=1
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-count=2", "./...", "-test.count=1"}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+				t.Errorf("expected go test with overriding -test.count=1 to pass: %v", err)
+			}
+		}
+
+		// Negative: -run consumes -count=1 as regex pattern
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-run", "-count=1", "./..."}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+				t.Error("expected error when -run flag consumes -count=1")
+			} else if !strings.Contains(err.Error(), "must include distinct -count=1 flag") {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}
+
+		// Negative: unknown flag without '=' is rejected as ambiguous
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-unknown_custom_flag", "arg", "-count=1", "./..."}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+				t.Error("expected error for ambiguous unknown flag without '='")
+			} else if !strings.Contains(err.Error(), "ambiguous or unrecognized flag") {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}
+
+		// Negative: '--' terminates flag parsing, so -count=1 afterwards is a package argument
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "--", "-count=1"}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+				t.Error("expected error when -count=1 appears after '--'")
+			} else if !strings.Contains(err.Error(), "must include distinct -count=1 flag") {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}
+
+		// Positive: unrelated forwarded flags after -args preserved at brief preflight
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-v", "--flag=val", "myarg"}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+				t.Errorf("expected unrelated forwarded flags after -args to pass: %v", err)
+			}
+		}
+
+		// Positive: forwarded -test.count=1 maintains repeat protection at brief preflight
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.count=1"}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+				t.Errorf("expected forwarded -test.count=1 to pass: %v", err)
+			}
+		}
+
+		// Negative: forwarded -test.count=2 rejected at brief preflight
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.count=2"}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+				t.Error("expected error when forwarded -test.count=2 is passed")
+			} else if !strings.Contains(err.Error(), "overrides effective test count to \"2\", disabling repeat protection") {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}
+
+		// Negative: forwarded -test.count 2 (space-separated) rejected at brief preflight
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.count", "2"}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+				t.Error("expected error when forwarded -test.count 2 is passed")
+			} else if !strings.Contains(err.Error(), "overrides effective test count to \"2\", disabling repeat protection") {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}
+
+		// Negative: forwarded -count=0 rejected at brief preflight
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-count=0"}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+				t.Error("expected error when forwarded -count=0 is passed")
+			} else if !strings.Contains(err.Error(), "overrides effective test count to \"0\", disabling repeat protection") {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}
+
+		// Positive: unrelated forwarded flags accepted at admission
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-v", "--env=staging"}
+			report := validTestReport(b)
+			state := validTestReportState(report)
+			mat := validTestMaterial(b)
+			mat.Command = b.Command
+			if err := knowledge.EvaluateE2EAdmission(b, report, mat, state); err != nil {
+				t.Errorf("expected admission to accept unrelated forwarded flags: %v", err)
+			}
+		}
+
+		// Negative: forwarded -test.count=2 rejected at admission
+		{
+			b := validTestBrief()
+			report := validTestReport(b)
+			state := validTestReportState(report)
+			mat := validTestMaterial(b)
+			mat.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.count=2"}
+			if err := knowledge.EvaluateE2EAdmission(b, report, mat, state); err == nil {
+				t.Error("expected admission to reject forwarded -test.count=2 override")
+			} else if !strings.Contains(err.Error(), "overrides effective test count to \"2\", disabling repeat protection") {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}
+
+		// Positive: known value-taking flag consuming '-' value passes at brief preflight and admission
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.outputdir", "-test.count=2"}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+				t.Errorf("expected -test.outputdir consuming -test.count=2 to pass at brief preflight: %v", err)
+			}
+
+			report := validTestReport(b)
+			state := validTestReportState(report)
+			mat := validTestMaterial(b)
+			mat.Command = b.Command
+			if err := knowledge.EvaluateE2EAdmission(b, report, mat, state); err != nil {
+				t.Errorf("expected -test.outputdir consuming -test.count=2 to pass at admission: %v", err)
+			}
+		}
+
+		// Positive: positional argument stopping flag parsing passes at brief preflight and admission
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-count=1", "./...", "-args", "my_positional_target", "-test.count=2"}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err != nil {
+				t.Errorf("expected positional arg stopping flag parsing to pass at brief preflight: %v", err)
+			}
+
+			report := validTestReport(b)
+			state := validTestReportState(report)
+			mat := validTestMaterial(b)
+			mat.Command = b.Command
+			if err := knowledge.EvaluateE2EAdmission(b, report, mat, state); err != nil {
+				t.Errorf("expected positional arg stopping flag parsing to pass at admission: %v", err)
+			}
+		}
+
+		// Negative: direct count override before positional arg rejected at brief preflight and admission
+		{
+			b := validTestBrief()
+			b.Command = []string{"go", "test", "-count=1", "./...", "-args", "-test.count=2", "my_positional_target"}
+			if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+				t.Error("expected direct count override before positional arg to fail at brief preflight")
+			} else if !strings.Contains(err.Error(), "overrides effective test count to \"2\"") {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			report := validTestReport(b)
+			state := validTestReportState(report)
+			mat := validTestMaterial(b)
+			mat.Command = b.Command
+			if err := knowledge.EvaluateE2EAdmission(b, report, mat, state); err == nil {
+				t.Error("expected direct count override before positional arg to fail at admission")
+			} else if !strings.Contains(err.Error(), "overrides effective test count to \"2\"") {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}
+	}
+
+	// 3. Runner loss preserves durable terminal process outcomes:
+	{
+		brief := validTestBrief()
+		report := validTestReport(brief)
+		report.StageOutcome = "RUNNER_LOST"
+		report.BuildOutcome = "PASS"
+		report.ExecutionOutcome = "PASS"
+		state := validTestReportState(report)
+		state.BuildProcessState = "PASS"
+		state.ExecutionProcessState = "PASS"
+		state.Finalization.Authority = "CONTROLLER_RUNNER_LOST"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		// Positive: preserves durable execution outcome PASS
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected RUNNER_LOST report with durable PASS process outcome to pass: %v", err)
+		}
+
+		// Negative: mutating known PASS to INVALID_EVIDENCE is rejected
+		mutatedReport := report
+		mutatedReport.ExecutionOutcome = "INVALID_EVIDENCE"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(mutatedReport)
+		if err := knowledge.ValidateE2EReport(brief, mutatedReport, state); err == nil {
+			t.Error("expected error when report mutates known PASS process outcome to INVALID_EVIDENCE")
+		} else if !strings.Contains(err.Error(), "does not match durable execution_process_state PASS") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 4. Cleanup obligation bounds:
+	{
+		brief := validTestBrief()
+		report := validTestReport(brief)
+		state := validTestReportState(report)
+
+		// Negative: ExecutionStarted == true but CleanupRequired == false is rejected
+		state.ExecutionStarted = true
+		state.CleanupRequired = false
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when ExecutionStarted is true but CleanupRequired is false")
+		} else if !strings.Contains(err.Error(), "requires cleanup_required to be true") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Negative: ResourcesAllocated == true but CleanupRequired == false is rejected
+		state.ExecutionStarted = false
+		state.BuildProcessState = "ENV_ERROR"
+		state.ExecutionProcessState = "NOT_STARTED"
+		report.StageOutcome = "ENV_BLOCKED"
+		report.BuildOutcome = "ENV_ERROR"
+		report.ExecutionOutcome = "NOT_RUN"
+		report.ResultCompleteness = "NONE"
+		report.TestedArtifactRef = "NONE"
+		report.EvidenceURI = "UNAVAILABLE"
+		report.CleanupEvidenceURI = "NOT_REQUIRED"
+		report.ScenariosPassed = 0
+		report.ScenariosNotRun = len(brief.Scenarios)
+		report.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+		state.ResourcesAllocated = true
+		state.AllocatedResourceIDs = []string{"res-1"}
+		state.CleanupRequired = false
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error when ResourcesAllocated is true but CleanupRequired is false")
+		} else if !strings.Contains(err.Error(), "requires cleanup_required to be true") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 5. Credential-policy shape: nil rejected at all boundaries; [] admitted
+	{
+		b := validTestBrief()
+		report := validTestReport(b)
+		mat := validTestMaterial(b)
+		state := validTestReportState(report)
+
+		bNil := b
+		bNil.CredentialPolicy = nil
+
+		// Brief boundary
+		briefState := validTestBriefState()
+		if err := knowledge.ValidateE2EBrief(bNil, briefState); err == nil {
+			t.Error("expected ValidateE2EBrief to reject nil CredentialPolicy")
+		} else if !strings.Contains(err.Error(), "credential_policy is required") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Report boundary
+		if err := knowledge.ValidateE2EReport(bNil, report, state); err == nil {
+			t.Error("expected ValidateE2EReport to reject nil CredentialPolicy")
+		} else if !strings.Contains(err.Error(), "credential_policy is required (use explicit empty list [] if none)") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Admission boundary
+		if err := knowledge.EvaluateE2EAdmission(bNil, report, mat, state); err == nil {
+			t.Error("expected EvaluateE2EAdmission to reject nil CredentialPolicy")
+		} else if !strings.Contains(err.Error(), "credential_policy is required (use explicit empty list [] if none)") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Positive: explicit empty slice [] admitted with empty-policy digest
+		bEmpty := b
+		bEmpty.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{}
+		rEmpty := validTestReport(bEmpty)
+		emptyDigest := knowledge.ComputePolicyDigest(bEmpty.CredentialPolicy)
+		rEmpty.SecretsAttestation = "NOT_PROVISIONED sha256:" + emptyDigest
+		sEmpty := validTestReportState(rEmpty)
+		sEmpty.CredentialProvisioningState = "NOT_STARTED"
+		sEmpty.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(rEmpty)
+		mEmpty := validTestMaterial(bEmpty)
+
+		if err := knowledge.ValidateE2EBrief(bEmpty, briefState); err != nil {
+			t.Fatalf("expected ValidateE2EBrief to accept empty slice []: %v", err)
+		}
+		if err := knowledge.ValidateE2EReport(bEmpty, rEmpty, sEmpty); err != nil {
+			t.Fatalf("expected ValidateE2EReport to accept empty slice []: %v", err)
+		}
+		if err := knowledge.EvaluateE2EAdmission(bEmpty, rEmpty, mEmpty, sEmpty); err != nil {
+			t.Fatalf("expected EvaluateE2EAdmission to admit empty slice []: %v", err)
+		}
+	}
+
+	// 6. Credential attestation precedence & generator blocks:
+	{
+		emptyBrief := validTestBrief()
+		emptyBrief.CredentialPolicy = []knowledge.E2ECredentialPolicyEntry{}
+		report := validTestReport(emptyBrief)
+		state := validTestReportState(report)
+		state.CredentialProvisioningState = "NOT_STARTED"
+
+		// Negative: empty policy claiming GENERATOR_UNAVAILABLE is rejected
+		report.SecretsAttestation = "ENV_BLOCKED:GENERATOR_UNAVAILABLE"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+		if err := knowledge.ValidateE2EReport(emptyBrief, report, state); err == nil {
+			t.Error("expected error for empty policy with GENERATOR_UNAVAILABLE attestation")
+		} else if !strings.Contains(err.Error(), "empty credential policy requires secrets_attestation") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Positive: non-empty policy with durable generator block preserved
+		nonEmptyBrief := validTestBrief()
+		genReport := validTestReport(nonEmptyBrief)
+		genReport.StageOutcome = "ENV_BLOCKED"
+		genReport.BuildOutcome = "ENV_ERROR"
+		genReport.ExecutionOutcome = "NOT_RUN"
+		genReport.ResultCompleteness = "NONE"
+		genReport.TestedArtifactRef = "NONE"
+		genReport.ExecutionMaterialRef = "UNAVAILABLE"
+		genReport.EvidenceURI = "UNAVAILABLE"
+		genReport.CleanupEvidenceURI = "NOT_REQUIRED"
+		genReport.SecretsAttestation = "ENV_BLOCKED:GENERATOR_UNAVAILABLE"
+		genReport.ScenariosPassed = 0
+		genReport.ScenariosFailed = 0
+		genReport.ScenariosSkipped = 0
+		genReport.ScenariosNotRun = len(nonEmptyBrief.Scenarios)
+		genReport.ScenariosUnknown = 0
+		genReport.ScenarioResults = []knowledge.E2EScenarioResult{
+			{ScenarioID: "SC-01", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-02", Outcome: "NOT_RUN"},
+			{ScenarioID: "SC-03", Outcome: "NOT_RUN"},
+		}
+		genState := validTestReportState(genReport)
+		genState.BuildProcessState = "ENV_ERROR"
+		genState.ExecutionProcessState = "NOT_STARTED"
+		genState.ExecutionStarted = false
+		genState.CredentialProvisioningState = "NOT_STARTED"
+		genState.ResourcesAllocated = false
+		genState.AllocatedResourceIDs = nil
+		genState.CleanupRequired = false
+		genState.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(genReport)
+
+		if err := knowledge.ValidateE2EReport(nonEmptyBrief, genReport, genState); err != nil {
+			t.Fatalf("expected non-empty policy with durable generator block to pass: %v", err)
+		}
+	}
+
+	// 7. Identity congruence at brief preflight:
+	{
+		briefState := validTestBriefState()
+
+		// RunID with Unicode NEL
+		b := validTestBrief()
+		b.RunID = "run\u0085id"
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected ValidateE2EBrief to reject RunID with Unicode NEL")
+		} else if !strings.Contains(err.Error(), "contains illegal control character") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Scenario ID with ASCII control character
+		b = validTestBrief()
+		b.Scenarios[0].ID = "SC\x0001"
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected ValidateE2EBrief to reject scenario ID with control char")
+		} else if !strings.Contains(err.Error(), "contains illegal control character") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Scenario ID with Unicode Line Separator
+		b = validTestBrief()
+		b.Scenarios[0].ID = "SC\u202801"
+		if err := knowledge.ValidateE2EBrief(b, briefState); err == nil {
+			t.Error("expected ValidateE2EBrief to reject scenario ID with Line Separator")
+		} else if !strings.Contains(err.Error(), "contains illegal control character") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	// 8. Single-line diagnostics & control / line-separator characters:
+	{
+		brief := validTestBrief()
+
+		// Unicode NEL (\u0085) in Diagnostic
+		report := validTestReport(brief)
+		report.Diagnostic = "Test failed\u0085with error"
+		state := validTestReportState(report)
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for Unicode NEL in Diagnostic")
+		} else if !strings.Contains(err.Error(), "field diagnostic contains illegal control character") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Unicode Line Separator (\u2028) in Diagnostic
+		report.Diagnostic = "Test failed\u2028with error"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for Unicode Line Separator in Diagnostic")
+		} else if !strings.Contains(err.Error(), "field diagnostic contains illegal control character") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Unicode Paragraph Separator (\u2029) in Diagnostic
+		report.Diagnostic = "Test failed\u2029with error"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for Unicode Paragraph Separator in Diagnostic")
+		} else if !strings.Contains(err.Error(), "field diagnostic contains illegal control character") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// ASCII LF (\n) in Diagnostic
+		report.Diagnostic = "Test failed\nwith error"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+		if err := knowledge.ValidateE2EReport(brief, report, state); err == nil {
+			t.Error("expected error for ASCII newline in Diagnostic")
+		} else if !strings.Contains(err.Error(), "field diagnostic contains illegal control character") {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// Positive: Printable UTF-8 non-ASCII characters pass without alteration
+		report.Diagnostic = "测试诊断信息: 所有测试用例执行完毕"
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+		if err := knowledge.ValidateE2EReport(brief, report, state); err != nil {
+			t.Fatalf("expected printable UTF-8 diagnostic to pass: %v", err)
+		}
+	}
+
+	// 10. Deterministic validation error order:
+	{
+		brief := validTestBrief()
+		b := brief
+		b.RunID = "bad\x01id"
+
+		report := validTestReport(b)
+		report.RunID = "bad\x01id"
+		report.Diagnostic = "bad\x02diag"
+		state := validTestReportState(report)
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		err := knowledge.ValidateE2EReport(b, report, state)
+		if err == nil {
+			t.Fatal("expected error for multiple invalid fields")
+		}
+		if !strings.Contains(err.Error(), "field run_id contains illegal control character") {
+			t.Errorf("expected deterministic error on run_id first, got: %v", err)
+		}
+
+		// Both diagnostic and evidence_uri contain control character: diagnostic must be reported first
+		report = validTestReport(brief)
+		report.Diagnostic = "bad\x02diag"
+		report.EvidenceURI = "bad\x03uri"
+		state = validTestReportState(report)
+		state.Finalization.IncomingReportDigest = knowledge.ComputeReportDigest(report)
+
+		err = knowledge.ValidateE2EReport(brief, report, state)
+		if err == nil {
+			t.Fatal("expected error for multiple invalid fields")
+		}
+		if !strings.Contains(err.Error(), "field diagnostic contains illegal control character") {
+			t.Errorf("expected deterministic error on diagnostic first, got: %v", err)
 		}
 	}
 }

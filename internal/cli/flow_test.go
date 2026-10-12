@@ -264,78 +264,84 @@ func TestFlow_QueryFull(t *testing.T) {
 		if err := json.Unmarshal(stdout.Bytes(), &f); err != nil {
 			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
 		}
-		if len(f.Steps) != 12 {
-			t.Fatalf("expected 12 steps in e2e flow, got %d", len(f.Steps))
+		if len(f.Steps) != 8 {
+			t.Fatalf("expected 8 steps in e2e flow, got %d", len(f.Steps))
 		}
 
-		// Step 5 conditions (all 8 outcomes)
-		step5Conditions := make(map[string]int)
-		for _, c := range f.Steps[4].Conditions {
-			step5Conditions[c.When] = c.Then
+		// Step 1 conditions
+		step1Conditions := make(map[string]int)
+		for _, c := range f.Steps[0].Conditions {
+			step1Conditions[c.When] = c.Then
 		}
-		expectedStep5 := map[string]int{
-			"E2E_RESULT_PASS":            6,
-			"E2E_PRODUCT_FAILURE":        7,
-			"E2E_BUILD_FAILURE":          7,
-			"E2E_ENV_BLOCKED":            9,
-			"E2E_CLARIFICATION_REQUIRED": 9,
-			"E2E_TIMEOUT":                10,
-			"E2E_CANCELLED":              10,
-			"E2E_INVALID_EVIDENCE":       10,
+		if step1Conditions["BRIEF_DISPATCHED"] != 2 {
+			t.Errorf("expected step 1 condition BRIEF_DISPATCHED -> 2, got %d", step1Conditions["BRIEF_DISPATCHED"])
 		}
-		for when, then := range expectedStep5 {
-			if step5Conditions[when] != then {
-				t.Errorf("expected step 5 condition %q -> %d, got %d", when, then, step5Conditions[when])
+
+		// Step 2 Preflight conditions
+		step2Conditions := make(map[string]int)
+		for _, c := range f.Steps[1].Conditions {
+			step2Conditions[c.When] = c.Then
+		}
+		expectedStep2 := map[string]int{
+			"PREFLIGHT_READY":          3,
+			"CLARIFICATION_REQUIRED":   4,
+			"CANDIDATE_STALE":          4,
+			"PREFLIGHT_BLOCKED_REPORT": 4,
+		}
+		for when, then := range expectedStep2 {
+			if step2Conditions[when] != then {
+				t.Errorf("expected step 2 condition %q -> %d, got %d", when, then, step2Conditions[when])
 			}
 		}
 
-		// Step 6 Admission Gate
-		step6Conditions := make(map[string]int)
-		for _, c := range f.Steps[5].Conditions {
-			step6Conditions[c.When] = c.Then
+		// Step 3 Execution conditions
+		step3Conditions := make(map[string]int)
+		for _, c := range f.Steps[2].Conditions {
+			step3Conditions[c.When] = c.Then
 		}
-		if step6Conditions["E2E_EVIDENCE_ADMITTED"] != 11 || step6Conditions["E2E_EVIDENCE_STALE"] != 1 || step6Conditions["E2E_INVALID_EVIDENCE"] != 10 {
-			t.Errorf("unexpected step 6 admission conditions: %v", step6Conditions)
-		}
-
-		// Step 7 Remediation Dispatch
-		if len(f.Steps[6].Conditions) != 1 || f.Steps[6].Conditions[0].When != "REMEDIATION_DISPATCHED" || f.Steps[6].Conditions[0].Then != 8 {
-			t.Errorf("unexpected step 7 conditions: %v", f.Steps[6].Conditions)
+		if len(step3Conditions) != 1 || step3Conditions["E2E_REPORT_RECEIVED"] != 4 {
+			t.Errorf("unexpected step 3 execution conditions: %v", step3Conditions)
 		}
 
-		// Step 8 Reviewer Affected Implementation Review
-		step8Conditions := make(map[string]int)
-		for _, c := range f.Steps[7].Conditions {
-			step8Conditions[c.When] = c.Then
+		// Step 4 Evidence Admission & Arbitration
+		step4Conditions := make(map[string]int)
+		for _, c := range f.Steps[3].Conditions {
+			step4Conditions[c.When] = c.Then
 		}
-		if step8Conditions["IMPLEMENTATION_REVIEW_PASS"] != 1 || step8Conditions["FINDINGS_REPORTED"] != 7 {
-			t.Errorf("unexpected step 8 conditions: %v", step8Conditions)
+		expectedStep4 := map[string]int{
+			"E2E_EVIDENCE_ADMITTED":             5,
+			"BRIEF_AMENDED_NO_CANDIDATE_CHANGE": 1,
+			"CLARIFICATION_UNRESOLVABLE":        8,
+			"ENVIRONMENT_RETRY_AUTHORIZED":      1,
+			"CANDIDATE_REMEDIATION_REQUIRED":    6,
+			"E2E_EXECUTION_HALTED":              8,
 		}
-
-		// Step 9 Environment/Clarification Resolution
-		step9Conditions := make(map[string]int)
-		for _, c := range f.Steps[8].Conditions {
-			step9Conditions[c.When] = c.Then
-		}
-		if step9Conditions["E2E_INPUTS_AMENDED"] != 1 || step9Conditions["CLARIFICATION_RESOLVED"] != 1 || step9Conditions["PACKAGE_DEFECT_ESCALATED"] != 7 {
-			t.Errorf("unexpected step 9 conditions: %v", step9Conditions)
-		}
-
-		// Step 10 Timeout/Cancellation Arbitration
-		step10Conditions := make(map[string]int)
-		for _, c := range f.Steps[9].Conditions {
-			step10Conditions[c.When] = c.Then
-		}
-		if step10Conditions["E2E_RETRY_AUTHORIZED"] != 1 || step10Conditions["PACKAGE_DEFECT_ESCALATED"] != 7 || step10Conditions["E2E_EXECUTION_HALTED"] != 12 {
-			t.Errorf("unexpected step 10 conditions: %v", step10Conditions)
+		for when, then := range expectedStep4 {
+			if step4Conditions[when] != then {
+				t.Errorf("expected step 4 condition %q -> %d, got %d", when, then, step4Conditions[when])
+			}
 		}
 
-		// Terminal Steps 11 and 12
-		if !f.Steps[10].Terminal || len(f.Steps[10].Conditions) != 0 {
-			t.Errorf("expected step 11 to be terminal with zero conditions, got: %+v", f.Steps[10])
+		// Step 6 Builder Remediation
+		if len(f.Steps[5].Conditions) != 1 || f.Steps[5].Conditions[0].When != "REMEDIATION_READY_FOR_REVIEW" || f.Steps[5].Conditions[0].Then != 7 {
+			t.Errorf("unexpected step 6 conditions: %v", f.Steps[5].Conditions)
 		}
-		if !f.Steps[11].Terminal || len(f.Steps[11].Conditions) != 0 {
-			t.Errorf("expected step 12 to be terminal with zero conditions, got: %+v", f.Steps[11])
+
+		// Step 7 Reviewer Implementation Review
+		step7Conditions := make(map[string]int)
+		for _, c := range f.Steps[6].Conditions {
+			step7Conditions[c.When] = c.Then
+		}
+		if step7Conditions["IMPLEMENTATION_REVIEW_PASS"] != 1 || step7Conditions["FINDINGS_REPORTED"] != 6 || step7Conditions["REMEDIATION_HALTED"] != 8 {
+			t.Errorf("unexpected step 7 conditions: %v", step7Conditions)
+		}
+
+		// Terminal Steps 5 and 8
+		if !f.Steps[4].Terminal || len(f.Steps[4].Conditions) != 0 {
+			t.Errorf("expected step 5 to be terminal with zero conditions, got: %+v", f.Steps[4])
+		}
+		if !f.Steps[7].Terminal || len(f.Steps[7].Conditions) != 0 {
+			t.Errorf("expected step 8 to be terminal with zero conditions, got: %+v", f.Steps[7])
 		}
 	}
 
@@ -429,12 +435,13 @@ func TestFlow_StepFlag(t *testing.T) {
 		terminal bool
 	}{
 		{"1", knowledge.RolePlanner, false},
-		{"5", knowledge.RoleVerifier, false},
-		{"6", knowledge.RolePlanner, false},
-		{"8", knowledge.RoleReviewer, false},
-		{"10", knowledge.RolePlanner, false},
-		{"11", knowledge.RolePlanner, true},
-		{"12", knowledge.RolePlanner, true},
+		{"2", knowledge.RoleVerifier, false},
+		{"3", knowledge.RoleVerifier, false},
+		{"4", knowledge.RolePlanner, false},
+		{"5", knowledge.RolePlanner, true},
+		{"6", knowledge.RoleBuilder, false},
+		{"7", knowledge.RoleReviewer, false},
+		{"8", knowledge.RolePlanner, true},
 	} {
 		var stdout, stderr bytes.Buffer
 		err := cli.Execute([]string{"flow", "e2e", "--step", tc.step}, &stdout, &stderr, "dev")

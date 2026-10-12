@@ -104,7 +104,7 @@
       {
         "name": "E2E Verification",
         "required": true,
-        "description": "Explicit declaration of E2E verification requirements (required vs not-required with rationale), mode, package path, scenario IDs with Given/When/Then, environments, timeout, skip policy, and acceptance criteria."
+        "description": "Explicit declaration of E2E verification requirements (required vs not-required with rationale), purpose/scope, stable scenario IDs, preconditions, steps, observable expected result, verification, total time budget, environment/platform/toolchain, exact entrypoint, expected outputs, readiness/startup timeout, cleanup owner/action, retry/recovery, allowed skips, credential policy, and acceptance criteria; CI is optional."
       },
       {
         "name": "Architectural View (Optional)",
@@ -620,7 +620,7 @@
   {
     "name": "e2e-brief",
     "title": "E2E Verification Brief",
-    "description": "Structured specification message dispatched by Planner to Verifier defining candidate revision, execution package under the out-of-tree E2E vault (~/.agentplaybook/<project>/e2e/), execution mode, and timeout.",
+    "description": "Structured execution specification message dispatched by Planner to Verifier defining candidate revision, test package, command, scenarios, skip policy, environment/readiness, expected outputs, cleanup obligations, credential policy/authorization, time budget, and prior cleanup resolution.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -631,12 +631,12 @@
       {
         "name": "run_id",
         "required": true,
-        "description": "Correlated unique E2E run identifier."
+        "description": "Correlated fresh unique E2E run identifier."
       },
       {
         "name": "repo_ref",
         "required": true,
-        "description": "Repository path or origin identity."
+        "description": "Canonical repository path or origin identity."
       },
       {
         "name": "candidate_ref",
@@ -646,7 +646,7 @@
       {
         "name": "test_package",
         "required": true,
-        "description": "Repository-relative path to execution package under e2e/<test-name>/."
+        "description": "Safe repository-relative path rooted at e2e/."
       },
       {
         "name": "mode",
@@ -654,21 +654,86 @@
         "description": "Execution mode enum: 'build-and-run' or 'run-only'."
       },
       {
+        "name": "command",
+        "required": true,
+        "description": "Exact test execution command argv (e.g. ['go', 'test', '-count=1', './e2e/...'])."
+      },
+      {
+        "name": "build_command",
+        "required": true,
+        "description": "Exact artifact build command argv."
+      },
+      {
         "name": "timeout_ms",
         "required": true,
-        "description": "Total execution timeout in milliseconds as an integer string (e.g. '180000')."
+        "description": "Total execution timeout in milliseconds (>0)."
+      },
+      {
+        "name": "go_version",
+        "required": true,
+        "description": "Required Go toolchain version string."
+      },
+      {
+        "name": "platforms",
+        "required": true,
+        "description": "Target execution platforms and architectures."
+      },
+      {
+        "name": "dependency_lock_ref",
+        "required": true,
+        "description": "Dependency lock digest (sha256:<64 hex>) or explicit sentinel 'NONE'."
+      },
+      {
+        "name": "environment",
+        "required": true,
+        "description": "Declared environment inputs with non-secret literal values, service bindings, or injected credential references."
+      },
+      {
+        "name": "expected_outputs",
+        "required": true,
+        "description": "Declared machine-readable output filenames or paths relative to run storage."
+      },
+      {
+        "name": "scenarios",
+        "required": true,
+        "description": "Complete list of scenario contracts with unique IDs, preconditions, steps, expected results, and verification."
+      },
+      {
+        "name": "allowed_skip_ids",
+        "required": true,
+        "description": "Explicit subset of unique scenario IDs permitted to be skipped; empty list allows no skips."
+      },
+      {
+        "name": "services",
+        "required": true,
+        "description": "External service dependencies with pinned image/version or endpoint, ready condition, and startup timeout."
+      },
+      {
+        "name": "cleanup_obligations",
+        "required": true,
+        "description": "Explicit teardown obligations covering services, test data, processes, namespaces, and credentials."
+      },
+      {
+        "name": "credential_policy",
+        "required": true,
+        "description": "Declared credential entities with unique ASCII kebab-case identifiers, generation mode (THROWAWAY vs real-only), and generation instructions; provider and break-glass credentials remain unconditionally prohibited."
       },
       {
         "name": "credential_authorization",
         "required": false,
-        "description": "Authorization record for runs using real credentials; required if and only if the run uses real credentials. Each entry carries credential name, purpose, and single-run lifetime. Canonical encoding is the entry name set in the same sorted order as the attestation list; ATTESTED:MIXED names must equal this set exactly, and any extra or missing name rejects."
+        "description": "Explicit per-name human authorization records required if and only if REAL_ONLY credentials are used; carries purpose, single-run lifetime, authorizer, and immutable authorization reference matching ATTESTED:MIXED names exactly, rejecting any extra or missing name."
+      },
+      {
+        "name": "prior_cleanup_resolution",
+        "required": false,
+        "description": "Human resolution record for unconfirmed cleanup from a prior run; required when prior cleanup is unresolved."
       }
     ]
   },
   {
     "name": "e2e-report",
     "title": "E2E Verification Report",
-    "description": "Lightweight verification summary emitted by Verifier containing execution status, scenario metrics, persistent E2E vault sandbox URI (~/.agentplaybook/<project>/e2e/runs/<run-id>), and sanitized failure digest; strictly prohibits raw test log dumps.",
+    "description": "Sole complete structured verification result emitted by Verifier (or finalized by controller on runner loss) containing execution status, scenario metrics and results, run-scoped storage evidence URI, cleanup status and evidence, secrets attestation, and sanitized diagnostic; strictly prohibits raw test log dumps.",
     "owner": "verifier",
     "visibility": [
       "planner",
@@ -683,24 +748,34 @@
         "description": "Correlated unique E2E run identifier."
       },
       {
+        "name": "repo_ref",
+        "required": true,
+        "description": "Canonical repository path or origin identity."
+      },
+      {
         "name": "candidate_ref",
         "required": true,
         "description": "Immutable repository candidate commit SHA (40-character hex)."
       },
       {
+        "name": "test_package",
+        "required": true,
+        "description": "Repository-relative path to execution package under e2e/."
+      },
+      {
         "name": "stage_outcome",
         "required": true,
-        "description": "Overall stage outcome enum: PASS, BUILD_FAILURE, PRODUCT_FAILURE, ENV_BLOCKED, CLARIFICATION_REQUIRED, TIMEOUT, CANCELLED, INVALID_EVIDENCE."
+        "description": "Overall stage outcome enum: PASS, BUILD_FAILURE, PRODUCT_FAILURE, ENV_BLOCKED, CLARIFICATION_REQUIRED, TIMEOUT, CANCELLED, RUNNER_LOST, INVALID_EVIDENCE."
       },
       {
         "name": "build_outcome",
         "required": true,
-        "description": "Build stage outcome enum: PASS, FAIL, NOT_RUN, ENV_ERROR, TIMEOUT, CANCELLED."
+        "description": "Build stage outcome enum: PASS, FAIL, NOT_RUN, UNKNOWN, ENV_ERROR, TIMEOUT, CANCELLED."
       },
       {
         "name": "execution_outcome",
         "required": true,
-        "description": "Execution stage outcome enum: PASS, FAIL, NOT_RUN, ENV_ERROR, TIMEOUT, CANCELLED, INVALID_EVIDENCE."
+        "description": "Execution stage outcome enum: PASS, FAIL, NOT_RUN, UNKNOWN, ENV_ERROR, TIMEOUT, CANCELLED, INVALID_EVIDENCE."
       },
       {
         "name": "scenarios_selected",
@@ -723,6 +798,21 @@
         "description": "Total scenarios skipped as an integer string."
       },
       {
+        "name": "scenarios_not_run",
+        "required": true,
+        "description": "Total scenarios not run as an integer string."
+      },
+      {
+        "name": "scenarios_unknown",
+        "required": true,
+        "description": "Total scenarios with unknown outcome at termination (e.g. runner loss during execution) as an integer string."
+      },
+      {
+        "name": "scenario_results",
+        "required": true,
+        "description": "Embedded scenario execution results with stable scenario ID and outcome (PASS, FAIL, SKIP, NOT_RUN, UNKNOWN) for each approved scenario."
+      },
+      {
         "name": "result_completeness",
         "required": true,
         "description": "Execution result completeness enum: COMPLETE, PARTIAL, NONE."
@@ -730,7 +820,12 @@
       {
         "name": "tested_artifact_ref",
         "required": true,
-        "description": "Tested binary/artifact SHA-256 digest and provenance descriptor (format: 'sha256:<hex> [<provenance-or-uri>]'; strictly reserved 'NONE' only when run terminated before artifact was produced/provisioned; 'N/A' or untracked run-only artifacts are strictly prohibited)."
+        "description": "Tested binary/artifact SHA-256 digest and provenance descriptor (format: 'sha256:<hex>;candidate=<40-hex>;build_material=sha256:<hex>;source=FRESH|VERIFIED_REUSE' or sentinel 'NONE')."
+      },
+      {
+        "name": "execution_material_ref",
+        "required": true,
+        "description": "SHA-256 digest over canonical JSON execution material manifest or sentinel 'UNAVAILABLE'."
       },
       {
         "name": "duration_ms",
@@ -740,66 +835,27 @@
       {
         "name": "diagnostic",
         "required": true,
-        "description": "Bounded error diagnostic message or single-sentence outcome summary."
+        "description": "Bounded error diagnostic message or single-sentence outcome summary (<=160 bytes, single UTF-8 line, no raw logs or credentials)."
       },
       {
         "name": "evidence_uri",
         "required": true,
-        "description": "Persistent sandbox evidence URI (e.g. file:///tmp/e2e-.../evidence.tar.gz), or explicit sentinel 'UNAVAILABLE' when run terminates prior to sandbox/evidence provisioning."
+        "description": "Persistent run-scoped evidence URI, or explicit sentinel 'UNAVAILABLE' when run terminates prior to evidence storage."
+      },
+      {
+        "name": "cleanup_status",
+        "required": true,
+        "description": "Cleanup disposition enum: CONFIRMED or UNCONFIRMED."
+      },
+      {
+        "name": "cleanup_evidence_uri",
+        "required": true,
+        "description": "Persistent cleanup-record URI, or sentinel 'NOT_REQUIRED' when cleanup was not required and status is CONFIRMED."
       },
       {
         "name": "secrets_attestation",
         "required": true,
-        "description": "Secrets hygiene attestation for the run in one of three canonical forms: ATTESTED:THROWAWAY sha256:<hex> when every credential is locally generated throwaway; ATTESTED:MIXED:<names> sha256:<hex> when narrow-exception real values were used; or ENV_BLOCKED:<code> with a closed reason code (GENERATOR_UNAVAILABLE, POLICY_MISSING, AUTHORIZATION_DENIED, PROVISIONING_FAILED) when provisioning could not complete. Names are specification Secrets Policy entity identifiers, sorted in lexicographic byte order, unique with duplicates rejected, comma-joined with no spaces; digest input is the sorted names joined by single newlines with trailing newline, UTF-8 encoded. Raw error text is prohibited in the attestation and remains in quarantined sandbox logs referenced by name only."
-      }
-    ]
-  },
-  {
-    "name": "e2e-test-spec",
-    "title": "E2E Test Specification",
-    "description": "Public execution specification and contract persisted in the out-of-tree E2E vault (~/.agentplaybook/<project>/e2e/packages/<test-name>/spec.md) defining scenario matrix, environments, Given/When/Then criteria, and cleanup obligations for an E2E package.",
-    "owner": "builder",
-    "visibility": [
-      "planner",
-      "reviewer",
-      "builder",
-      "verifier"
-    ],
-    "path": "e2e/{test_name}/spec.md",
-    "path_variables": {
-      "test_name": "Kebab-case E2E test package directory name under e2e/"
-    },
-    "type": "document",
-    "sections": [
-      {
-        "name": "Scenario Matrix & Given/When/Then",
-        "required": true,
-        "description": "Scenarios with stable IDs and Given/When/Then acceptance criteria."
-      },
-      {
-        "name": "Execution Mode & Platform Targets",
-        "required": true,
-        "description": "Target OS, container/platform constraints, and execution mode (build-and-run vs run-only)."
-      },
-      {
-        "name": "Environment & Dependency Bindings",
-        "required": true,
-        "description": "Pinned dependency declarations, compose/nix references, and isolated resource names."
-      },
-      {
-        "name": "Result Paths & Cleanup Obligations",
-        "required": true,
-        "description": "Locations of machine-readable test outputs and self-contained cleanup requirements."
-      },
-      {
-        "name": "Timeout & Allowed Skip Policy",
-        "required": true,
-        "description": "Execution bounds, timeout limits, and explicit permitted skip conditions."
-      },
-      {
-        "name": "Secrets Policy",
-        "required": true,
-        "description": "Declares needed credential entities with ASCII kebab-case identifiers matching ^[a-z0-9][a-z0-9-]*$, the local generation mechanism for each entity, and the ingress rule as a narrow exception: operator secret stores remain prohibited in wholesale form, and only explicitly authorized real-only named values may enter for one run, while provider and break-glass credentials remain unconditionally prohibited."
+        "description": "Secrets hygiene attestation for the run in canonical forms: NOT_PROVISIONED sha256:<hex> when credential provisioning was not started or policy is empty (digest input is sorted lines name:<GenerationMode>\\n for every declared policy entry, or empty bytes for empty policy); ATTESTED:THROWAWAY sha256:<hex> when every credential is locally generated throwaway; ATTESTED:MIXED:<names> sha256:<hex> when narrow-exception real values were used; ENV_BLOCKED:<code> with a closed reason code (GENERATOR_UNAVAILABLE, AUTHORIZATION_DENIED, PROVISIONING_FAILED) when provisioning could not complete; or UNVERIFIED:RUNNER_LOST when runner loss occurred with incomplete provisioning. Names are specification credential policy entity identifiers, sorted in lexicographic byte order, unique with duplicates rejected, comma-joined with no spaces; digest input for ATTESTED forms is the sorted names joined by single newlines with trailing newline, UTF-8 encoded. Raw error text is prohibited in the attestation and remains in quarantined logs referenced by name only."
       }
     ]
   },

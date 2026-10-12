@@ -459,43 +459,43 @@
   },
   {
     "id": "e2e-sandbox-isolation",
-    "title": "End-to-End Sandbox Isolation & Working Tree Protection",
+    "title": "Candidate Source Protection & Repository Non-Mutation",
     "category": "protocol",
-    "summary": "Mandates that all end-to-end, multi-service, or heavy integration test suites run exclusively in an isolated out-of-tree clone or workspace under the E2E scaffolding vault (~/.agentplaybook/<project>/e2e/runs/<run-id>) to protect the primary working copy and live @ commit from state pollution.",
-    "details": "In modern version control systems such as Jujutsu (jj), the working directory is a live commit (@) that automatically amends uncommitted filesystem additions and side-effects into the candidate revision. Heavy integration and end-to-end test suites routinely produce temporary databases, sockets, caches, logs, and mock artifacts that corrupt clean implementation diffs. To preserve repository integrity and maintain finalization equivalence, all end-to-end, scenario-based, and multi-service test suites must execute exclusively within an isolated out-of-tree sandbox, detached clone, or separate temporary directory in the out-of-tree E2E scaffolding vault (~/.agentplaybook/<project>/e2e/runs/<run-id> or dedicated test mirror). Executing state-generating E2E suites directly in the primary working copy is strictly prohibited. Physical cloning and harness provisioning mechanics are delegated to Tier 2 skills.",
+    "summary": "Mandates candidate source protection via controller-enforced read-only materialization or exclusive-use lease, run-scoped storage outside the repository, and independent bounded cleanup, strictly preventing working copy pollution and repository mutations.",
+    "details": "In modern version control systems such as Jujutsu (jj), the working directory is a live commit (@) that automatically amends uncommitted filesystem additions and side-effects into the candidate revision. Formal end-to-end and scenario test suites must execute against protected candidate source covered by verified read-only materialization or controller-enforced exclusive-use lease across the complete build, test, cleanup, and provenance interval. While detached checkouts, lightweight worktrees, or containers are permitted, full cloned sandboxes or canonical E2E vaults are not required. Run-scoped outputs, logs, and caches reside in storage outside the repository. Physical execution mechanics are delegated to Tier 2 skills.",
     "guidelines": [
-      "All end-to-end, multi-service, and integration test executions must occur within an isolated out-of-tree sandbox or detached clone under the E2E scaffolding vault (~/.agentplaybook/<project>/e2e/runs/<run-id>).",
-      "Executing state-generating or artifact-producing E2E suites directly in the primary working tree is strictly prohibited to prevent auto-amending pollution into the live @ commit.",
-      "The isolated sandbox must be pinned strictly to the candidate revision specified in the e2e-brief.",
-      "Background services, containers, and mock servers must be contained within the sandbox lifecycle and terminated upon test completion.",
-      "Tier 3 rules define isolation conceptually, delegating concrete clone, worktree, and container mechanics to Tier 2 skills."
+      "Formal E2E test executions must protect candidate source through read-only materialization or a verified exclusive-use lease.",
+      "Executing state-generating or artifact-producing E2E suites directly in mutable working copies is strictly prohibited to prevent auto-amending pollution into the live @ commit.",
+      "Candidate source protection must cover the complete interval across candidate acquisition, build, execution, cleanup, and provenance capture.",
+      "Background services, containers, and mock processes must be run-scoped and terminated upon test completion through independent bounded cleanup.",
+      "Tier 3 rules define source protection and non-mutation conceptually, delegating concrete harness provisioning mechanics to Tier 2 skills."
     ]
   },
   {
     "id": "e2e-zero-log-pollution",
     "title": "E2E Context Containment & Zero Log Pollution Invariant",
     "category": "protocol",
-    "summary": "Restricts E2E verification returns strictly to the lightweight e2e-report message artifact, quarantining raw execution logs and browser traces inside sandbox disk storage to prevent context compaction churn.",
-    "details": "End-to-end test execution produces massive volumes of console output, stack traces, browser logs, and network telemetry. Transmitting or displaying raw test logs across multi-agent communication channels triggers immediate context window explosion, degrading LLM reasoning and causing recursive compaction churn. Verifier must quarantine raw stdout/stderr and trace logs inside persistent sandbox disk storage, transmitting strictly the compact e2e-report message artifact (<150 tokens) to Planner. The report includes high-level status, total/passed/failed counts, duration, and a minimized failure digest only when assertions fail.",
+    "summary": "Restricts E2E verification returns strictly to the complete structured e2e-report message artifact, quarantining raw execution logs and traces inside run-scoped storage outside the repository to prevent context compaction churn.",
+    "details": "End-to-end test execution produces massive volumes of console output, stack traces, browser logs, and network telemetry. Transmitting or displaying raw test logs across multi-agent communication channels triggers immediate context window explosion, degrading LLM reasoning and causing recursive compaction churn. Verifier must quarantine raw stdout/stderr and trace logs inside persistent run-scoped disk storage outside the repository, transmitting strictly the complete structured e2e-report message artifact to Planner. The report includes high-level status, total/passed/failed/skipped/not-run/unknown counts, scenario results, duration, and a single-line sanitized diagnostic of at most 160 bytes.",
     "guidelines": [
-      "Raw test execution logs, browser traces, and daemon outputs must remain strictly confined to sandbox disk storage.",
+      "Raw test execution logs, browser traces, and daemon outputs must remain strictly confined to run-scoped storage outside the repository.",
       "Verifier must never dump raw test logs or verbose stack traces into communication messages to Planner.",
-      "The return payload is restricted strictly to the e2e-report message artifact (<150 tokens).",
-      "Upon test failure, the failure_digest must contain only the failing assertion, scenario name, and minimal reproduction command, omitting passing scenario output.",
-      "Planner and Reviewer inspect high-level pass/fail evidence; detailed log files are accessed out-of-band via persistent sandbox URIs only when debugging."
+      "The return payload is restricted strictly to the complete structured e2e-report message artifact.",
+      "Diagnostics must contain at most 160 bytes on a single UTF-8 line, omitting passing scenario output and credential material.",
+      "Planner and Reviewer inspect high-level pass/fail evidence; detailed log files are accessed out-of-band via persistent evidence URIs only when debugging."
     ]
   },
   {
     "id": "e2e-package-self-sufficiency",
     "title": "E2E Execution Package Self-Sufficiency & Anti-Exploration Protocol",
     "category": "protocol",
-    "summary": "E2E tests must be packaged under e2e/<test-name>/ with self-contained spec.md, environment definitions, and test.sh; Verifier reads only declared package materials and is strictly prohibited from exploratory codebase searching or architecture reverse-engineering.",
-    "details": "All end-to-end tests must be structured as self-contained execution packages under e2e/<test-name>/ containing an e2e-test-spec (spec.md), environment definitions, test scripts, and cleanup routines. Verifier operates strictly on the declared package materials and brief instructions provided by Planner. Verifier is strictly relieved and prohibited from conducting exploratory codebase traversal, source code analysis, or architectural reverse-engineering to discover how to run tests or determine expected behavior.",
+    "summary": "E2E tests live under repository e2e/; Verifier reads only declared package inputs and e2e-brief; exploratory codebase search, architecture reverse-engineering, and retired e2e-test-spec discovery are strictly prohibited.",
+    "details": "End-to-end tests are structured as versioned Go tests under repository-root e2e/. Verifier operates strictly on the declared package materials and brief instructions provided by Planner. Retired e2e-test-spec documents are inert and not discoverable. Verifier is strictly relieved and prohibited from conducting exploratory codebase traversal, source code analysis, or architectural reverse-engineering to discover how to run tests or determine expected behavior.",
     "guidelines": [
-      "E2E test packages must be completely self-contained under e2e/<test-name>/ with spec.md, harness scripts, and cleanup routines.",
+      "E2E test packages are versioned under repository-root e2e/ without mandating per-suite spec files, READMEs, or numbered case directories.",
       "Verifier reads only declared package materials and the e2e-brief provided by Planner.",
       "Verifier is strictly prohibited from conducting exploratory searches across application source code or architecture documentation.",
-      "Zero codebase exploration preserves Verifier's execution focus and context window while enforcing modular test packaging."
+      "Zero codebase exploration preserves Verifier's execution focus and context window while enforcing brief-driven test execution."
     ]
   },
   {
@@ -515,40 +515,41 @@
     "id": "e2e-immutable-evidence-binding",
     "title": "E2E Immutable Candidate & Evidence Provenance Binding",
     "category": "protocol",
-    "summary": "E2E runs and reports must strictly bind to immutable repository candidate SHAs, unique run IDs, and verified package paths; mutable refs, ambient primary-tree binaries, and stale evidence are strictly inadmissible.",
-    "details": "End-to-end verification must bind immutably to exact repository states and traceable evidence artifacts. Every E2E run and report must explicitly correlate to an immutable 40-character candidate commit SHA, unique run identifier, and verified package path. Using mutable branch heads, unpinned working copy binaries, or cached results from differing revisions is strictly prohibited. Reports must provide verified persistent sandbox evidence URIs or explicit sentinel markers, guaranteeing unambiguous traceability across multi-agent handoffs.",
+    "summary": "E2E runs and reports must strictly bind to immutable repository candidate SHAs, unique run IDs, verified package paths, protection proofs, and tested artifact provenance; mutable refs, ambient binaries, and stale evidence are strictly inadmissible.",
+    "details": "End-to-end verification must bind immutably to exact repository states and traceable evidence artifacts. Every E2E run and report must explicitly correlate to an immutable 40-character candidate commit SHA, correlated unique run identifier, and verified package path. Using mutable branch heads, unpinned working copy binaries, or cached results from differing revisions is strictly prohibited. Formal Go testing mandates 'go test -count=1'. Reports must provide verified persistent evidence URIs, canonical tested-artifact provenance, and execution material digests, guaranteeing unambiguous traceability across multi-agent handoffs.",
     "guidelines": [
       "Every E2E verification brief and report must bind strictly to an immutable 40-character repository candidate commit SHA.",
       "Reports must explicitly carry correlated unique run IDs matching the dispatched brief.",
-      "Testing against mutable branch names, ambient primary-tree binaries, or floating tags is strictly prohibited.",
-      "All verification reports must link to persistent sandbox evidence URIs with verified artifact digests, strictly rejecting untracked or ambient test outputs."
+      "Testing against mutable branch names, ambient primary-tree binaries, or floating tags is strictly prohibited; formal Go tests require -count=1.",
+      "All verification reports must link to persistent evidence URIs with verified tested-artifact provenance and canonical execution material references."
     ]
   },
   {
     "id": "e2e-lifecycle-admission",
     "title": "E2E Lifecycle Admission & Gate Governance",
     "category": "protocol",
-    "summary": "Enforces strict lifecycle ordering where implementation review emits IMPLEMENTATION_REVIEW_PASS, required E2E execution gates on frozen candidate identity, and final REVIEW_PASS or FEATURE_REVIEW_PASS requires admitted E2E evidence or reviewed exemption before commit flow admission.",
-    "details": "Implementation review emits IMPLEMENTATION_REVIEW_PASS and never final REVIEW_PASS while required E2E remains unresolved. Required E2E verification executes in an isolated sandbox against the frozen candidate revision. Planner evaluates the Verifier report against admission criteria (identity match, scenario coverage, allowed skips, artifact digest provenance, token budget); only E2E_EVIDENCE_ADMITTED permits advancement to final review. Unresolved, stale, or failed E2E strictly blocks final acceptance and commit flow admission. When E2E is not required, explicit planning rationale must be reviewed and admitted before final REVIEW_PASS.",
+    "summary": "Enforces strict lifecycle ordering where implementation review emits IMPLEMENTATION_REVIEW_PASS, required E2E execution gates on frozen candidate identity, and final REVIEW_PASS requires admitted E2E evidence with confirmed cleanup or reviewed exemption before commit flow admission.",
+    "details": "Implementation review emits IMPLEMENTATION_REVIEW_PASS and never final REVIEW_PASS while required E2E remains unresolved. Required E2E verification executes against protected candidate source under the 8-step lifecycle. Planner evaluates the Verifier report against admission criteria (identity match, scenario coverage, allowed skips, tested-artifact provenance, secrets attestation, and confirmed cleanup status); only E2E_EVIDENCE_ADMITTED permits advancement to final review. Unresolved, stale, failed, timed-out, unconfirmed cleanup, or incomplete E2E verification strictly blocks final acceptance and commit flow admission. When E2E is not required, explicit planning rationale must be reviewed and admitted before final REVIEW_PASS.",
     "guidelines": [
-      "Implementation review emits IMPLEMENTATION_REVIEW_PASS; final REVIEW_PASS or FEATURE_REVIEW_PASS requires admitted E2E evidence or reviewed exemption.",
+      "Implementation review emits IMPLEMENTATION_REVIEW_PASS; final REVIEW_PASS requires admitted E2E evidence or reviewed exemption.",
       "Required E2E execution gates on a frozen immutable candidate revision; stale or drifted candidate evidence is strictly inadmissible.",
-      "Unresolved, failed, timed-out, or incomplete E2E verification strictly blocks final review acceptance and commit flow admission.",
-      "Planner admission verifies secrets_attestation presence and digest plausibility; missing or negative attestation, or evidence containing credential material, fails closed as E2E_INVALID_EVIDENCE."
+      "Unresolved, failed, timed-out, cancelled, or incomplete E2E verification strictly blocks final review acceptance and commit flow admission.",
+      "Admission strictly requires confirmed cleanup (CleanupStatus=CONFIRMED); unconfirmed cleanup blocks admission and retry until verified human resolution.",
+      "Planner admission verifies secrets_attestation presence and digest canonicalization; missing or negative attestation fails closed as E2E_INVALID_EVIDENCE."
     ]
   },
   {
     "id": "scaffolding-vault-isolation",
     "title": "Out-of-Tree Shadow Scaffolding Vault Isolation",
     "category": "protocol",
-    "summary": "Mandates that planning artifacts and heavy E2E execution packages/runs reside strictly in an out-of-tree shadow scaffolding vault (~/.agentplaybook/<project>/{plan,e2e}), keeping the product working copy pure.",
-    "details": "Construction scaffolding (blueprints, build plans, review plans, private review findings, and resolutions) and heavy E2E test execution packages and run outputs represent distinct lifecycle concerns from product source code. To prevent accidental data loss during clean commands (e.g. git clean -fdx), eliminate live working-copy pollution (such as Jujutsu's live @ commit auto-amending ephemeral test databases and logs), and protect private review deliberations from leaking to upstream consumers, all planning and E2E execution artifacts must be persisted strictly within the resolved Out-of-Tree Shadow Scaffolding Vault (~/.agentplaybook/<project>/{plan,e2e}). The product working copy retains strictly product source code, in-tree unit tests, documentation, and living memory (AGENTS.md).",
+    "summary": "Mandates that planning artifacts reside strictly in an out-of-tree shadow scaffolding vault (~/.agentplaybook/<project>/plan/), keeping the product working copy pure while allowing in-tree E2E tests and run-scoped outputs outside the repository.",
+    "details": "Construction scaffolding (blueprints, build plans, review plans, private review findings, and resolutions) represents a distinct lifecycle concern from product source code. To prevent accidental data loss during clean commands, eliminate working-copy pollution, and protect private review deliberations, all planning documents must be persisted strictly within the resolved Out-of-Tree Shadow Scaffolding Vault (~/.agentplaybook/<project>/plan/). The product repository contains product source code, in-tree tests under e2e/, documentation, and living memory (AGENTS.md). Run-scoped E2E outputs reside in controller-managed storage outside the repository without mandating a canonical ~/.agentplaybook/<project>/e2e path.",
     "guidelines": [
       "All planning documents (*.blueprint.md, *.plan.md, *.review.md, *.resolution.md) must be authored and persisted strictly in ~/.agentplaybook/<project>/plan/.",
-      "All heavy E2E test packages and run outputs (runs/<run-id>/) must reside strictly in ~/.agentplaybook/<project>/e2e/.",
-      "Storing ephemeral planning artifacts, review findings, or E2E run traces inside the product repository working tree is strictly prohibited.",
-      "The product repository contains strictly product source code, in-tree unit/integration tests, documentation, and AGENTS.md.",
-      "Vault binding and canonical repository identity must be validated before persisting scaffolding artifacts."
+      "Product tests reside under repository-root e2e/, and run-scoped outputs reside in storage outside the repository.",
+      "Storing ephemeral planning artifacts or review findings inside the product repository working tree is strictly prohibited.",
+      "The product repository contains strictly product source code, in-tree unit and E2E tests, documentation, and AGENTS.md.",
+      "Vault binding and canonical repository identity must be validated before persisting planning scaffolding artifacts."
     ]
   },
   {
@@ -563,7 +564,22 @@
       "Only explicitly authorized real-only named values may enter for one run, each with declared purpose and single-run lifetime; provider and break-glass credentials never enter under any exception.",
       "Generated credential directories, including injected real-value residue, are removed after execution before reporting; evidence bundles carry file names only, never secret file contents.",
       "Verifier self-checks the sandbox credential directory against the specification allowlist by name before execution, rejecting unexpected entries and directory links.",
-      "Historical packages without a Secrets Policy remain untouched, but runs against policy-less specifications are preflight-blocked with CLARIFICATION_REQUIRED before provisioning or container start; final-admission failure alone is prohibited."
+      "Runs against brief definitions with missing or ambiguous credential policies are preflight-blocked with CLARIFICATION_REQUIRED before provisioning or container start; final-admission failure alone is prohibited."
+    ]
+  },
+  {
+    "id": "e2e-report-finalization",
+    "title": "Deterministic Finalization & Replay Protocol",
+    "category": "protocol",
+    "summary": "Governs single-terminal report finalization per run: normal Verifier finalization, narrow controller delegation on runner loss, immutable canonical digests, same-authority identical replay, and rejection of conflicting or late reports.",
+    "details": "Exactly one immutable terminal e2e-report is finalized per E2E run under its correlated unique run_id. Verifier normally finalizes execution reports (authority VERIFIER); controller is authorized to finalize terminal reports solely upon runner loss (CONTROLLER_RUNNER_LOST). Replaying duplicate identical terminal reports is idempotent when digests and authorities match; conflicting or late reports arriving after terminal report finalization are rejected and cannot alter or replace a finalized record.",
+    "guidelines": [
+      "Exactly one immutable terminal report is finalized per E2E run under its correlated unique run_id.",
+      "Verifier is the sole authority for normal execution finalization under authority VERIFIER.",
+      "Controller is authorized to finalize terminal reports solely upon runner loss under authority CONTROLLER_RUNNER_LOST.",
+      "Controller peer roles are strictly prohibited; controller acts only as runner infrastructure with narrow delegation.",
+      "Terminal report digests are computed deterministically over all required fields; identical terminal reports replayed with matching authority are accepted idempotently.",
+      "Conflicting or late reports arriving after terminal report finalization are rejected and cannot mutate or replace finalized records."
     ]
   },
   {

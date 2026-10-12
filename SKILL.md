@@ -45,7 +45,7 @@ Do not query every knowledge domain on every turn. Query only the specific domai
    ```
 
 3. **Artifact Contracts**:
-   Before authoring, reviewing, or exchanging persistent plans, summaries, or structured findings (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `external-review-report`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-report`, `e2e-test-spec`, `e2e-clarification-request`):
+   Before authoring, reviewing, or exchanging persistent plans, summaries, or structured findings (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `external-review-report`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-report`, `e2e-clarification-request`):
    ```sh
    sh "<skill-dir>/scripts/run-agentplaybook.sh" artifact <artifact-name>
    ```
@@ -112,9 +112,9 @@ Under the dual-commissioner protocol, Navigator can independently commission Car
 5. Cartographer calculates layout geometry, renders HTML/SVG, and performs conceptual visual validation.
 6. Cartographer persists diagram to `docs/diagrams/<safe-name>.html` (or records advisory proposal) and emits lightweight `diagram-completion` message artifact to Navigator.
 
-## Verifier Role & Out-of-Tree E2E Sandbox Isolation
+## System Verifier & E2E Verification Protocols
 
-The `verifier` role (`category: "core"`) is a specialized verification runner responsible for executing end-to-end, integration, and scenario-based test suites in an isolated out-of-tree sandbox or detached clone, protecting the primary working copy and live `@` commit from VCS state pollution while containing test log volume.
+The `verifier` role (`category: "core"`) is a specialized verification runner responsible for executing formal end-to-end, integration, and scenario-based test suites against protected candidate source with run-scoped outputs, independent bounded cleanup, and zero log pollution, returning compact verification digests.
 
 ```sh
 sh "<skill-dir>/scripts/run-agentplaybook.sh" role verifier
@@ -122,29 +122,32 @@ sh "<skill-dir>/scripts/run-agentplaybook.sh" role verifier
 ```
 
 ### E2E Boundaries & Protocols
-- **Execution Package Convention**: E2E test suites are structured as self-contained packages under `e2e/<test-name>/` containing `spec.md` (`e2e-test-spec`), environment definitions, and harness test scripts.
-- **Package Self-Sufficiency (`e2e-package-self-sufficiency`)**: Verifier reads only declared package materials and the `e2e-brief`, and is strictly prohibited from exploratory codebase searching or architecture reverse-engineering.
+- **Root E2E Suite Convention**: Builder maintains versioned Go E2E tests under repository root `e2e/` (using Go `testing` as default, `-count=1` for fresh execution, and optional Testcontainers helpers in `e2e/shared`); no per-suite spec file, README, or numbered case directory is required.
+- **Package Self-Sufficiency (`e2e-package-self-sufficiency`)**: Verifier reads only declared package materials and the `e2e-brief`, and is strictly prohibited from exploratory codebase searching, architecture reverse-engineering, or retired `e2e-test-spec` discovery.
 - **Clarification Inquiry (`e2e-clarification-inquiry`)**: When Verifier encounters missing, ambiguous, or contradictory execution instructions, Verifier dispatches `e2e-clarification-request` to Planner; autonomous guessing, ad-hoc workarounds, or codebase backfilling is strictly prohibited.
-- **Immutable Evidence Binding (`e2e-immutable-evidence-binding`)**: Runs and reports must strictly bind to immutable repository candidate SHAs, unique run IDs, verified package paths, and verified sandbox evidence URIs; mutable refs, ambient binaries, and stale evidence are strictly inadmissible.
-- **Sandbox Isolation (`e2e-sandbox-isolation`)**: All end-to-end and multi-service test suites must execute within an isolated out-of-tree sandbox or clone (`mktemp -d /tmp/e2e-XXXXXX` or dedicated test mirror). Running state-generating E2E suites directly in the primary working tree is strictly forbidden to protect Jujutsu's live `@` commit from automatic dirty-state amendments.
-- **Zero Log Pollution (`e2e-zero-log-pollution`)**: Raw stdout/stderr, browser traces, and daemon outputs remain strictly confined to sandbox disk storage. Verifier emits only the lightweight `e2e-report` message artifact (<150 tokens) containing high-level outcome tokens, scenario counts, duration, sandbox URI, and minimized failure digests.
-- **Lifecycle Admission & Gate Governance (`e2e-lifecycle-admission`)**: Implementation review emits `IMPLEMENTATION_REVIEW_PASS` and never final `REVIEW_PASS` while required E2E remains unresolved. Required E2E verification gates strictly on a frozen immutable candidate revision (`candidate_ref`). Planner evaluates the Verifier report against admission criteria (identity match, scenario coverage, allowed skips, artifact digest provenance, secrets attestation presence with mode matching brief authorization, token budget <150 tokens); only `E2E_EVIDENCE_ADMITTED` permits advancement to final review. Missing or mismatched attestation, or evidence containing credential material, fails closed as `E2E_INVALID_EVIDENCE`. Unresolved, stale, failed, timed-out, or incomplete E2E verification strictly blocks final review acceptance and commit flow admission. When E2E is not required, explicit planning rationale must be reviewed and admitted before final `REVIEW_PASS`.
-- **Sandbox Secrets Hygiene (`e2e-secrets-hygiene`)**: Sandboxes generate local-only throwaway credentials for every Secrets Policy entity declared in the execution package (`e2e-test-spec`); copying, symlinking, or mounting operator secret stores into the sandbox is strictly prohibited, with the sole narrow exception of explicitly authorized real-only named values for one run. Provider and break-glass credentials never enter sandboxes. Generated credential directories, including injected real-value residue, are removed after execution before reporting; evidence bundles carry credential file names only. Verifier self-checks the sandbox credential directory against the specification allowlist by name before execution, and reports a canonical `secrets_attestation` (`ATTESTED:THROWAWAY`, `ATTESTED:MIXED`, or `ENV_BLOCKED`) in the `e2e-report`. Runs against policy-less specifications are preflight-blocked with `CLARIFICATION_REQUIRED` before provisioning or container start.
-- **Star-Topology Isolation**: Verifier communicates strictly with Planner. Verifier never edits application code, task build plans, or `AGENTS.md`.
+- **Immutable Evidence Binding (`e2e-immutable-evidence-binding`)**: Runs and reports must strictly bind to immutable repository candidate commit SHAs, correlated unique run IDs, verified package paths, protection proofs, and tested artifact provenance; mutable refs, ambient binaries, and stale evidence are strictly inadmissible.
+- **Candidate Source Protection & Repository Non-Mutation (`e2e-sandbox-isolation`)**:
+  In modern version control systems like Jujutsu (`jj`), the working copy is a live commit (`@`) that automatically amends filesystem additions into candidate revisions. Formal E2E test suites must execute against candidate source protected by controller-enforced read-only materialization or exclusive-use lease covering candidate acquisition, build, execution, cleanup, and provenance capture. Running state-generating E2E suites directly in mutable working copies is strictly forbidden.
+- **Context Containment & Zero Log Pollution (`e2e-zero-log-pollution`)**:
+  Raw stdout/stderr, browser traces, and daemon outputs remain strictly confined to run-scoped storage outside the repository. Verifier emits only the complete structured `e2e-report` message artifact containing high-level outcome tokens, scenario counts, duration, evidence URI, and minimized failure diagnostics.
+- **Lifecycle Admission & Gate Governance (`e2e-lifecycle-admission`)**:
+  Implementation review emits `IMPLEMENTATION_REVIEW_PASS` and never final `REVIEW_PASS` while required E2E remains unresolved. Required E2E verification gates strictly on frozen candidate identity under an 8-step lifecycle. Planner evaluates the Verifier report against admission criteria (identity match, scenario coverage, allowed skips, tested-artifact provenance, secrets attestation presence with mode matching brief authorization, confirmed cleanup status); only `E2E_EVIDENCE_ADMITTED` permits advancement to final review. Missing or mismatched attestation, or unconfirmed cleanup, fails closed as `E2E_INVALID_EVIDENCE`. Unresolved, stale, failed, timed-out, unconfirmed cleanup, or incomplete E2E verification strictly blocks final review acceptance and commit flow admission. When E2E is not required, explicit planning rationale must be reviewed and admitted before final `REVIEW_PASS`.
+- **Sandbox Secrets Hygiene (`e2e-secrets-hygiene`)**:
+  Verification environments generate local-only throwaway credentials for every Secrets Policy entity declared in the `e2e-brief`; copying, symlinking, or mounting operator secret stores into the execution environment is strictly prohibited, with the sole narrow exception of explicitly authorized real-only named values for one run. Provider and break-glass credentials never enter test environments under any exception. Generated credential directories, including injected real-value residue, are removed after execution before reporting; evidence bundles carry credential file names only. Verifier self-checks the credential directory against the specification allowlist by name before execution, and reports a canonical `secrets_attestation` (`NOT_PROVISIONED`, `ATTESTED:THROWAWAY`, `ATTESTED:MIXED`, `ENV_BLOCKED`, or `UNVERIFIED:RUNNER_LOST`) in the `e2e-report`. Runs against brief definitions with missing or ambiguous credential policies are preflight-blocked with `CLARIFICATION_REQUIRED` before provisioning or container start.
+- **Deterministic Finalization & Replay (`e2e-report-finalization`)**:
+  Exactly one immutable terminal report is finalized per run. Verifier normally finalizes execution reports; controller is authorized to finalize terminal reports solely on runner loss (`CONTROLLER_RUNNER_LOST`). Replaying duplicate identical terminal reports is idempotent when digests and authorities match; conflicting or late reports cannot alter or replace a finalized record.
+- **Star-Topology Isolation**:
+  Verifier communicates strictly with Planner. Verifier never edits application code, task build plans, or `AGENTS.md`.
 
 ### E2E Verification Flow (`flow e2e`)
-1. Planner identifies end-to-end verification requirement, requires `IMPLEMENTATION_REVIEW_PASS` before initial dispatch or after any remediation, and formulates structured `e2e-brief`.
-2. Planner dispatches `e2e-brief` message artifact to Verifier.
-3. Verifier provisions isolated out-of-tree sandbox or clone pinned strictly to candidate revision and initializes dependencies.
-4. Verifier evaluates execution package (`e2e-test-spec`) and executes test scenarios, redirecting verbose stdout/stderr and trace logs to persistent sandbox disk storage.
-5. Verifier emits lightweight `e2e-report` message artifact to Planner (`E2E_RESULT_PASS` -> Step 6, `E2E_PRODUCT_FAILURE` -> Step 7, `E2E_BUILD_FAILURE` -> Step 7, `E2E_ENV_BLOCKED` -> Step 9, `E2E_CLARIFICATION_REQUIRED` -> Step 9, `E2E_TIMEOUT` -> Step 10, `E2E_CANCELLED` -> Step 10, `E2E_INVALID_EVIDENCE` -> Step 10).
-6. Planner Admission Gate evaluates Verifier report against admission criteria (`E2E_EVIDENCE_ADMITTED` -> Step 11, `E2E_EVIDENCE_STALE` -> Step 1, `E2E_INVALID_EVIDENCE` -> Step 10).
-7. Planner Remediation Dispatch arbitrates product or build failure, sanitizes defect trace into actionable remediation instructions for Builder (strictly withholding review-plan artifacts), and coordinates fixes (`REMEDIATION_DISPATCHED` -> Step 8).
-8. Reviewer Affected Implementation Review independently inspects remediation diffs and updated test packages (`IMPLEMENTATION_REVIEW_PASS` -> Step 1, `FINDINGS_REPORTED` -> Step 7).
-9. Planner Environment/Clarification Resolution resolves environment blockers or answers clarification requests (`E2E_INPUTS_AMENDED` -> Step 1, `CLARIFICATION_RESOLVED` -> Step 1, `PACKAGE_DEFECT_ESCALATED` -> Step 7).
-10. Planner Timeout/Cancellation/Halt Arbitration investigates timeout, cancellation, or invalid evidence (`E2E_RETRY_AUTHORIZED` -> Step 1, `PACKAGE_DEFECT_ESCALATED` -> Step 7, `E2E_EXECUTION_HALTED` -> Step 12).
-11. Planner Evidence Incorporation incorporates verified and admitted E2E evidence into Feature Composition Gate or Review Resolution and advances to final review (`terminal: true`, 0 conditions).
-12. Planner Execution Halted terminates E2E verification without acceptance upon fatal error, unresolvable defect, or cancellation, recording non-acceptance disposition and halting pipeline without admitting candidate to commit flow (`terminal: true`, 0 conditions).
+1. Planner admits approved plan and `IMPLEMENTATION_REVIEW_PASS`, freezes immutable candidate revision SHA, and issues complete `e2e-brief` (`BRIEF_DISPATCHED` -> Step 2).
+2. Verifier performs read-only preflight validating brief, credential policy, prior cleanup resolution, candidate/material identity, and readiness (`PREFLIGHT_READY` -> Step 3, `CLARIFICATION_REQUIRED` -> Step 4, `CANDIDATE_STALE` -> Step 4, `PREFLIGHT_BLOCKED_REPORT` -> Step 4).
+3. Verifier executes fresh formal test run with run-scoped storage and resource names, running independent bounded cleanup on failure/timeout; on runner loss, controller emits terminal report (`E2E_REPORT_RECEIVED` -> Step 4).
+4. Planner evaluates clarification, runner loss, or report structure/correlation, arbitrating evidence admission, environment-only retry on unchanged candidate after confirmed cleanup, remediation, or halt (`E2E_EVIDENCE_ADMITTED` -> Step 5, `BRIEF_AMENDED_NO_CANDIDATE_CHANGE` -> Step 1, `CLARIFICATION_UNRESOLVABLE` -> Step 8, `ENVIRONMENT_RETRY_AUTHORIZED` -> Step 1, `CANDIDATE_REMEDIATION_REQUIRED` -> Step 6, `E2E_EXECUTION_HALTED` -> Step 8).
+5. Planner Admitted Evidence Synthesis records admitted evidence and confirmed cleanup, advancing to ordinary final review (`terminal: true`, 0 conditions).
+6. Builder Candidate Remediation fixes product or test defects under the approved plan boundary (`REMEDIATION_READY_FOR_REVIEW` -> Step 7).
+7. Reviewer Affected Implementation Review independently inspects candidate remediation diffs and tests (`IMPLEMENTATION_REVIEW_PASS` -> Step 1, `FINDINGS_REPORTED` -> Step 6, `REMEDIATION_HALTED` -> Step 8).
+8. Planner Execution Halted records non-acceptance disposition and halts pipeline without admitting candidate to final review or commit flow (`terminal: true`, 0 conditions).
 
 ## Living Memory Scaffolding & Anti-Compaction Governance (`init`)
 
@@ -182,10 +185,10 @@ sh "<skill-dir>/scripts/run-agentplaybook.sh" init --file AGENTS.md --vault --re
 ### Out-of-Tree Shadow Scaffolding Vault Governance (`scaffolding-vault-isolation`)
 
 AgentPlaybook v0.4.3 establishes the **Out-of-Tree Shadow Scaffolding Vault** (`scaffolding-vault-isolation`) ensuring physical separation between product repositories and ephemeral construction scaffolding:
-- **Strong Convention**: Scaffolding files live outside target repositories under `~/.agentplaybook/<project>/{plan,e2e}`.
+- **Strong Convention**: Planning and review scaffolding files live outside target repositories under `~/.agentplaybook/<project>/plan/`. E2E run outputs are controller-managed outside the checkout with no fixed E2E vault path.
   - Planning and review artifacts reside under `~/.agentplaybook/<project>/plan/`.
-  - End-to-end sandbox execution runs and evidence logs reside under `~/.agentplaybook/<project>/e2e/runs/<run-id>/`.
-- **Zero In-Tree Scaffolding Residue**: Target repositories remain pristine and free of ephemeral construction debris. No `.agentplaybook/`, `plan/`, or `e2e/` scratch directories are created inside product repositories.
+  - Formal E2E execution tests live under repository-root `e2e/`, while ephemeral run logs, evidence, and resources are quarantined by the controller outside the checkout in run-scoped storage without requiring a fixed E2E vault path.
+- **Zero In-Tree Scaffolding Residue**: Target repositories remain pristine and free of ephemeral construction debris. No in-tree `.agentplaybook/` or `plan/` scratch directories are created inside product repositories.
 - **Canonical Repository Identification**: Deterministic repository identification normalizes remotes (`host/owner/repo` from HTTPS, SSH, or git URLs with credentials and `.git` stripped) or falls back to `local:<abs_path>` when no remote exists.
 - **Provenance & Safe Migration**: Each project vault maintains a single root `.vault-binding.json` descriptor tracking `repo_id`, `repo_root`, `last_attached_utc`, and `binding_version`. Cross-machine checkouts or relocations are safeguarded:
   - If a different repository attempts to use an existing vault, initialization fails closed with `VAULT_COLLISION`.

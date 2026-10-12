@@ -139,7 +139,6 @@ func Validate(k *Knowledge) error {
 		"review-resolution":         true,
 		"e2e-brief":                 true,
 		"e2e-report":                true,
-		"e2e-test-spec":             true,
 		"e2e-clarification-request": true,
 	}
 	// External Reviewer sees only public approved plans, settled sanitized resolutions,

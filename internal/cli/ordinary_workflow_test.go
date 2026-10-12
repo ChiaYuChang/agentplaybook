@@ -490,7 +490,7 @@ func TestOrdinary_EXT02_RoleBoundariesViaCLI(t *testing.T) {
 	}
 	// Existing Internal Reviewer retains E2E participation and contract.
 	e2e := ordinaryFlow(t, "e2e")
-	if len(e2e.Steps) != 12 || mustStep(t, e2e, 8).Actor != knowledge.RoleReviewer {
+	if len(e2e.Steps) != 8 || mustStep(t, e2e, 7).Actor != knowledge.RoleReviewer {
 		t.Errorf("e2e flow must retain Internal Reviewer participation: %d steps", len(e2e.Steps))
 	}
 	reviewer := ordinaryRole(t, "reviewer")
@@ -623,10 +623,10 @@ func TestOrdinary_E2E01_RequiredE2ERemainsBlocking(t *testing.T) {
 	}
 	// E2E admission semantics untouched.
 	e2e := ordinaryFlow(t, "e2e")
-	if !mustStep(t, e2e, 11).Terminal || !mustStep(t, e2e, 12).Terminal {
+	if !mustStep(t, e2e, 5).Terminal || !mustStep(t, e2e, 8).Terminal {
 		t.Errorf("e2e terminal steps must be preserved")
 	}
-	for when, then := range stepConditions(mustStep(t, e2e, 6)) {
+	for when, then := range stepConditions(mustStep(t, e2e, 4)) {
 		_ = then
 		if strings.Contains(when, "EXTERNAL") {
 			t.Errorf("e2e admission must not gain external conditions")
@@ -806,16 +806,16 @@ func TestOrdinary_CatalogRoleArtifactTwoGateWordingQualified(t *testing.T) {
 	}
 }
 
-// VERSION-01: canonical version is exactly v0.5.0 across version.Release(), CLI output, and init template header.
-func TestOrdinary_VERSION01_ReleaseVersionV050(t *testing.T) {
+// VERSION-01: canonical version is exactly v0.5.1 across version.Release(), CLI output, and init template header.
+func TestOrdinary_VERSION01_ReleaseVersionV051(t *testing.T) {
 	t.Parallel()
 
-	if got := versioninfo.Release(); got != "v0.5.0" {
-		t.Errorf("versioninfo.Release() = %q, want v0.5.0", got)
+	if got := versioninfo.Release(); got != "v0.5.1" {
+		t.Errorf("versioninfo.Release() = %q, want v0.5.1", got)
 	}
 
 	tmpl := cli.DefaultLivingMemoryTemplate()
-	if !strings.Contains(tmpl, "AgentPlaybook v0.5.0 Living Memory Blueprint") {
-		t.Errorf("default template header must reference v0.5.0, got: %s", tmpl[:200])
+	if !strings.Contains(tmpl, "AgentPlaybook v0.5.1 Living Memory Blueprint") {
+		t.Errorf("default template header must reference v0.5.1, got: %s", tmpl[:200])
 	}
 }

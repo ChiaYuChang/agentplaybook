@@ -103,11 +103,11 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"flow", "navigator-cartography", "--step", "6"},
 		{"flow", "e2e"},
 		{"flow", "e2e", "--step", "1"},
+		{"flow", "e2e", "--step", "2"},
+		{"flow", "e2e", "--step", "4"},
 		{"flow", "e2e", "--step", "5"},
 		{"flow", "e2e", "--step", "6"},
 		{"flow", "e2e", "--step", "8"},
-		{"flow", "e2e", "--step", "11"},
-		{"flow", "e2e", "--step", "12"},
 		{"artifact", "agents-md"},
 		{"artifact", "build-plan"},
 		{"artifact", "review-plan"},
@@ -123,7 +123,6 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"artifact", "diagram-clarification-request"},
 		{"artifact", "e2e-brief"},
 		{"artifact", "e2e-report"},
-		{"artifact", "e2e-test-spec"},
 		{"artifact", "e2e-clarification-request"},
 		{"rule", "list"},
 		{"rule", "explain", "anti-cheating"},
@@ -164,6 +163,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "e2e-immutable-evidence-binding"},
 		{"rule", "explain", "e2e-lifecycle-admission"},
 		{"rule", "explain", "e2e-secrets-hygiene"},
+		{"rule", "explain", "e2e-report-finalization"},
 		{"rule", "explain", "scaffolding-vault-isolation"},
 	}
 
@@ -2785,49 +2785,7 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 		return stdout.Bytes()
 	}
 
-	// 1. Artifact Verification: e2e-test-spec (document, 6 sections)
-	{
-		var a knowledge.Artifact
-		if err := json.Unmarshal(queryJSON("artifact", "e2e-test-spec"), &a); err != nil {
-			t.Fatalf("failed to decode e2e-test-spec: %v", err)
-		}
-		if a.Name != "e2e-test-spec" {
-			t.Errorf("unexpected artifact name: %q", a.Name)
-		}
-		if a.Type != "document" {
-			t.Errorf("expected type 'document', got %q", a.Type)
-		}
-		if a.Owner != knowledge.RoleBuilder {
-			t.Errorf("expected owner 'builder', got %q", a.Owner)
-		}
-		if len(a.Visibility) != 4 || !slices.Contains(a.Visibility, knowledge.RolePlanner) ||
-			!slices.Contains(a.Visibility, knowledge.RoleReviewer) ||
-			!slices.Contains(a.Visibility, knowledge.RoleBuilder) ||
-			!slices.Contains(a.Visibility, knowledge.RoleVerifier) {
-			t.Errorf("expected visibility [planner reviewer builder verifier], got %v", a.Visibility)
-		}
-		if a.Path != "e2e/{test_name}/spec.md" {
-			t.Errorf("expected path 'e2e/{test_name}/spec.md', got %q", a.Path)
-		}
-		if len(a.Sections) != 6 {
-			t.Fatalf("expected 6 sections, got %d", len(a.Sections))
-		}
-		expectedSections := []string{
-			"Scenario Matrix & Given/When/Then",
-			"Execution Mode & Platform Targets",
-			"Environment & Dependency Bindings",
-			"Result Paths & Cleanup Obligations",
-			"Timeout & Allowed Skip Policy",
-			"Secrets Policy",
-		}
-		for i, expected := range expectedSections {
-			if a.Sections[i].Name != expected || !a.Sections[i].Required {
-				t.Errorf("expected required section %q at index %d, got %+v", expected, i, a.Sections[i])
-			}
-		}
-	}
-
-	// 2. Artifact Verification: e2e-clarification-request (message, 4 fields)
+	// 1. Artifact Verification: e2e-clarification-request (message, 4 fields)
 	{
 		var a knowledge.Artifact
 		if err := json.Unmarshal(queryJSON("artifact", "e2e-clarification-request"), &a); err != nil {
@@ -2862,42 +2820,49 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 		}
 	}
 
-	// 3. Artifact Verification: e2e-brief (6 required fields + conditional credential_authorization)
+	// 2. Artifact Verification: e2e-brief (18 required fields + 2 conditional fields)
 	{
 		var a knowledge.Artifact
 		if err := json.Unmarshal(queryJSON("artifact", "e2e-brief"), &a); err != nil {
 			t.Fatalf("failed to decode e2e-brief: %v", err)
 		}
-		if len(a.Fields) != 7 {
-			t.Fatalf("expected 7 fields in e2e-brief, got %d", len(a.Fields))
+		if len(a.Fields) != 20 {
+			t.Fatalf("expected 20 fields in e2e-brief, got %d", len(a.Fields))
 		}
 		reqFields := make(map[string]bool)
-		condFound := false
+		condFields := make(map[string]bool)
 		for _, f := range a.Fields {
 			if f.Required {
 				reqFields[f.Name] = true
-			} else if f.Name == "credential_authorization" {
-				condFound = true
+			} else {
+				condFields[f.Name] = true
 			}
 		}
-		for _, expectedField := range []string{"run_id", "repo_ref", "candidate_ref", "test_package", "mode", "timeout_ms"} {
+		for _, expectedField := range []string{
+			"run_id", "repo_ref", "candidate_ref", "test_package", "mode",
+			"command", "build_command", "timeout_ms", "go_version", "platforms",
+			"dependency_lock_ref", "environment", "expected_outputs", "scenarios",
+			"allowed_skip_ids", "services", "cleanup_obligations", "credential_policy",
+		} {
 			if !reqFields[expectedField] {
 				t.Errorf("expected required field %q in e2e-brief", expectedField)
 			}
 		}
-		if !condFound {
-			t.Errorf("expected conditional field credential_authorization in e2e-brief")
+		for _, expectedCond := range []string{"credential_authorization", "prior_cleanup_resolution"} {
+			if !condFields[expectedCond] {
+				t.Errorf("expected conditional field %q in e2e-brief", expectedCond)
+			}
 		}
 	}
 
-	// 4. Artifact Verification: e2e-report (15 required fields)
+	// 3. Artifact Verification: e2e-report (23 required fields)
 	{
 		var a knowledge.Artifact
 		if err := json.Unmarshal(queryJSON("artifact", "e2e-report"), &a); err != nil {
 			t.Fatalf("failed to decode e2e-report: %v", err)
 		}
-		if len(a.Fields) != 15 {
-			t.Fatalf("expected 15 fields in e2e-report, got %d", len(a.Fields))
+		if len(a.Fields) != 23 {
+			t.Fatalf("expected 23 fields in e2e-report, got %d", len(a.Fields))
 		}
 		reqFields := make(map[string]bool)
 		for _, f := range a.Fields {
@@ -2906,9 +2871,11 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 			}
 		}
 		for _, expectedField := range []string{
-			"run_id", "candidate_ref", "stage_outcome", "build_outcome", "execution_outcome",
-			"scenarios_selected", "scenarios_passed", "scenarios_failed", "scenarios_skipped",
-			"result_completeness", "tested_artifact_ref", "duration_ms", "diagnostic", "evidence_uri",
+			"run_id", "repo_ref", "candidate_ref", "test_package", "stage_outcome",
+			"build_outcome", "execution_outcome", "scenarios_selected", "scenarios_passed",
+			"scenarios_failed", "scenarios_skipped", "scenarios_not_run", "scenarios_unknown",
+			"scenario_results", "result_completeness", "tested_artifact_ref", "execution_material_ref",
+			"duration_ms", "diagnostic", "evidence_uri", "cleanup_status", "cleanup_evidence_uri",
 			"secrets_attestation",
 		} {
 			if !reqFields[expectedField] {
@@ -2917,7 +2884,7 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 		}
 	}
 
-	// 5. Rule Verification: e2e-package-self-sufficiency, e2e-clarification-inquiry, e2e-immutable-evidence-binding
+	// 4. Rule Verification: e2e-package-self-sufficiency, e2e-clarification-inquiry, e2e-immutable-evidence-binding
 	for _, ruleID := range []string{
 		"e2e-package-self-sufficiency",
 		"e2e-clarification-inquiry",
@@ -2941,7 +2908,7 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 		}
 	}
 
-	// 6. Role Updates Verification
+	// 5. Role Updates Verification
 	{
 		var verifier knowledge.RoleDefinition
 		if err := json.Unmarshal(queryJSON("role", "verifier"), &verifier); err != nil {
@@ -2949,24 +2916,24 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 		}
 		foundPackageResp := false
 		for _, resp := range verifier.Responsibilities {
-			if strings.Contains(resp, "e2e-test-spec") && strings.Contains(resp, "e2e-clarification-request") {
+			if strings.Contains(resp, "e2e-brief") && strings.Contains(resp, "e2e-clarification-request") {
 				foundPackageResp = true
 				break
 			}
 		}
 		if !foundPackageResp {
-			t.Error("expected verifier responsibilities to mention e2e-test-spec and e2e-clarification-request")
+			t.Error("expected verifier responsibilities to mention e2e-brief and e2e-clarification-request")
 		}
 
 		foundSandboxBoundary := false
 		for _, b := range verifier.Boundaries {
-			if strings.Contains(b, "out-of-tree sandbox") && strings.Contains(b, "e2e-test-spec") {
+			if strings.Contains(b, "primary candidate source") {
 				foundSandboxBoundary = true
 				break
 			}
 		}
 		if !foundSandboxBoundary {
-			t.Error("expected verifier boundaries to mention out-of-tree sandbox and e2e-test-spec")
+			t.Error("expected verifier boundaries to mention candidate source protection")
 		}
 
 		var planner knowledge.RoleDefinition
@@ -2990,13 +2957,13 @@ func TestCLI_SubPlan01_E2EExecutionAndEvidenceContracts(t *testing.T) {
 		}
 		foundBuilderResp := false
 		for _, resp := range builder.Responsibilities {
-			if strings.Contains(resp, "e2e/<test-name>/spec.md") {
+			if strings.Contains(resp, "repository-root e2e/") {
 				foundBuilderResp = true
 				break
 			}
 		}
 		if !foundBuilderResp {
-			t.Error("expected builder responsibilities to mention e2e/<test-name>/spec.md")
+			t.Error("expected builder responsibilities to mention repository-root e2e/")
 		}
 	}
 }
@@ -3014,95 +2981,106 @@ func TestCLI_SubPlan02_LifecycleAndAcceptanceIntegration(t *testing.T) {
 		return stdout.Bytes()
 	}
 
-	// 1. Flow e2e 12-step topology and Admission Gate invariants
+	// 1. Flow e2e 8-step topology and Admission Gate invariants
 	{
 		var f knowledge.Flow
 		if err := json.Unmarshal(queryJSON("flow", "e2e"), &f); err != nil {
 			t.Fatalf("failed to decode flow e2e: %v", err)
 		}
-		if len(f.Steps) != 12 {
-			t.Fatalf("expected e2e flow to have 12 steps, got %d", len(f.Steps))
+		if len(f.Steps) != 8 {
+			t.Fatalf("expected e2e flow to have 8 steps, got %d", len(f.Steps))
 		}
 
-		// Step 6 Admission Gate
+		// Step 1 Dispatch
+		step1 := f.Steps[0]
+		if step1.Index != 1 || step1.Actor != knowledge.RolePlanner {
+			t.Errorf("unexpected step 1: %+v", step1)
+		}
+		if len(step1.Conditions) != 1 || step1.Conditions[0].When != "BRIEF_DISPATCHED" || step1.Conditions[0].Then != 2 {
+			t.Errorf("expected step 1 BRIEF_DISPATCHED -> 2, got: %+v", step1.Conditions)
+		}
+
+		// Step 2 Preflight
+		step2 := f.Steps[1]
+		if step2.Index != 2 || step2.Actor != knowledge.RoleVerifier {
+			t.Errorf("unexpected step 2: %+v", step2)
+		}
+		s2Conditions := make(map[string]int)
+		for _, c := range step2.Conditions {
+			s2Conditions[c.When] = c.Then
+		}
+		if s2Conditions["PREFLIGHT_READY"] != 3 || s2Conditions["CLARIFICATION_REQUIRED"] != 4 ||
+			s2Conditions["CANDIDATE_STALE"] != 4 || s2Conditions["PREFLIGHT_BLOCKED_REPORT"] != 4 {
+			t.Errorf("unexpected step 2 conditions: %v", s2Conditions)
+		}
+
+		// Step 3 Execution
+		step3 := f.Steps[2]
+		if step3.Index != 3 || step3.Actor != knowledge.RoleVerifier {
+			t.Errorf("unexpected step 3: %+v", step3)
+		}
+		s3Conditions := make(map[string]int)
+		for _, c := range step3.Conditions {
+			s3Conditions[c.When] = c.Then
+		}
+		if len(s3Conditions) != 1 || s3Conditions["E2E_REPORT_RECEIVED"] != 4 {
+			t.Errorf("unexpected step 3 conditions: %v", s3Conditions)
+		}
+
+		// Step 4 Admission Gate
+		step4 := f.Steps[3]
+		if step4.Index != 4 || step4.Actor != knowledge.RolePlanner {
+			t.Errorf("unexpected step 4: %+v", step4)
+		}
+		s4Conditions := make(map[string]int)
+		for _, c := range step4.Conditions {
+			s4Conditions[c.When] = c.Then
+		}
+		if s4Conditions["E2E_EVIDENCE_ADMITTED"] != 5 {
+			t.Errorf("expected E2E_EVIDENCE_ADMITTED to target step 5, got %d", s4Conditions["E2E_EVIDENCE_ADMITTED"])
+		}
+		if s4Conditions["BRIEF_AMENDED_NO_CANDIDATE_CHANGE"] != 1 {
+			t.Errorf("expected BRIEF_AMENDED_NO_CANDIDATE_CHANGE to target step 1, got %d", s4Conditions["BRIEF_AMENDED_NO_CANDIDATE_CHANGE"])
+		}
+		if s4Conditions["CLARIFICATION_UNRESOLVABLE"] != 8 {
+			t.Errorf("expected CLARIFICATION_UNRESOLVABLE to target step 8, got %d", s4Conditions["CLARIFICATION_UNRESOLVABLE"])
+		}
+		if s4Conditions["ENVIRONMENT_RETRY_AUTHORIZED"] != 1 {
+			t.Errorf("expected ENVIRONMENT_RETRY_AUTHORIZED to target step 1, got %d", s4Conditions["ENVIRONMENT_RETRY_AUTHORIZED"])
+		}
+		if s4Conditions["CANDIDATE_REMEDIATION_REQUIRED"] != 6 {
+			t.Errorf("expected CANDIDATE_REMEDIATION_REQUIRED to target step 6, got %d", s4Conditions["CANDIDATE_REMEDIATION_REQUIRED"])
+		}
+		if s4Conditions["E2E_EXECUTION_HALTED"] != 8 {
+			t.Errorf("expected E2E_EXECUTION_HALTED to target step 8, got %d", s4Conditions["E2E_EXECUTION_HALTED"])
+		}
+
+		// Step 5: terminal: true, 0 conditions
+		step5 := f.Steps[4]
+		if step5.Index != 5 || !step5.Terminal || len(step5.Conditions) != 0 {
+			t.Errorf("expected step 5 to be terminal: true with 0 conditions, got: %+v", step5)
+		}
+
+		// Step 6 Remediation Dispatch routes to Step 7
 		step6 := f.Steps[5]
-		if step6.Index != 6 || step6.Actor != knowledge.RolePlanner {
-			t.Errorf("unexpected step 6: %+v", step6)
-		}
-		s6Conditions := make(map[string]int)
-		for _, c := range step6.Conditions {
-			s6Conditions[c.When] = c.Then
-		}
-		if s6Conditions["E2E_EVIDENCE_ADMITTED"] != 11 {
-			t.Errorf("expected E2E_EVIDENCE_ADMITTED to target step 11, got %d", s6Conditions["E2E_EVIDENCE_ADMITTED"])
-		}
-		if s6Conditions["E2E_EVIDENCE_STALE"] != 1 {
-			t.Errorf("expected E2E_EVIDENCE_STALE to target step 1, got %d", s6Conditions["E2E_EVIDENCE_STALE"])
-		}
-		if s6Conditions["E2E_INVALID_EVIDENCE"] != 10 {
-			t.Errorf("expected E2E_INVALID_EVIDENCE to target step 10, got %d", s6Conditions["E2E_INVALID_EVIDENCE"])
-		}
-		// Step 6 never falls through to Step 7
-		for _, c := range step6.Conditions {
-			if c.Then == 7 {
-				t.Error("step 6 Admission Gate must never transition to step 7")
-			}
+		if len(step6.Conditions) != 1 || step6.Conditions[0].When != "REMEDIATION_READY_FOR_REVIEW" || step6.Conditions[0].Then != 7 {
+			t.Errorf("expected step 6 to route REMEDIATION_READY_FOR_REVIEW -> 7, got: %+v", step6.Conditions)
 		}
 
-		// Step 11: terminal: true, 0 conditions, cannot reach Step 12
-		step11 := f.Steps[10]
-		if step11.Index != 11 || !step11.Terminal || len(step11.Conditions) != 0 {
-			t.Errorf("expected step 11 to be terminal: true with 0 conditions, got: %+v", step11)
-		}
-
-		// Step 12: terminal: true, 0 conditions, no path to Step 1, 2, or 11
-		step12 := f.Steps[11]
-		if step12.Index != 12 || !step12.Terminal || len(step12.Conditions) != 0 {
-			t.Errorf("expected step 12 to be terminal: true with 0 conditions, got: %+v", step12)
-		}
-
-		// Step 7 Remediation Dispatch routes to Step 8
+		// Step 7 Reviewer Affected Implementation Review routes IMPLEMENTATION_REVIEW_PASS -> 1, FINDINGS_REPORTED -> 6, REMEDIATION_HALTED -> 8
 		step7 := f.Steps[6]
-		if len(step7.Conditions) != 1 || step7.Conditions[0].When != "REMEDIATION_DISPATCHED" || step7.Conditions[0].Then != 8 {
-			t.Errorf("expected step 7 to route REMEDIATION_DISPATCHED -> 8, got: %+v", step7.Conditions)
+		s7Conditions := make(map[string]int)
+		for _, c := range step7.Conditions {
+			s7Conditions[c.When] = c.Then
+		}
+		if s7Conditions["IMPLEMENTATION_REVIEW_PASS"] != 1 || s7Conditions["FINDINGS_REPORTED"] != 6 || s7Conditions["REMEDIATION_HALTED"] != 8 {
+			t.Errorf("unexpected step 7 conditions: %v", s7Conditions)
 		}
 
-		// Step 8 Reviewer Affected Implementation Review routes IMPLEMENTATION_REVIEW_PASS -> 1, FINDINGS_REPORTED -> 7
+		// Step 8: terminal: true, 0 conditions
 		step8 := f.Steps[7]
-		s8Conditions := make(map[string]int)
-		for _, c := range step8.Conditions {
-			s8Conditions[c.When] = c.Then
-		}
-		if s8Conditions["IMPLEMENTATION_REVIEW_PASS"] != 1 || s8Conditions["FINDINGS_REPORTED"] != 7 {
-			t.Errorf("unexpected step 8 conditions: %v", s8Conditions)
-		}
-
-		// Step 9 and Step 10 PACKAGE_DEFECT_ESCALATED routes to Step 7
-		step9 := f.Steps[8]
-		s9Conditions := make(map[string]int)
-		for _, c := range step9.Conditions {
-			s9Conditions[c.When] = c.Then
-		}
-		if s9Conditions["PACKAGE_DEFECT_ESCALATED"] != 7 {
-			t.Errorf("expected step 9 PACKAGE_DEFECT_ESCALATED -> 7, got: %v", s9Conditions)
-		}
-		if s9Conditions["E2E_INPUTS_AMENDED"] != 1 || s9Conditions["CLARIFICATION_RESOLVED"] != 1 {
-			t.Errorf("expected step 9 inputs/clarification routes -> 1, got: %v", s9Conditions)
-		}
-
-		step10 := f.Steps[9]
-		s10Conditions := make(map[string]int)
-		for _, c := range step10.Conditions {
-			s10Conditions[c.When] = c.Then
-		}
-		if s10Conditions["PACKAGE_DEFECT_ESCALATED"] != 7 {
-			t.Errorf("expected step 10 PACKAGE_DEFECT_ESCALATED -> 7, got: %v", s10Conditions)
-		}
-		if s10Conditions["E2E_RETRY_AUTHORIZED"] != 1 {
-			t.Errorf("expected step 10 E2E_RETRY_AUTHORIZED -> 1, got: %v", s10Conditions)
-		}
-		if s10Conditions["E2E_EXECUTION_HALTED"] != 12 {
-			t.Errorf("expected step 10 E2E_EXECUTION_HALTED -> 12, got: %v", s10Conditions)
+		if step8.Index != 8 || !step8.Terminal || len(step8.Conditions) != 0 {
+			t.Errorf("expected step 8 to be terminal: true with 0 conditions, got: %+v", step8)
 		}
 	}
 
@@ -3468,7 +3446,7 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 	if rule.Category != "protocol" {
 		t.Errorf("expected category protocol, got %s", rule.Category)
 	}
-	if !strings.Contains(rule.Summary, "~/.agentplaybook/<project>/{plan,e2e}") {
+	if !strings.Contains(rule.Summary, "~/.agentplaybook/<project>/plan/") {
 		t.Errorf("expected summary to reference vault path, got %s", rule.Summary)
 	}
 
@@ -3480,8 +3458,8 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 	if len(e2eRules) != 1 {
 		t.Fatalf("expected 1 rule, got %d", len(e2eRules))
 	}
-	if !strings.Contains(e2eRules[0].Summary, "~/.agentplaybook/<project>/e2e/runs/<run-id>") {
-		t.Errorf("expected e2e-sandbox-isolation summary to reference E2E vault path, got %s", e2eRules[0].Summary)
+	if !strings.Contains(e2eRules[0].Summary, "run-scoped storage outside the repository") {
+		t.Errorf("expected e2e-sandbox-isolation summary to reference storage outside repository, got %s", e2eRules[0].Summary)
 	}
 
 	// 3. Verify init flow step 3 inquiry/confirmation of vault
@@ -3510,13 +3488,13 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 		if !strings.Contains(def, expectedHeader) {
 			t.Errorf("expected default template to contain canonical release header %q", expectedHeader)
 		}
-		if !strings.Contains(def, "~/.agentplaybook/<project>/plan") || !strings.Contains(def, "~/.agentplaybook/<project>/e2e") {
-			t.Errorf("expected default template to reference scaffolding vault paths")
+		if !strings.Contains(def, "~/.agentplaybook/<project>/plan") {
+			t.Errorf("expected default template to reference scaffolding vault path")
 		}
 
 		min := cli.MinimalLivingMemoryTemplate()
-		if !strings.Contains(min, "~/.agentplaybook/<project>/plan") || !strings.Contains(min, "~/.agentplaybook/<project>/e2e") {
-			t.Errorf("expected minimal template to reference scaffolding vault paths")
+		if !strings.Contains(min, "~/.agentplaybook/<project>/plan") {
+			t.Errorf("expected minimal template to reference scaffolding vault path")
 		}
 		lines := strings.Split(strings.TrimSpace(min), "\n")
 		if len(lines) > 50 {
@@ -3542,15 +3520,19 @@ func TestCLI_ScaffoldingVaultIntegration(t *testing.T) {
 			docStr := string(content)
 			for _, required := range []string{
 				"scaffolding-vault-isolation",
-				"~/.agentplaybook/<project>/{plan,e2e}",
+				"~/.agentplaybook/<project>/plan",
+				"no fixed E2E vault path",
 				"--vault",
 				"--adopt",
 				"--rebind",
 				"Zero In-Tree Scaffolding Residue",
 			} {
 				if !strings.Contains(docStr, required) {
-					t.Errorf("expected doc file %q to contain v0.4.3 term %q", docPath, required)
+					t.Errorf("expected doc file %q to contain term %q", docPath, required)
 				}
+			}
+			if strings.Contains(docStr, "~/.agentplaybook/<project>/{plan,e2e}") {
+				t.Errorf("doc file %q still contains stale canonical vault path with e2e", docPath)
 			}
 		}
 	}
@@ -3606,9 +3588,9 @@ func nameSetsEqual(a, b string) bool {
 	return slices.Equal(sortedA, sortedB)
 }
 
-// specFixtureAdmitted admits a fixture section list exactly when it carries
-// every catalog-required specification section.
-func specFixtureAdmitted(present []string, required []string) bool {
+// briefFixtureAdmitted admits a fixture field list exactly when it carries
+// every catalog-required brief field.
+func briefFixtureAdmitted(present []string, required []string) bool {
 	have := map[string]bool{}
 	for _, name := range present {
 		have[name] = true
@@ -3656,24 +3638,24 @@ func TestCLI_E2ESecretsHygiene(t *testing.T) {
 		}
 	}
 
-	// 2. Spec requires the Secrets Policy section.
+	// 2. Brief requires the credential_policy field.
 	{
 		var artifact knowledge.Artifact
-		if err := json.Unmarshal(queryJSON("artifact", "e2e-test-spec"), &artifact); err != nil {
-			t.Fatalf("failed to decode e2e-test-spec: %v", err)
+		if err := json.Unmarshal(queryJSON("artifact", "e2e-brief"), &artifact); err != nil {
+			t.Fatalf("failed to decode e2e-brief: %v", err)
 		}
 		found := false
-		for _, sec := range artifact.Sections {
-			if sec.Name == "Secrets Policy" && sec.Required {
+		for _, field := range artifact.Fields {
+			if field.Name == "credential_policy" && field.Required {
 				found = true
-				if !strings.Contains(sec.Description, "real-only") {
-					t.Errorf("expected Secrets Policy to state the narrow exception, got: %s", sec.Description)
+				if !strings.Contains(field.Description, "real-only") {
+					t.Errorf("expected credential_policy to state the narrow exception, got: %s", field.Description)
 				}
 				break
 			}
 		}
 		if !found {
-			t.Errorf("expected e2e-test-spec to require Secrets Policy section")
+			t.Errorf("expected e2e-brief to require credential_policy field")
 		}
 	}
 
@@ -3687,7 +3669,7 @@ func TestCLI_E2ESecretsHygiene(t *testing.T) {
 		for _, field := range artifact.Fields {
 			if field.Name == "secrets_attestation" && field.Required {
 				found = true
-				for _, required := range []string{"ATTESTED:THROWAWAY", "ATTESTED:MIXED", "ENV_BLOCKED", "GENERATOR_UNAVAILABLE", "POLICY_MISSING", "AUTHORIZATION_DENIED", "PROVISIONING_FAILED"} {
+				for _, required := range []string{"ATTESTED:THROWAWAY", "ATTESTED:MIXED", "ENV_BLOCKED", "GENERATOR_UNAVAILABLE", "AUTHORIZATION_DENIED", "PROVISIONING_FAILED"} {
 					if !strings.Contains(field.Description, required) {
 						t.Errorf("expected secrets_attestation to reference %q", required)
 					}
@@ -3802,7 +3784,6 @@ func TestCLI_E2ESecretsHygiene(t *testing.T) {
 			"ATTESTED:MIXED",
 			"ENV_BLOCKED",
 			"GENERATOR_UNAVAILABLE",
-			"POLICY_MISSING",
 			"AUTHORIZATION_DENIED",
 			"PROVISIONING_FAILED",
 			"sorted",
@@ -3841,14 +3822,10 @@ func TestCLI_E2ESecretsHygiene(t *testing.T) {
 			}
 		}
 
-		var spec knowledge.Artifact
-		if err := json.Unmarshal(queryJSON("artifact", "e2e-test-spec"), &spec); err != nil {
-			t.Fatalf("failed to decode e2e-test-spec: %v", err)
-		}
-		specDesc := ""
-		for _, sec := range spec.Sections {
-			if sec.Name == "Secrets Policy" {
-				specDesc = sec.Description
+		policyDesc := ""
+		for _, field := range brief.Fields {
+			if field.Name == "credential_policy" {
+				policyDesc = field.Description
 			}
 		}
 		for _, required := range []string{
@@ -3858,7 +3835,7 @@ func TestCLI_E2ESecretsHygiene(t *testing.T) {
 			"break-glass",
 			"unconditionally prohibited",
 		} {
-			if !strings.Contains(specDesc, required) {
+			if !strings.Contains(policyDesc, required) {
 				t.Errorf("expected policy contract to state %q", required)
 			}
 		}
@@ -3916,15 +3893,48 @@ func TestCLI_E2ESecretsHygiene(t *testing.T) {
 			t.Errorf("MIXED names with missing entry accepted, want rejection")
 		}
 
-		// Policy-less specification rejected at preflight contract. The
-		// verdict is driven by the required section set read from the
-		// queried specification artifact.
-		requiredSections := catalogRequiredSectionNames(spec)
-		if specFixtureAdmitted([]string{"Scenario Matrix and Given When Then"}, requiredSections) {
-			t.Errorf("policy-less spec fixture accepted at preflight, want rejection")
+		// Policy-less brief rejected at preflight contract. The
+		// verdict is driven by the required field set read from the
+		// queried brief artifact.
+		requiredBrief := catalogRequiredFieldNames(brief)
+		if briefFixtureAdmitted([]string{"run_id"}, requiredBrief) {
+			t.Errorf("policy-less brief fixture accepted at preflight, want rejection")
 		}
-		if !specFixtureAdmitted(requiredSections, requiredSections) {
-			t.Errorf("policy-bearing spec fixture rejected at preflight, want admission")
+		if !briefFixtureAdmitted(requiredBrief, requiredBrief) {
+			t.Errorf("policy-bearing brief fixture rejected at preflight, want admission")
+		}
+	}
+}
+
+func TestE2EReportFinalizationRule(t *testing.T) {
+	t.Parallel()
+
+	queryJSON := func(args ...string) []byte {
+		t.Helper()
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(args, &stdout, &stderr, "dev"); err != nil {
+			t.Fatalf("cli.Execute(%v) failed: %v\nStderr: %s", args, err, stderr.String())
+		}
+		return stdout.Bytes()
+	}
+
+	var rules []knowledge.Rule
+	if err := json.Unmarshal(queryJSON("rule", "explain", "e2e-report-finalization"), &rules); err != nil {
+		t.Fatalf("failed to decode e2e-report-finalization rule: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(rules))
+	}
+	rule := rules[0]
+	if rule.ID != "e2e-report-finalization" {
+		t.Errorf("expected ID e2e-report-finalization, got %s", rule.ID)
+	}
+	if rule.Category != "protocol" {
+		t.Errorf("expected category protocol, got %s", rule.Category)
+	}
+	for _, required := range []string{"VERIFIER", "CONTROLLER_RUNNER_LOST", "idempotent", "immutable"} {
+		if !strings.Contains(rule.Details, required) {
+			t.Errorf("expected rule details to reference %q", required)
 		}
 	}
 }
