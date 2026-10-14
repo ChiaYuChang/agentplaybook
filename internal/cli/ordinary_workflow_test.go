@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -683,18 +684,25 @@ func TestOrdinary_PLAN01_NoPathToBuilderRoutingWithoutPlanReviewPass(t *testing.
 		t.Errorf("unexpected step 2 transitions: %v", s2Conds)
 	}
 
-	// 4. Step 5 (review) transitions: only PLAN_REVIEW_PASS -> 7 and PLAN_REVIEW_REJECT -> 6
+	// 4. Step 5 (review) transitions: PLAN_REVIEW_PASS -> 7, PLAN_REVIEW_REJECT -> 6, PLAN_DIGEST_MISMATCH -> 6
 	step5 := mustStep(t, f, 5)
 	s5Conds := stepConditions(step5)
-	if len(s5Conds) != 2 || s5Conds["PLAN_REVIEW_PASS"] != finalStep || s5Conds["PLAN_REVIEW_REJECT"] != 6 {
+	if len(s5Conds) != 3 || s5Conds["PLAN_REVIEW_PASS"] != 7 || s5Conds["PLAN_REVIEW_REJECT"] != 6 || s5Conds["PLAN_DIGEST_MISMATCH"] != 6 {
 		t.Errorf("unexpected step 5 transitions: %v", s5Conds)
 	}
 
-	// 5. Step 6 (revision after rejection) transitions: only PLANS_REVISED -> 4 (must resubmit, cannot jump to 5 or 7)
+	// 5. Step 6 (revision after rejection) transitions: only PLANS_REVISED -> 4 (must resubmit, cannot jump to 5, 7, or 8)
 	step6 := mustStep(t, f, 6)
 	s6Conds := stepConditions(step6)
 	if len(s6Conds) != 1 || s6Conds["PLANS_REVISED"] != 4 {
 		t.Errorf("unexpected step 6 transitions (must route to resubmission step 4): %v", s6Conds)
+	}
+
+	// 6. Step 7 (post-approval digest verification) transitions: PLAN_DIGEST_VERIFIED -> 8 and PLAN_DIGEST_MISMATCH -> 6
+	step7 := mustStep(t, f, 7)
+	s7Conds := stepConditions(step7)
+	if len(s7Conds) != 2 || s7Conds["PLAN_DIGEST_VERIFIED"] != finalStep || s7Conds["PLAN_DIGEST_MISMATCH"] != 6 {
+		t.Errorf("unexpected step 7 transitions: %v", s7Conds)
 	}
 }
 
@@ -806,16 +814,320 @@ func TestOrdinary_CatalogRoleArtifactTwoGateWordingQualified(t *testing.T) {
 	}
 }
 
-// VERSION-01: canonical version is exactly v0.5.1 across version.Release(), CLI output, and init template header.
-func TestOrdinary_VERSION01_ReleaseVersionV051(t *testing.T) {
+// VERSION-01: canonical version uses v<major>.<minor>.<patch> across the CLI and init template.
+func TestOrdinary_VERSION01_ReleaseVersionFormat(t *testing.T) {
 	t.Parallel()
 
-	if got := versioninfo.Release(); got != "v0.5.1" {
-		t.Errorf("versioninfo.Release() = %q, want v0.5.1", got)
+	release := versioninfo.Release()
+	versionPattern := regexp.MustCompile(`^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$`)
+	if !versionPattern.MatchString(release) {
+		t.Fatalf("versioninfo.Release() = %q, want v<major>.<minor>.<patch>", release)
+	}
+
+	var stdout, stderr bytes.Buffer
+	if err := cli.Execute([]string{"--version"}, &stdout, &stderr, ""); err != nil {
+		t.Fatalf("CLI --version failed: %v", err)
+	}
+	if got := strings.TrimSpace(stdout.String()); got != release {
+		t.Errorf("CLI --version = %q, want canonical release %q", got, release)
 	}
 
 	tmpl := cli.DefaultLivingMemoryTemplate()
-	if !strings.Contains(tmpl, "AgentPlaybook v0.5.1 Living Memory Blueprint") {
-		t.Errorf("default template header must reference v0.5.1, got: %s", tmpl[:200])
+	if !strings.Contains(tmpl, "AgentPlaybook "+release+" Living Memory Blueprint") {
+		t.Errorf("default template header must reference canonical release %q", release)
+	}
+}
+
+// TDD Scenarios 1-7 for Reviewed Plan Digest Binding (plan-approval-integrity)
+
+// Scenario 1: Given the ordinary plan flow, when a caller queries flow plan, then the output
+// shows digest creation before review, Reviewer-bound approval, a post-pass digest verification path,
+// and no Builder route on mismatch.
+func TestPlanDigest_Scenario01_PlanFlowDigestLifecycle(t *testing.T) {
+	t.Parallel()
+	f := ordinaryFlow(t, "plan")
+
+	if len(f.Steps) != 8 {
+		t.Fatalf("expected 8 steps in plan flow, got %d", len(f.Steps))
+	}
+
+	// Step 3: Planner authors plan and computes SHA-256 digest
+	s3 := mustStep(t, f, 3)
+	if !strings.Contains(s3.Action, "compute lowercase 64-hex SHA-256 digest") {
+		t.Errorf("step 3 must compute SHA-256 digest: %s", s3.Action)
+	}
+
+	// Step 4: Planner submits plan and digest
+	s4 := mustStep(t, f, 4)
+	if !strings.Contains(s4.Action, "SHA-256 digest") {
+		t.Errorf("step 4 must submit SHA-256 digest: %s", s4.Action)
+	}
+
+	// Step 5: Reviewer verifies digest, issues plan-approval, emits PLAN_REVIEW_PASS -> 7, or rejects on mismatch -> 6
+	s5 := mustStep(t, f, 5)
+	if !strings.Contains(s5.Action, "independently compute and verify the lowercase 64-hex SHA-256 digest") ||
+		!strings.Contains(s5.Action, "plan-approval") {
+		t.Errorf("step 5 must independently verify digest and issue plan-approval: %s", s5.Action)
+	}
+	s5Conds := stepConditions(s5)
+	if s5Conds["PLAN_REVIEW_PASS"] != 7 || s5Conds["PLAN_DIGEST_MISMATCH"] != 6 || s5Conds["PLAN_REVIEW_REJECT"] != 6 {
+		t.Errorf("unexpected step 5 conditions: %v", s5Conds)
+	}
+
+	// Step 7: Planner verifies plan-approval and bytes, routes PLAN_DIGEST_VERIFIED -> 8 or PLAN_DIGEST_MISMATCH -> 6
+	s7 := mustStep(t, f, 7)
+	if !strings.Contains(s7.Action, "re-verify the Reviewer-issued plan-approval") || !strings.Contains(s7.Action, "recheck actual build-plan file bytes") {
+		t.Errorf("step 7 must re-verify plan-approval and actual bytes: %s", s7.Action)
+	}
+	s7Conds := stepConditions(s7)
+	if s7Conds["PLAN_DIGEST_VERIFIED"] != 8 || s7Conds["PLAN_DIGEST_MISMATCH"] != 6 {
+		t.Errorf("unexpected step 7 conditions: %v", s7Conds)
+	}
+
+	// Step 8: Terminal finalization and handoff with plan-approval
+	s8 := mustStep(t, f, 8)
+	if !s8.Terminal || !strings.Contains(s8.Action, "plan-approval") || !strings.Contains(s8.Action, "build flow") {
+		t.Errorf("step 8 must be terminal and hand off plan-approval to build flow: %s", s8.Action)
+	}
+}
+
+// Scenario 2: Given a valid Reviewer-issued approval, when Builder receives changed plan bytes
+// plus a recomputed matching checksum manifest but the approval is unchanged, then Builder rejects
+// PLAN_DIGEST_MISMATCH, makes no edits, and does not complete the handoff.
+func TestPlanDigest_Scenario02_ChangedPlanRecomputedManifestRejected(t *testing.T) {
+	t.Parallel()
+	rule := ordinaryRule(t, "plan-approval-integrity")
+	corpus := rule.Summary + "\n" + rule.Details + "\n" + strings.Join(rule.Guidelines, "\n")
+
+	for _, phrase := range []string{
+		"manifest",
+		"verification vehicle",
+		"PLAN_DIGEST_MISMATCH",
+		"fails closed",
+		"re-review",
+	} {
+		if !strings.Contains(strings.ToLower(corpus), strings.ToLower(phrase)) {
+			t.Errorf("plan-approval-integrity rule must state %q", phrase)
+		}
+	}
+
+	// Replacement plan plus recomputed manifest cannot pass against unchanged Reviewer approval.
+	if !strings.Contains(corpus, "replacing a plan along with a recomputed manifest cannot pass against unchanged Reviewer approval metadata") {
+		t.Errorf("rule must explicitly document that replacement plan + recomputed manifest cannot pass against unchanged approval")
+	}
+	if !strings.Contains(corpus, "recomputed manifest with unchanged approval fails closed") {
+		t.Errorf("rule must explicitly document that recomputed manifest with unchanged approval fails closed")
+	}
+
+	build := ordinaryFlow(t, "build")
+	s2 := mustStep(t, build, 2)
+	s2Conds := stepConditions(s2)
+	if s2Conds["PLAN_DIGEST_MISMATCH"] != 4 {
+		t.Errorf("build step 2 must route PLAN_DIGEST_MISMATCH directly to terminal stop step 4, got: %v", s2Conds)
+	}
+
+	// Terminal Planner stop step 4 fails closed and requires independent fresh review before resumption.
+	s4 := mustStep(t, build, 4)
+	if !s4.Terminal {
+		t.Errorf("build step 4 must be terminal")
+	}
+	if len(s4.Conditions) != 0 {
+		t.Errorf("terminal build step 4 must not have outgoing conditions to resume builder directly, got: %v", s4.Conditions)
+	}
+	if !strings.Contains(s4.Action, "independent fresh plan review before Builder resumption") {
+		t.Errorf("build step 4 must explicitly require independent fresh plan review before resumption: %s", s4.Action)
+	}
+	if !strings.Contains(s4.Action, "resumption without fresh approval is prohibited") {
+		t.Errorf("build step 4 must explicitly prohibit resumption without fresh approval: %s", s4.Action)
+	}
+
+	// Boundary clarification step 3 cannot resume builder on digest mismatch or invalid approval.
+	s3 := mustStep(t, build, 3)
+	s3Conds := stepConditions(s3)
+	if _, hasDigest := s3Conds["PLAN_DIGEST_MISMATCH"]; hasDigest {
+		t.Errorf("step 3 clarification must not handle PLAN_DIGEST_MISMATCH directly: %v", s3Conds)
+	}
+	if _, hasInvalid := s3Conds["PLAN_APPROVAL_INVALID"]; hasInvalid {
+		t.Errorf("step 3 clarification must not handle PLAN_APPROVAL_INVALID directly: %v", s3Conds)
+	}
+}
+
+// Scenario 3: Given missing or malformed approval fields, when Builder preflights the handoff,
+// then it emits PLAN_APPROVAL_INVALID, makes no edits, and returns to Planner for re-review.
+func TestPlanDigest_Scenario03_MissingOrMalformedApprovalEmitsInvalid(t *testing.T) {
+	t.Parallel()
+	a := ordinaryArtifact(t, "plan-approval")
+	if a.Type != "message" || a.Owner != knowledge.RoleReviewer {
+		t.Fatalf("unexpected plan-approval artifact metadata: %+v", a)
+	}
+	expectedFields := []string{"approval_id", "gate", "decision", "plan_path", "sha256", "reviewer_peer_id", "reviewed_at_utc"}
+	fieldMap := make(map[string]knowledge.ArtifactField)
+	for _, f := range a.Fields {
+		fieldMap[f.Name] = f
+		if !f.Required {
+			t.Errorf("field %s in plan-approval must be required", f.Name)
+		}
+	}
+	for _, ef := range expectedFields {
+		if _, ok := fieldMap[ef]; !ok {
+			t.Errorf("missing expected field %s in plan-approval", ef)
+		}
+	}
+
+	build := ordinaryFlow(t, "build")
+	s2 := mustStep(t, build, 2)
+	s2Conds := stepConditions(s2)
+	if s2Conds["PLAN_APPROVAL_INVALID"] != 4 {
+		t.Errorf("build step 2 must route PLAN_APPROVAL_INVALID directly to terminal stop step 4, got: %v", s2Conds)
+	}
+
+	// Confirm step 4 is terminal with no direct resumption of Builder.
+	s4 := mustStep(t, build, 4)
+	if !s4.Terminal {
+		t.Errorf("build step 4 must be terminal")
+	}
+}
+
+// Scenario 4: Given matching approval at preflight but changed bytes before diff handoff,
+// when Builder rechecks, then it emits PLAN_DIGEST_MISMATCH, stops further edits, and does not report successful diff handoff.
+func TestPlanDigest_Scenario04_PostPreflightDriftRecheckRejection(t *testing.T) {
+	t.Parallel()
+	build := ordinaryFlow(t, "build")
+	s5 := mustStep(t, build, 5)
+	if !strings.Contains(s5.Action, "Re-verify build-plan exact bytes against the Reviewer-approved SHA-256 digest") {
+		t.Errorf("build step 5 must re-verify plan bytes before diff handoff: %s", s5.Action)
+	}
+	s5Conds := stepConditions(s5)
+	if s5Conds["PLAN_DIGEST_MISMATCH"] != 4 || s5Conds["HANDOFF_READY"] != 6 {
+		t.Errorf("build step 5 conditions must route PLAN_DIGEST_MISMATCH -> 4 and HANDOFF_READY -> 6, got: %v", s5Conds)
+	}
+
+	// Confirm drift failure fails closed into terminal stop step 4 with no path to diff handoff step 6 absent fresh review.
+	s4 := mustStep(t, build, 4)
+	if !s4.Terminal {
+		t.Errorf("build step 4 must be terminal")
+	}
+}
+
+// Scenario 5: Given a matching approval, when Builder follows the build flow, then it verifies before implementation,
+// uses the same plan bytes, and rechecks before diff handoff.
+func TestPlanDigest_Scenario05_MatchingApprovalFullBuildLifecycle(t *testing.T) {
+	t.Parallel()
+	build := ordinaryFlow(t, "build")
+
+	// Step 1: Planner dispatches plan with plan-approval
+	s1 := mustStep(t, build, 1)
+	if !strings.Contains(s1.Action, "plan-approval") {
+		t.Errorf("build step 1 must mention plan-approval: %s", s1.Action)
+	}
+
+	// Step 2: Builder preflights and verifies before edits
+	s2 := mustStep(t, build, 2)
+	if !strings.Contains(s2.Action, "Preflight") || !strings.Contains(s2.Action, "independently verify exact build-plan bytes match the approved SHA-256 digest") {
+		t.Errorf("build step 2 must preflight and verify plan bytes: %s", s2.Action)
+	}
+	s2Conds := stepConditions(s2)
+	if s2Conds["IMPLEMENTATION_COMPLETE"] != 5 {
+		t.Errorf("build step 2 must route IMPLEMENTATION_COMPLETE to step 5, got: %v", s2Conds)
+	}
+
+	// Step 5: Builder re-verifies bytes before diff handoff
+	s5 := mustStep(t, build, 5)
+	s5Conds := stepConditions(s5)
+	if s5Conds["HANDOFF_READY"] != 6 {
+		t.Errorf("build step 5 must route HANDOFF_READY to step 6, got: %v", s5Conds)
+	}
+}
+
+// Scenario 6: Given a finalized Blueprint JIT sub-build-plan, when CONTRACT_REVIEW_PASS is issued,
+// then its exact digest is bound in plan-approval; mismatch at review or Builder handoff returns to revision,
+// while all existing gates remain required.
+func TestPlanDigest_Scenario06_BlueprintJITDigestBinding(t *testing.T) {
+	t.Parallel()
+	bp := ordinaryFlow(t, "blueprint")
+	if len(bp.Steps) != 17 {
+		t.Fatalf("blueprint flow must preserve 17 steps, got %d", len(bp.Steps))
+	}
+
+	// Step 7: Planner authors sub-build-plan and computes SHA-256 digest
+	s7 := mustStep(t, bp, 7)
+	if !strings.Contains(s7.Action, "SHA-256 digest") {
+		t.Errorf("blueprint step 7 must compute SHA-256 digest: %s", s7.Action)
+	}
+
+	// Step 8: Reviewer binds CONTRACT_REVIEW_PASS in plan-approval
+	s8 := mustStep(t, bp, 8)
+	if !strings.Contains(s8.Action, "plan-approval") || !strings.Contains(s8.Action, "CONTRACT_REVIEW_PASS") {
+		t.Errorf("blueprint step 8 must bind CONTRACT_REVIEW_PASS in plan-approval: %s", s8.Action)
+	}
+	s8Conds := stepConditions(s8)
+	if s8Conds["PLAN_DIGEST_MISMATCH"] != 9 || s8Conds["CONTRACT_REVIEW_PASS"] != 10 {
+		t.Errorf("blueprint step 8 conditions unexpected: %v", s8Conds)
+	}
+
+	// Step 10: Builder validates approval and re-verifies bytes before diff handoff
+	s10 := mustStep(t, bp, 10)
+	if !strings.Contains(s10.Action, "plan-approval") || !strings.Contains(s10.Action, "SHA-256") {
+		t.Errorf("blueprint step 10 must validate plan-approval and SHA-256: %s", s10.Action)
+	}
+	s10Conds := stepConditions(s10)
+	if s10Conds["PLAN_APPROVAL_INVALID"] != 9 || s10Conds["PLAN_DIGEST_MISMATCH"] != 9 || s10Conds["IMPLEMENTATION_COMPLETE"] != 11 {
+		t.Errorf("blueprint step 10 conditions unexpected: %v", s10Conds)
+	}
+}
+
+// Scenario 7: Given the AgentPlaybook discovery and generated-document outputs, when queried/rendered,
+// then the plan-approval schema, digest-bound role guidance, and unchanged CLI JSON field/type shapes
+// are visible and consistent.
+func TestPlanDigest_Scenario07_DiscoveryAndGuidanceConsistency(t *testing.T) {
+	t.Parallel()
+
+	// Artifact discovery
+	a := ordinaryArtifact(t, "plan-approval")
+	if a.Owner != knowledge.RoleReviewer {
+		t.Errorf("plan-approval owner must be reviewer, got %s", a.Owner)
+	}
+	expectedVisibility := []knowledge.Role{knowledge.RolePlanner, knowledge.RoleReviewer, knowledge.RoleBuilder}
+	if !slices.Equal(a.Visibility, expectedVisibility) {
+		t.Errorf("plan-approval visibility must be %v, got %v", expectedVisibility, a.Visibility)
+	}
+
+	// Role discovery: planner, reviewer, builder
+	planner := ordinaryRole(t, "planner")
+	plannerText := strings.Join(planner.Responsibilities, "\n") + "\n" + strings.Join(planner.Boundaries, "\n")
+	if !strings.Contains(plannerText, "SHA-256") || !strings.Contains(plannerText, "plan-approval") {
+		t.Errorf("planner role must mention SHA-256 and plan-approval: %s", plannerText)
+	}
+
+	reviewer := ordinaryRole(t, "reviewer")
+	reviewerText := strings.Join(reviewer.Responsibilities, "\n") + "\n" + strings.Join(reviewer.Boundaries, "\n")
+	if !strings.Contains(reviewerText, "SHA-256") || !strings.Contains(reviewerText, "plan-approval") {
+		t.Errorf("reviewer role must mention SHA-256 and plan-approval: %s", reviewerText)
+	}
+
+	builder := ordinaryRole(t, "builder")
+	builderText := strings.Join(builder.Responsibilities, "\n") + "\n" + strings.Join(builder.Boundaries, "\n")
+	if !strings.Contains(builderText, "SHA-256") || !strings.Contains(builderText, "plan-approval") {
+		t.Errorf("builder role must mention SHA-256 and plan-approval: %s", builderText)
+	}
+
+	// Rule discovery
+	rule := ordinaryRule(t, "plan-approval-integrity")
+	if rule.ID != "plan-approval-integrity" {
+		t.Errorf("rule ID mismatch: %s", rule.ID)
+	}
+
+	// Document synchronization (README, SKILL)
+	for _, docPath := range []string{"../../README.md", "../../SKILL.md"} {
+		content, err := os.ReadFile(docPath)
+		if err != nil {
+			t.Fatalf("reading %s: %v", docPath, err)
+		}
+		docStr := string(content)
+		for _, token := range []string{"plan-approval", "plan-approval-integrity"} {
+			if !strings.Contains(docStr, token) {
+				t.Errorf("%s must contain %q", docPath, token)
+			}
+		}
 	}
 }

@@ -4,7 +4,7 @@
 
 - **Repository Tier**: Tier 3 Orchestration Protocol (`AgentPlaybook`). Roles: `planner`, `reviewer`, `external-reviewer`, `builder`, `scout`, `verifier` (category: `core`), `navigator`, `cartographer` (category: `companion`). Flows: `init`, `plan`, `blueprint`, `build`, `review`, `commit`, `cartography`, `navigator-cartography`, `session-handoff`, `e2e`. Memory: living `AGENTS.md`.
 - **External Interfaces**: Go CLI (`agentplaybook`) discovery commands (`role`, `flow`, `artifact`, `rule`) and scaffolding (`init`) with JSON/markdown output.
-- **Artifact Governance**: Hierarchical structure with `blueprint-plan` (`<slug>.blueprint.md`), `sub-build-plan` (`sub/<slug>.build.md`), `sub-review-plan` (`sub/<slug>.review.md`), `sub-review-resolution` (`sub/<slug>.resolution.md`), top-level `review-resolution` (`<slug>.resolution.md`), `external-review-report` visible only to `planner` and `external-reviewer`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-test-spec`, `e2e-clarification-request`, and `e2e-report`.
+- **Artifact Governance**: Hierarchical structure with `blueprint-plan` (`<slug>.blueprint.md`), `sub-build-plan` (`sub/<slug>.build.md`), `sub-review-plan` (`sub/<slug>.review.md`), `sub-review-resolution` (`sub/<slug>.resolution.md`), top-level `review-resolution` (`<slug>.resolution.md`), `plan-approval` visible to `planner`, `reviewer`, and `builder`, `external-review-report` visible only to `planner` and `external-reviewer`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-test-spec`, `e2e-clarification-request`, and `e2e-report`.
 - **Blind Barrier, Scout Isolation & Companion/Verifier Allowlists**: `review-findings` strictly restricted to `["planner", "reviewer"]`; Builder receives only Planner-sanitized remediation instructions. External Reviewer is strictly excluded from `review-plan`, `sub-review-plan`, and raw `review-findings`. Scout strictly excluded from all task in-flight artifacts (`build-plan`, `review-plan`, `blueprint-plan`, `sub-*`, `review-findings`). Navigator, Cartographer, and Verifier visibility strictly constrained by Settled-Artifact Allowlist (`agents-md`, `review-resolution`, `sub-review-resolution`) plus authorized domain message artifacts (`diagram-brief`, `diagram-completion`, `diagram-clarification-request` for companions; `e2e-brief`, `e2e-report`, `e2e-test-spec`, `e2e-clarification-request` for verifier); in-flight draft plans and review artifacts strictly exclude companions and verifier. Navigator acts only in `navigator-cartography` flow; Cartographer owns only `diagram-completion` and `diagram-clarification-request` and acts only in `cartography` and `navigator-cartography` flows; Verifier owns `e2e-report` and `e2e-clarification-request`, and acts only in `e2e` flow.
 - **Verifier Role & Out-of-Tree E2E Isolation**:
   - System Verifier: Specialized runner executing heavy end-to-end, multi-service, and scenario suites in an isolated out-of-tree sandbox/clone (`mktemp -d /tmp/e2e-XXXXXX` or test mirror).
@@ -46,6 +46,7 @@
 - **No Background Auto-Update**: Updates user-initiated only. Runner never polls, downloads, or mutates repository in background without explicit invocation.
 - **Coherent Plan Units**: Ordinary work uses one coherent single-plan unit and does not require Blueprint or sub-plans. Opt-in legacy Blueprint uses JIT sub-plans; Reviewer challenges excessive consolidation.
 - **Interaction Contract Review**: Ordinary build plan includes affected contracts and public Given/When/Then TDD cases; one substantive `PLAN_REVIEW_PASS` authorizes Builder routing. Ordinary shared-contract changes reassess affected consumers and invalidate affected approvals/evidence only. Separate contract gates and JIT review apply strictly to opt-in legacy Blueprint/sub-plan flows. Preserve code review and E2E admission as independent later gates.
+- **Plan Approval Integrity**: Reviewer binds exact Builder-visible plan bytes to lowercase 64-hex SHA-256 in `plan-approval` with canonical plan path and gate. Planner forwards Reviewer record unchanged. Builder verifies approval and plan bytes before work and before diff handoff; missing/invalid approval or mismatch halts work for independent re-review. Checksum manifests are non-authoritative; SHA-256 is not a signature. CLI flows provide guidance, not automatic checksum execution.
 - **Bounded Builder Autonomy**: Builder works within approved module/behavior boundary plus explicit exclusions. Public Given/When/Then drives RED/GREEN/refactor; no mandatory pre-code alignment. Escalate protected shared/public contract changes, ambiguous boundaries, and new requirements to Planner. Non-behavioral work uses static/specification evidence.
 - **External Review**: Separate core `external-reviewer` is user-requested, fresh-session, fixed-candidate, and Planner-only. External review is optional; it never replaces internal acceptance or authorizes publication.
 - **Finding Severity**: Exactly `Blocker`, `Major`, `Minor`, `Other`. Unresolved Blocker blocks `REVIEW_PASS`; Major requires resolution or documented Planner waiver; Minor/Other non-blocking.
@@ -55,7 +56,7 @@
 
 - **CLI Role Discovery Sole Truth**: Query roles via `agentplaybook role <name>` backed by `internal/data/roles.json`.
 - **Step Sequence Validation**: `validate.go` requires linear steps to sequence to `Index+1`. Conditional branches require explicit condition targets.
-- **Flow Indices**: `flow plan` has 7 steps; `flow blueprint` has 17. Recheck numeric references in docs and tests when changing either flow.
+- **Flow Indices**: `flow plan` has 8 steps; `flow blueprint` has 17. Recheck numeric references in docs and tests when changing either flow.
 - **Go Embed Data Invalidation**: `internal/data/*.json` embedded via `embed.go`. Syntax errors invalidate full CLI test suite.
 - **`rtk git diff` Path Scope**: Include `--no-ext-diff` before `--` to prevent path filters being parsed as revisions.
 - **`flow commit` Non-Mutating Command**: `agentplaybook flow commit` queryable workflow metadata only; coordinator flow, not mutating binary CLI command.
@@ -63,7 +64,7 @@
 - **`AGENTPLAYBOOK_DEV=1` Cache Race**: Concurrent CLI queries with `AGENTPLAYBOOK_DEV=1` trigger build race on cache (`text file busy`). Run development queries sequentially.
 - **Stateless Replaceability**: Builder stateless/disposable. Bloated or rate-limited sessions replaced from approved build plans without compaction token overhead.
 - **Artifact Data Shape**: Message artifacts use `ArtifactField`; document artifacts use `ArtifactSection`. JSON syntax or missing embedded rule/artifact references invalidate the CLI test suite.
-- **Version Scenario Pin**: `TestOrdinary_VERSION01_ReleaseVersionV050` pins `v0.5.0`; synchronize its expected value on future canonical version bumps. `internal/version/VERSION` remains sole release source.
+- **Version Scenario Format**: `VERSION-01` validates canonical CLI output and generated template header against `v<major>.<minor>.<patch>`; `internal/version/VERSION` remains sole release source.
 - **Non-Behavioral Review Evidence**: Docs, schema, and contract-rule findings use static/specification evidence and must not create artificial RED test harnesses.
 
 ## Reviewer Precautions & Checklist
@@ -80,9 +81,9 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-10-12T14:16:38Z @ 5d719d6`
-- **Dirty Status**: Signed `general-workflow-simplification` commit `5d719d6` is on `main`; canonical source version `v0.5.0`. Latest GitHub Release remains `v0.4.6`; no `v0.5.0` release. Working copy contains only pre-existing untracked `opencode.json`, excluded from the commit.
-- **Milestone**: `general-workflow-simplification` - internal code `REVIEW_PASS`; E2E not required with reviewed rationale; `AGENTS_REVIEW_PASS` and scoped secret scan passed; signed commit pushed to `main`.
+- **Observed-At**: `2026-10-14T15:46:39Z @ 48dfe1a2` (task baseline)
+- **Dirty Status**: `plan-digest-binding` candidate in working copy; parent `48dfe1a2` (`main`, `v0.5.1`). No commit or push.
+- **Milestone**: `plan-digest-binding` - implementation and local verification complete; Reviewer passed code candidate `2b308040`; current delta is Planner-owned Active State only. No commit or push.
 - **Scaffolding Vault**: project-first `~/.agentplaybook/<project>/{plan,e2e}` (single root binding; legacy type-first auto-migrates).
-- **Next Pickup Item**: No task in flight. Preserve untracked `opencode.json` outside candidate. Any `v0.5.0` tag/release or E2E execution requires a separate user request.
+- **Next Pickup Item**: Await explicit human commit intent. Commit, tag, release, push, or formal E2E requires separate authorization.
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

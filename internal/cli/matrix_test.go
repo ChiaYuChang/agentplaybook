@@ -124,6 +124,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"artifact", "e2e-brief"},
 		{"artifact", "e2e-report"},
 		{"artifact", "e2e-clarification-request"},
+		{"artifact", "plan-approval"},
 		{"rule", "list"},
 		{"rule", "explain", "anti-cheating"},
 		{"rule", "explain", "coherent-plan-units"},
@@ -165,6 +166,7 @@ func TestCLI_GoldenJSONMatrix(t *testing.T) {
 		{"rule", "explain", "e2e-secrets-hygiene"},
 		{"rule", "explain", "e2e-report-finalization"},
 		{"rule", "explain", "scaffolding-vault-isolation"},
+		{"rule", "explain", "plan-approval-integrity"},
 	}
 
 	for _, cmd := range jsonCommands {
@@ -802,8 +804,8 @@ func TestCLI_InteractionContractGate(t *testing.T) {
 	if err := json.Unmarshal(queryJSON("flow", "plan"), &planFlow); err != nil {
 		t.Fatalf("failed to decode plan flow: %v", err)
 	}
-	if len(planFlow.Steps) != 7 {
-		t.Fatalf("expected 7 plan-flow steps, got %d", len(planFlow.Steps))
+	if len(planFlow.Steps) != 8 {
+		t.Fatalf("expected 8 plan-flow steps, got %d", len(planFlow.Steps))
 	}
 	planReviewPassTarget := 0
 	for _, condition := range planFlow.Steps[4].Conditions {
@@ -811,8 +813,8 @@ func TestCLI_InteractionContractGate(t *testing.T) {
 			planReviewPassTarget = condition.Then
 		}
 	}
-	if planReviewPassTarget != 7 || planFlow.Steps[6].Actor != knowledge.RolePlanner {
-		t.Errorf("single-plan route must finalize after single internal PLAN_REVIEW_PASS, target=%d step7=%+v", planReviewPassTarget, planFlow.Steps[6])
+	if planReviewPassTarget != 7 || planFlow.Steps[6].Actor != knowledge.RolePlanner || planFlow.Steps[7].Actor != knowledge.RolePlanner {
+		t.Errorf("single-plan route must verify digest and finalize after single internal PLAN_REVIEW_PASS, target=%d step7=%+v step8=%+v", planReviewPassTarget, planFlow.Steps[6], planFlow.Steps[7])
 	}
 
 	var blueprintFlow knowledge.Flow

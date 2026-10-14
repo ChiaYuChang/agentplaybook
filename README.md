@@ -15,8 +15,8 @@ Instead of stuffing massive, static role prompts into every agent turn—wasting
 - **5 Orthogonal Knowledge Domains**:
   - `role`: Core and companion participant identities, boundaries, and communication targets (`planner`, `builder`, `reviewer`, `external-reviewer`, `scout`, `navigator`, `cartographer`, `verifier`).
   - `flow`: Deterministic multi-agent procedures with semantic condition transitions (`init`, `plan`, `blueprint`, `build`, `review`, `commit`, `session-handoff`, `cartography`, `e2e`, `navigator-cartography`).
-  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `external-review-report`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-report`, `e2e-clarification-request`).
-  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `bounded-builder-autonomy`, `user-requested-external-review`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `interaction-contract-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`, `navigator-read-only-companion`, `companion-query-zero-side-effect`, `planner-source-restricted-response`, `target-state-gated-inquiry`, `cartographer-visual-architect-boundary`, `cartography-zero-context-pollution`, `cartography-taste-gate-advisory`, `cartography-asynchronous-decoupling`, `cartography-brief-self-sufficiency`, `cartography-clarification-inquiry`, `peer-session-transport-primacy`, `e2e-sandbox-isolation`, `e2e-zero-log-pollution`, `e2e-package-self-sufficiency`, `e2e-clarification-inquiry`, `e2e-immutable-evidence-binding`, `e2e-lifecycle-admission`, `e2e-secrets-hygiene`, `scaffolding-vault-isolation`).
+  - `artifact`: Document and message contracts specifying required sections and visibility boundaries (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `plan-approval`, `external-review-report`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-report`, `e2e-clarification-request`).
+  - `rule`: Concrete operational policies and invariants (`anti-cheating`, `bounded-builder-autonomy`, `user-requested-external-review`, `coherent-plan-units`, `anti-rubber-stamp-plan-gate`, `interaction-contract-gate`, `evidence-proportional-persistence`, `tdd-reproduction`, `agents-md-single-writer`, `acceptance-publication-authority`, `interface-stability-contract-testing`, `session-handoff-audit`, `planner-reviewability`, `review-severity-semantics`, `track-b-action-differential-verification`, `out-of-tree-baseline-mirror`, `navigator-read-only-companion`, `companion-query-zero-side-effect`, `planner-source-restricted-response`, `target-state-gated-inquiry`, `cartographer-visual-architect-boundary`, `cartography-zero-context-pollution`, `cartography-taste-gate-advisory`, `cartography-asynchronous-decoupling`, `cartography-brief-self-sufficiency`, `cartography-clarification-inquiry`, `peer-session-transport-primacy`, `e2e-sandbox-isolation`, `e2e-zero-log-pollution`, `e2e-package-self-sufficiency`, `e2e-clarification-inquiry`, `e2e-immutable-evidence-binding`, `e2e-lifecycle-admission`, `e2e-secrets-hygiene`, `scaffolding-vault-isolation`, `plan-approval-integrity`).
   - `config`: Supported languages, prefix templates, and transport settings.
 - **Progressive Disclosure UX**: Bare discovery commands output concise catalogs (Exit 0); specific queries return clean, indented JSON.
 - **Built for AI Agents**: Automatic self-caching runner script, compatible with [skills.sh](https://skills.sh) across 17+ agent harnesses.
@@ -168,6 +168,7 @@ agentplaybook artifact sub-build-plan
 agentplaybook artifact sub-review-plan
 agentplaybook artifact sub-review-resolution
 agentplaybook artifact review-findings
+agentplaybook artifact plan-approval
 agentplaybook artifact scout-survey
 agentplaybook artifact review-resolution
 agentplaybook artifact diagram-brief
@@ -186,6 +187,7 @@ agentplaybook rule list
 agentplaybook rule explain coherent-plan-units anti-rubber-stamp-plan-gate
 agentplaybook rule explain evidence-proportional-persistence acceptance-publication-authority
 agentplaybook rule explain agents-md-single-writer session-handoff-audit
+agentplaybook rule explain plan-approval-integrity
 ```
 
 ### Hierarchical Blueprint & Governance Architecture

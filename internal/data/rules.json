@@ -596,5 +596,22 @@
       "External review outcome (PASS, FINDINGS, INCOMPLETE) evaluates fixed candidate evidence only; PASS does not authorize remote push or milestone publication.",
       "External assessment may take place after local seal; lack of external review must be documented honestly as not externally assessed."
     ]
+  },
+  {
+    "id": "plan-approval-integrity",
+    "title": "Plan Approval Byte Integrity & Digest Binding Protocol",
+    "category": "protocol",
+    "summary": "Mechanically binds each Reviewer-approved Builder-visible plan to its exact SHA-256 byte digest via a Reviewer-originated plan-approval record forwarded unchanged by Planner, failing closed on mismatch or invalid approval.",
+    "details": "Every Builder-visible plan (build-plan and sub-build-plan) is mechanically bound to its exact bytes using a lowercase 64-hex SHA-256 digest recorded in a Reviewer-originated plan-approval message artifact. Approval authority derives strictly from governed Reviewer handoff provenance, not from the digest itself or a cryptographic signature. Planner forwards the approval record unchanged. Builder must validate the approval metadata (approval ID, gate, decision, canonical vault-relative plan path, digest, reviewer peer identity, and RFC3339 UTC timestamp) and independently verify the plan's exact bytes before reading or editing, and recheck those same bytes before handing off the diff. An optional checksum manifest is merely a verification vehicle whose target and digest must match the Reviewer-issued record; replacing a plan along with a recomputed manifest cannot pass against unchanged Reviewer approval metadata. Any missing or malformed approval field, digest mismatch, or post-preflight drift halts Builder work with PLAN_APPROVAL_INVALID or PLAN_DIGEST_MISMATCH and fails closed directly to terminal Planner stop for independent fresh plan re-review. LLM or visual text comparison is strictly prohibited as an integrity check, and digest metadata must remain outside the hashed plan.",
+    "guidelines": [
+      "Reviewer independently computes the lowercase 64-hex SHA-256 digest over exact finalized plan bytes and issues a structured plan-approval message artifact upon granting PLAN_REVIEW_PASS or CONTRACT_REVIEW_PASS.",
+      "The plan-approval record must contain approval_id, gate, decision, canonical vault-relative plan_path, lowercase 64-hex sha256, reviewer_peer_id, and RFC3339 UTC reviewed_at_utc.",
+      "Approval authority derives solely from governed Reviewer handoff provenance, not from cryptographic signatures; Planner forwards the approval record to Builder completely unchanged.",
+      "Builder must validate required approval metadata and independently verify actual plan bytes against the Reviewer-approved sha256 digest before interpreting or editing code.",
+      "Builder must recheck the exact plan bytes against the approved digest after completing implementation and before handing off the working copy diff.",
+      "Optional checksum manifests are non-authoritative verification vehicle checks; their canonical target and digest must match the Reviewer record, and a recomputed manifest with unchanged approval fails closed.",
+      "Any missing/malformed approval field triggers PLAN_APPROVAL_INVALID; any byte mismatch or post-preflight drift triggers PLAN_DIGEST_MISMATCH, halting Builder edits and failing closed to terminal Planner stop for fresh independent re-review.",
+      "LLM or visual text comparison is strictly prohibited as an integrity mechanism; digest metadata must remain strictly outside the hashed plan file."
+    ]
   }
 ]

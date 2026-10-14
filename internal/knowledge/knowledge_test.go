@@ -169,15 +169,15 @@ func TestLoad_Success(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected plan flow to exist")
 	}
-	if len(planFlow.Steps) != 7 {
-		t.Fatalf("expected 7 steps in plan flow, got %d", len(planFlow.Steps))
+	if len(planFlow.Steps) != 8 {
+		t.Fatalf("expected 8 steps in plan flow, got %d", len(planFlow.Steps))
 	}
 	planStep5, _ := k.FlowStep("plan", 5)
 	planStep5Conditions := make(map[string]int)
 	for _, c := range planStep5.Conditions {
 		planStep5Conditions[c.When] = c.Then
 	}
-	if planStep5Conditions["PLAN_REVIEW_PASS"] != 7 || planStep5Conditions["PLAN_REVIEW_REJECT"] != 6 {
+	if planStep5Conditions["PLAN_REVIEW_PASS"] != 7 || planStep5Conditions["PLAN_REVIEW_REJECT"] != 6 || planStep5Conditions["PLAN_DIGEST_MISMATCH"] != 6 {
 		t.Errorf("unexpected plan gate conditions: %v", planStep5Conditions)
 	}
 	planStep6, _ := k.FlowStep("plan", 6)
@@ -187,6 +187,18 @@ func TestLoad_Success(t *testing.T) {
 	}
 	if planStep6Conditions["PLANS_REVISED"] != 4 {
 		t.Errorf("unexpected plan revision routing: %v", planStep6Conditions)
+	}
+	planStep7, _ := k.FlowStep("plan", 7)
+	planStep7Conditions := make(map[string]int)
+	for _, c := range planStep7.Conditions {
+		planStep7Conditions[c.When] = c.Then
+	}
+	if planStep7Conditions["PLAN_DIGEST_VERIFIED"] != 8 || planStep7Conditions["PLAN_DIGEST_MISMATCH"] != 6 {
+		t.Errorf("unexpected plan step 7 verification routing: %v", planStep7Conditions)
+	}
+	planStep8, _ := k.FlowStep("plan", 8)
+	if !planStep8.Terminal {
+		t.Errorf("expected plan step 8 to be terminal")
 	}
 
 	// Verify direct build entry documents internal PLAN_REVIEW_PASS.
@@ -453,8 +465,8 @@ func TestLoad_Success(t *testing.T) {
 
 	// 4. Verify Artifacts
 	artifacts := k.Artifacts()
-	if len(artifacts) != 17 {
-		t.Fatalf("expected 17 artifacts, got %d", len(artifacts))
+	if len(artifacts) != 18 {
+		t.Fatalf("expected 18 artifacts, got %d", len(artifacts))
 	}
 	for _, expected := range []string{
 		"agents-md",
@@ -465,6 +477,7 @@ func TestLoad_Success(t *testing.T) {
 		"sub-review-plan",
 		"sub-review-resolution",
 		"review-findings",
+		"plan-approval",
 		"review-resolution",
 		"external-review-report",
 		"scout-survey",
@@ -507,6 +520,26 @@ func TestLoad_Success(t *testing.T) {
 	reviewFindings, _ := k.Artifact("review-findings")
 	if len(reviewFindings.Visibility) != 2 || reviewFindings.Visibility[0] != knowledge.RolePlanner || reviewFindings.Visibility[1] != knowledge.RoleReviewer {
 		t.Errorf("expected review-findings visibility strictly [planner reviewer], got %v", reviewFindings.Visibility)
+	}
+	planApproval, _ := k.Artifact("plan-approval")
+	if planApproval.Owner != knowledge.RoleReviewer || planApproval.Type != "message" {
+		t.Errorf("unexpected plan-approval metadata: %+v", planApproval)
+	}
+	if len(planApproval.Visibility) != 3 || planApproval.Visibility[0] != knowledge.RolePlanner || planApproval.Visibility[1] != knowledge.RoleReviewer || planApproval.Visibility[2] != knowledge.RoleBuilder {
+		t.Errorf("expected plan-approval visibility [planner reviewer builder], got %v", planApproval.Visibility)
+	}
+	if len(planApproval.Fields) != 7 {
+		t.Errorf("expected plan-approval to have 7 fields, got %d", len(planApproval.Fields))
+	}
+	planApprovalFieldNames := make(map[string]bool)
+	for _, f := range planApproval.Fields {
+		planApprovalFieldNames[f.Name] = f.Required
+	}
+	for _, field := range []string{"approval_id", "gate", "decision", "plan_path", "sha256", "reviewer_peer_id", "reviewed_at_utc"} {
+		req, ok := planApprovalFieldNames[field]
+		if !ok || !req {
+			t.Errorf("expected required plan-approval field %q", field)
+		}
 	}
 	scoutSurvey, _ := k.Artifact("scout-survey")
 	if scoutSurvey.Owner != knowledge.RoleScout || scoutSurvey.Type != "message" {
@@ -638,6 +671,7 @@ func TestLoad_Success(t *testing.T) {
 		"e2e-lifecycle-admission",
 		"e2e-secrets-hygiene",
 		"scaffolding-vault-isolation",
+		"plan-approval-integrity",
 	} {
 		r, ok := k.Rule(expected)
 		if !ok {

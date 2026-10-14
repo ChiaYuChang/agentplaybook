@@ -103,20 +103,24 @@
       {
         "index": 3,
         "actor": "planner",
-        "action": "Author coherent task build-plan (including public Given/When/Then TDD scenarios published before implementation, authorized module/behavior boundary, explicit exclusions, and affected interaction contracts with reuse evidence) and private review-plan in the resolved plan vault (~/.agentplaybook/<project>/plan/); ordinary shared-contract changes identify affected consumers to invalidate only affected prior plan approvals and require integration acceptance."
+        "action": "Author coherent task build-plan (including public Given/When/Then TDD scenarios published before implementation, authorized module/behavior boundary, explicit exclusions, and affected interaction contracts with reuse evidence) and private review-plan in the resolved plan vault (~/.agentplaybook/<project>/plan/); ordinary shared-contract changes identify affected consumers to invalidate only affected prior plan approvals and require integration acceptance; compute lowercase 64-hex SHA-256 digest over finalized Builder-visible build-plan exact bytes."
       },
       {
         "index": 4,
         "actor": "planner",
-        "action": "Submit task build-plan and review-plan to Reviewer for one substantive internal technical plan review."
+        "action": "Submit task build-plan, private review-plan, and computed plan SHA-256 digest to Reviewer for one substantive internal technical plan review."
       },
       {
         "index": 5,
         "actor": "reviewer",
-        "action": "Review build-plan and review-plan for intent, scope, decomposition, affected interaction contracts, Given/When/Then TDD scenarios, independent verification paths, and E2E classification; evaluate plan structure and evidence without mandating ceremonial split challenges. PLAN_REVIEW_PASS provides internal technical approval and is the sole approval required for Builder dispatch.",
+        "action": "Review build-plan and review-plan for intent, scope, decomposition, affected interaction contracts, Given/When/Then TDD scenarios, independent verification paths, and E2E classification; evaluate plan structure and evidence without mandating ceremonial split challenges; independently compute and verify the lowercase 64-hex SHA-256 digest over exact build-plan bytes; upon successful review, issue a structured plan-approval message artifact and emit PLAN_REVIEW_PASS as the sole approval required for Builder dispatch; on defect or digest mismatch, emit PLAN_REVIEW_REJECT or PLAN_DIGEST_MISMATCH to route to revision.",
         "conditions": [
           {
             "when": "PLAN_REVIEW_REJECT",
+            "then": 6
+          },
+          {
+            "when": "PLAN_DIGEST_MISMATCH",
             "then": 6
           },
           {
@@ -128,7 +132,7 @@
       {
         "index": 6,
         "actor": "planner",
-        "action": "Revise task build-plan and review-plan based on Reviewer feedback, decomposition rationale, and verification requirements.",
+        "action": "Revise task build-plan and review-plan based on Reviewer feedback, decomposition rationale, verification requirements, or digest mismatch; recompute SHA-256 digest over updated build-plan exact bytes.",
         "conditions": [
           {
             "when": "PLANS_REVISED",
@@ -139,7 +143,22 @@
       {
         "index": 7,
         "actor": "planner",
-        "action": "Finalize plan artifacts after PLAN_REVIEW_PASS, record coverage and affected revision identities for ordinary shared-contract changes, and route single-plan work to build flow via blind handover.",
+        "action": "After PLAN_REVIEW_PASS, independently re-verify the Reviewer-issued plan-approval record and recheck actual build-plan file bytes against the approved SHA-256 digest before finalization and routing to build flow; on digest mismatch, fail closed and route to revision (PLAN_DIGEST_MISMATCH -> 6); on verified digest match, advance to finalization (PLAN_DIGEST_VERIFIED -> 8).",
+        "conditions": [
+          {
+            "when": "PLAN_DIGEST_MISMATCH",
+            "then": 6
+          },
+          {
+            "when": "PLAN_DIGEST_VERIFIED",
+            "then": 8
+          }
+        ]
+      },
+      {
+        "index": 8,
+        "actor": "planner",
+        "action": "Finalize plan artifacts after PLAN_REVIEW_PASS and digest verification, record coverage and affected revision identities for ordinary shared-contract changes, and route single-plan work with the unmodified Reviewer plan-approval record to build flow via blind handover.",
         "terminal": true
       }
     ]
@@ -221,12 +240,12 @@
       {
         "index": 7,
         "actor": "planner",
-        "action": "After SUBPLAN_PLAN_PASS, identify scenario-driven interaction boundaries, record ordered reuse evidence, and finalize typed Interaction Contracts for this JIT sub-plan; document concrete not-applicable rationale when no interactions exist."
+        "action": "After SUBPLAN_PLAN_PASS, identify scenario-driven interaction boundaries, record ordered reuse evidence, and finalize typed Interaction Contracts for this JIT sub-plan; document concrete not-applicable rationale when no interactions exist; compute lowercase 64-hex SHA-256 digest over finalized sub-build-plan exact bytes."
       },
       {
         "index": 8,
         "actor": "reviewer",
-        "action": "Independently review the current sub-plan Interaction Contracts or not-applicable rationale; contract approval remains separate from implementation/code review.",
+        "action": "Independently review the current sub-plan Interaction Contracts or not-applicable rationale, independently compute and verify the lowercase 64-hex SHA-256 digest of sub-build-plan exact bytes, and upon approval issue structured plan-approval message artifact binding CONTRACT_REVIEW_PASS to the plan digest; contract approval remains separate from implementation/code review; on defect or digest mismatch, emit CONTRACT_REVIEW_REJECT or PLAN_DIGEST_MISMATCH to route to revision.",
         "conditions": [
           {
             "when": "CONTRACT_REVIEW_PASS",
@@ -234,6 +253,10 @@
           },
           {
             "when": "CONTRACT_REVIEW_REJECT",
+            "then": 9
+          },
+          {
+            "when": "PLAN_DIGEST_MISMATCH",
             "then": 9
           }
         ]
@@ -260,7 +283,21 @@
       {
         "index": 10,
         "actor": "builder",
-        "action": "Implement approved sub-build-plan only after BLUEPRINT_PASS, SHARED_CONTRACT_REVIEW_PASS, SUBPLAN_PLAN_PASS, and CONTRACT_REVIEW_PASS, strictly within declared boundaries and finalized Interaction Contracts; execute local tests and report verified diff and logs to Planner."
+        "action": "Preflight received plan-approval metadata and verify sub-build-plan exact bytes match the Reviewer-approved SHA-256 digest before implementing; implement approved sub-build-plan only after BLUEPRINT_PASS, SHARED_CONTRACT_REVIEW_PASS, SUBPLAN_PLAN_PASS, and CONTRACT_REVIEW_PASS, strictly within declared boundaries and finalized Interaction Contracts; recheck sub-build-plan exact bytes against the approved digest before handoff (failing closed on mismatch or invalid approval back to revision); execute local tests and report verified diff and logs to Planner.",
+        "conditions": [
+          {
+            "when": "PLAN_APPROVAL_INVALID",
+            "then": 9
+          },
+          {
+            "when": "PLAN_DIGEST_MISMATCH",
+            "then": 9
+          },
+          {
+            "when": "IMPLEMENTATION_COMPLETE",
+            "then": 11
+          }
+        ]
       },
       {
         "index": 11,
@@ -370,16 +407,24 @@
       {
         "index": 1,
         "actor": "planner",
-        "action": "After internal technical PLAN_REVIEW_PASS, dispatch the finalized approved build-plan to Builder via blind handover; strictly withhold review-plan artifacts and private criteria. Direct build entry without approval is prohibited."
+        "action": "After internal technical PLAN_REVIEW_PASS, dispatch the finalized approved build-plan and unmodified Reviewer plan-approval record to Builder via blind handover; strictly withhold review-plan artifacts and private criteria. Direct build entry without approval is prohibited."
       },
       {
         "index": 2,
         "actor": "builder",
-        "action": "Autonomously implement minimal required changes within the authorized module/behavior boundary plus explicit exclusions using public Given/When/Then scenarios; execute TDD RED (distinguishing intended assertion failures from setup errors), GREEN, and refactor; non-behavioral tasks supply static/specification evidence; escalate any protected shared or public contract modification or new requirement to Planner.",
+        "action": "Preflight received plan-approval metadata (approval_id, gate PLAN_REVIEW_PASS, passing decision, canonical plan_path, sha256, reviewer_peer_id, reviewed_at_utc) and independently verify exact build-plan bytes match the approved SHA-256 digest before interpreting or editing code (optional checksum manifest must match the approval record); on missing/malformed approval or digest mismatch, halt work and fail closed directly to terminal Planner stop (PLAN_APPROVAL_INVALID or PLAN_DIGEST_MISMATCH -> 4), requiring independent fresh plan review before resumption; otherwise autonomously implement minimal required changes within the authorized module/behavior boundary plus explicit exclusions using public Given/When/Then scenarios; execute TDD RED (distinguishing intended assertion failures from setup errors), GREEN, and refactor; non-behavioral tasks supply static/specification evidence; escalate any protected shared or public contract modification or new requirement to Planner.",
         "conditions": [
           {
             "when": "ESCALATION_REQUIRED",
             "then": 3
+          },
+          {
+            "when": "PLAN_APPROVAL_INVALID",
+            "then": 4
+          },
+          {
+            "when": "PLAN_DIGEST_MISMATCH",
+            "then": 4
           },
           {
             "when": "IMPLEMENTATION_COMPLETE",
@@ -390,7 +435,7 @@
       {
         "index": 3,
         "actor": "planner",
-        "action": "Arbitrate escalation from Builder: for minor boundary clarifications, resolve inquiry and authorize Builder resumption (ESCALATION_RESOLVED -> 2); upon encountering protected shared or public contract changes, boundary expansions, or new requirements, stop affected work and return to amended plan review before Builder resumes (PLAN_AMENDMENT_REQUIRED -> 4).",
+        "action": "Arbitrate minor boundary clarification escalation from Builder: resolve inquiry and authorize Builder resumption (ESCALATION_RESOLVED -> 2); invalid plan-approval and digest mismatch bypass this clarification path directly to terminal stop (step 4); upon encountering protected shared or public contract changes, boundary expansions, or new requirements, stop affected work and return to amended plan review before Builder resumes (PLAN_AMENDMENT_REQUIRED -> 4).",
         "conditions": [
           {
             "when": "ESCALATION_RESOLVED",
@@ -405,13 +450,23 @@
       {
         "index": 4,
         "actor": "planner",
-        "action": "Stop affected implementation work upon new requirement or protected contract change, and return to the plan flow for amended plan review before Builder resumes.",
+        "action": "Stop affected implementation work upon new requirement, protected contract change, invalid plan-approval, or digest mismatch; fail closed and return to the plan flow, requiring independent fresh plan review before Builder resumption; resumption without fresh approval is prohibited.",
         "terminal": true
       },
       {
         "index": 5,
         "actor": "builder",
-        "action": "Verify implemented changes against acceptance criteria using local automated tests or static/specification evidence, and hand off the verified working copy diff and test execution logs to Planner without committing."
+        "action": "Re-verify build-plan exact bytes against the Reviewer-approved SHA-256 digest before handoff (failing closed on post-preflight drift with PLAN_DIGEST_MISMATCH -> 4, requiring independent fresh plan review before resumption), verify implemented changes against acceptance criteria using local automated tests or static/specification evidence, and hand off the verified working copy diff and test execution logs to Planner without committing.",
+        "conditions": [
+          {
+            "when": "PLAN_DIGEST_MISMATCH",
+            "then": 4
+          },
+          {
+            "when": "HANDOFF_READY",
+            "then": 6
+          }
+        ]
       },
       {
         "index": 6,

@@ -45,7 +45,7 @@ Do not query every knowledge domain on every turn. Query only the specific domai
    ```
 
 3. **Artifact Contracts**:
-   Before authoring, reviewing, or exchanging persistent plans, summaries, or structured findings (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `external-review-report`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-report`, `e2e-clarification-request`):
+   Before authoring, reviewing, or exchanging persistent plans, summaries, or structured findings (`agents-md`, `build-plan`, `review-plan`, `blueprint-plan`, `sub-build-plan`, `sub-review-plan`, `sub-review-resolution`, `review-findings`, `plan-approval`, `external-review-report`, `scout-survey`, `review-resolution`, `diagram-brief`, `diagram-completion`, `diagram-clarification-request`, `e2e-brief`, `e2e-report`, `e2e-clarification-request`):
    ```sh
    sh "<skill-dir>/scripts/run-agentplaybook.sh" artifact <artifact-name>
    ```
@@ -55,6 +55,7 @@ Do not query every knowledge domain on every turn. Query only the specific domai
    ```sh
    sh "<skill-dir>/scripts/run-agentplaybook.sh" rule list
    sh "<skill-dir>/scripts/run-agentplaybook.sh" rule explain <rule-id>...
+   sh "<skill-dir>/scripts/run-agentplaybook.sh" rule explain plan-approval-integrity
    ```
 
 ## Scout Role & Read-Only Reconnaissance
@@ -331,6 +332,10 @@ The `blueprint` flow defines a 17-step deterministic lifecycle:
 15. Planner synthesizes master feature composition resolution (`<slug>.resolution.md`).
 16. Reviewer executes Feature Composition Gate (`FEATURE_REVIEW_PASS` -> 17; `FEATURE_REVIEW_REJECT` -> 5; `DEPENDENT_EVIDENCE_STALE` -> 2), retaining required admitted E2E evidence or reviewed not-required rationale.
 17. Planner triggers Governed Milestone Acceptance.
+
+## Plan Approval Byte Integrity & Digest Binding (`plan-approval-integrity`)
+
+Every Builder-visible plan (`build-plan`, `sub-build-plan`) is mechanically bound to its exact bytes via a lowercase 64-hex SHA-256 digest in a Reviewer-originated `plan-approval` message artifact (`approval_id`, `gate`, `decision`, `plan_path`, `sha256`, `reviewer_peer_id`, `reviewed_at_utc`). Planner forwards the record unchanged. Builder must validate the approval metadata and independently verify actual plan bytes before reading/editing code, and recheck those same bytes before returning the diff. Mismatches (`PLAN_DIGEST_MISMATCH`) or invalid approvals (`PLAN_APPROVAL_INVALID`) halt work and return to Planner for independent re-review. Optional checksum manifests are non-authoritative vehicle checks; CLI flows provide procedural guidance rather than automatic runtime checksum execution.
 
 ## Ephemeral Communication Buffers
 

@@ -46,7 +46,7 @@
   {
     "name": "build-plan",
     "title": "Build Plan",
-    "description": "Task-specific implementation plan authored and persisted in the out-of-tree plan vault (~/.agentplaybook/<project>/plan/) and provided to Builder after single internal technical PLAN_REVIEW_PASS (retaining both concept/method and interaction-contract review gates strictly for opt-in legacy Blueprint flows).",
+    "description": "Task-specific implementation plan authored and persisted in the out-of-tree plan vault (~/.agentplaybook/<project>/plan/) and provided to Builder after single internal technical PLAN_REVIEW_PASS (retaining both concept/method and interaction-contract review gates strictly for opt-in legacy Blueprint flows), mechanically bound to its exact SHA-256 byte digest via the Reviewer-originated plan-approval record.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -209,7 +209,7 @@
   {
     "name": "sub-build-plan",
     "title": "Sub-Build Plan",
-    "description": "Task-specific implementation plan for an individual sub-plan unit persisted in the out-of-tree plan vault (~/.agentplaybook/<project>/plan/sub/) and dispatched to Builder only after both Sub-Plan and interaction-contract gates pass.",
+    "description": "Task-specific implementation plan for an individual sub-plan unit persisted in the out-of-tree plan vault (~/.agentplaybook/<project>/plan/sub/) and dispatched to Builder only after both Sub-Plan and interaction-contract gates pass, mechanically bound to its exact SHA-256 byte digest via the Reviewer-originated plan-approval record.",
     "owner": "planner",
     "visibility": [
       "planner",
@@ -416,6 +416,55 @@
         "name": "reproduction_scenario",
         "required": false,
         "description": "Steps or input conditions needed for Builder to write a reproduction test (required for behavioral findings, omitted for non-behavioral findings)."
+      }
+    ]
+  },
+  {
+    "name": "plan-approval",
+    "title": "Plan Approval",
+    "description": "Structured approval message issued by Reviewer to mechanically bind an approved Builder-visible plan to its exact SHA-256 byte digest, forwarded unchanged by Planner to Builder.",
+    "owner": "reviewer",
+    "visibility": [
+      "planner",
+      "reviewer",
+      "builder"
+    ],
+    "type": "message",
+    "fields": [
+      {
+        "name": "approval_id",
+        "required": true,
+        "description": "Unique identifier for the approval record."
+      },
+      {
+        "name": "gate",
+        "required": true,
+        "description": "Approval gate identifier (PLAN_REVIEW_PASS for ordinary single-plan work or CONTRACT_REVIEW_PASS for legacy Blueprint JIT sub-plans)."
+      },
+      {
+        "name": "decision",
+        "required": true,
+        "description": "Passing gate decision affirming plan acceptance."
+      },
+      {
+        "name": "plan_path",
+        "required": true,
+        "description": "Canonical vault-relative path to the approved plan file."
+      },
+      {
+        "name": "sha256",
+        "required": true,
+        "description": "Lowercase 64-character hexadecimal SHA-256 digest computed over the exact bytes of the approved plan file."
+      },
+      {
+        "name": "reviewer_peer_id",
+        "required": true,
+        "description": "Peer session identity of the Reviewer that evaluated the plan and issued the approval."
+      },
+      {
+        "name": "reviewed_at_utc",
+        "required": true,
+        "description": "RFC3339 UTC timestamp when the review was concluded and approval issued."
       }
     ]
   },

@@ -74,8 +74,8 @@ func TestFlow_QueryFull(t *testing.T) {
 		if err := json.Unmarshal(stdout.Bytes(), &f); err != nil {
 			t.Fatalf("failed to decode JSON response: %v\nRaw: %s", err, stdout.String())
 		}
-		if len(f.Steps) != 7 {
-			t.Fatalf("expected 7 steps in plan flow, got %d", len(f.Steps))
+		if len(f.Steps) != 8 {
+			t.Fatalf("expected 8 steps in plan flow, got %d", len(f.Steps))
 		}
 		if !strings.Contains(f.Steps[0].Action, "CONSULTATION_REQUESTED") || !strings.Contains(f.Steps[0].Action, "DIRECT_PLANNING") {
 			t.Errorf("expected plan step 1 action to mention consultation or direct planning, got: %s", f.Steps[0].Action)
@@ -87,7 +87,7 @@ func TestFlow_QueryFull(t *testing.T) {
 		for _, condition := range f.Steps[4].Conditions {
 			planConditions[condition.When] = condition.Then
 		}
-		if planConditions["PLAN_REVIEW_PASS"] != 7 || planConditions["PLAN_REVIEW_REJECT"] != 6 {
+		if planConditions["PLAN_REVIEW_PASS"] != 7 || planConditions["PLAN_REVIEW_REJECT"] != 6 || planConditions["PLAN_DIGEST_MISMATCH"] != 6 {
 			t.Errorf("unexpected plan gate transitions: %v", planConditions)
 		}
 		revisionConditions := make(map[string]int)
@@ -97,8 +97,15 @@ func TestFlow_QueryFull(t *testing.T) {
 		if revisionConditions["PLANS_REVISED"] != 4 {
 			t.Errorf("unexpected plan revision transitions: %v", revisionConditions)
 		}
-		if !strings.Contains(f.Steps[6].Action, "PLAN_REVIEW_PASS") {
-			t.Errorf("expected finalization to require PLAN_REVIEW_PASS, got: %s", f.Steps[6].Action)
+		step7Conditions := make(map[string]int)
+		for _, condition := range f.Steps[6].Conditions {
+			step7Conditions[condition.When] = condition.Then
+		}
+		if step7Conditions["PLAN_DIGEST_VERIFIED"] != 8 || step7Conditions["PLAN_DIGEST_MISMATCH"] != 6 {
+			t.Errorf("unexpected step 7 transitions: %v", step7Conditions)
+		}
+		if !strings.Contains(f.Steps[7].Action, "PLAN_REVIEW_PASS") {
+			t.Errorf("expected finalization to require PLAN_REVIEW_PASS, got: %s", f.Steps[7].Action)
 		}
 	}
 
