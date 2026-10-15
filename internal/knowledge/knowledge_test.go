@@ -1,6 +1,8 @@
 package knowledge_test
 
 import (
+	"bytes"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -4397,5 +4399,105 @@ func TestValidateE2E_PlannerRemediationRegressions(t *testing.T) {
 		if !strings.Contains(err.Error(), "field diagnostic contains illegal control character") {
 			t.Errorf("expected deterministic error on diagnostic first, got: %v", err)
 		}
+	}
+}
+
+func TestFormatE2EReport_GoldenSerialization(t *testing.T) {
+	t.Parallel()
+
+	brief := validTestBrief()
+	report := validTestReport(brief)
+
+	const expectedGolden = "run_id: e2e-run-20261012T220000Z-7f8a9b\n" +
+		"repo_ref: github.com/ChiaYuChang/agentplaybook\n" +
+		"candidate_ref: 0123456789abcdef0123456789abcdef01234567\n" +
+		"test_package: e2e/core-flow\n" +
+		"stage_outcome: PASS\n" +
+		"build_outcome: PASS\n" +
+		"execution_outcome: PASS\n" +
+		"scenarios_selected: 3\n" +
+		"scenarios_passed: 2\n" +
+		"scenarios_failed: 0\n" +
+		"scenarios_skipped: 1\n" +
+		"scenarios_not_run: 0\n" +
+		"scenarios_unknown: 0\n" +
+		"scenario_results:\n" +
+		"  - SC-01: PASS\n" +
+		"  - SC-02: PASS\n" +
+		"  - SC-03: SKIP\n" +
+		"result_completeness: COMPLETE\n" +
+		"tested_artifact_ref: sha256:2222222222222222222222222222222222222222222222222222222222222222;candidate=0123456789abcdef0123456789abcdef01234567;build_material=sha256:9f7f5975d889587ec171baff188a7d479f39430583ebeebc15a456785ade478f;source=FRESH\n" +
+		"execution_material_ref: sha256:7d4ee01f809e5d2efaee4f7a1afed150e0950b4e15912649eddf3e2fbf657389\n" +
+		"duration_ms: 12500\n" +
+		"diagnostic: All selected scenarios passed with 1 authorized skip.\n" +
+		"evidence_uri: file:///tmp/e2e-run-7f8a9b/evidence.tar.gz\n" +
+		"cleanup_status: CONFIRMED\n" +
+		"cleanup_evidence_uri: file:///tmp/e2e-run-7f8a9b/cleanup.json\n" +
+		"secrets_attestation: ATTESTED:THROWAWAY sha256:eeeec30f1f0ea0b0beb5265ca8c3f2ab702cd73b51825c3e36882365b751f4fb"
+
+	const expectedDigest = "2feae0b456766c9addd95ca462b5a259f8cd7a406513b6d00204da7cd59278a6"
+
+	formatted := knowledge.FormatE2EReport(report)
+	if formatted != expectedGolden {
+		t.Errorf("FormatE2EReport mismatch:\nexpected:\n%s\ngot:\n%s", expectedGolden, formatted)
+	}
+
+	digest := knowledge.ComputeReportDigest(report)
+	if digest != expectedDigest {
+		t.Errorf("ComputeReportDigest mismatch:\nexpected: %s\ngot:      %s", expectedDigest, digest)
+	}
+}
+
+func TestValidate_UnknownRoleEmitsWarningWithoutError(t *testing.T) {
+	var buf bytes.Buffer
+	handler := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn})
+	logger := slog.New(handler)
+	oldLogger := slog.Default()
+	slog.SetDefault(logger)
+	defer slog.SetDefault(oldLogger)
+
+	k, err := knowledge.Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	target := *k
+	roles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+	roles = append(roles, knowledge.RoleDefinition{
+		Name:             knowledge.Role("custom-specialist"),
+		Title:            "Custom Specialist",
+		Category:         "core",
+		Description:      "A custom specialist role for testing unknown role warning handling",
+		Responsibilities: []string{"Handle specialized tasks"},
+		Boundaries:       []string{"Do not exceed scope"},
+		Communication: knowledge.RoleCommunication{
+			Targets: []knowledge.Role{knowledge.RolePlanner},
+		},
+	})
+	setRoles(&target, roles)
+
+	if err := knowledge.Validate(&target); err != nil {
+		t.Fatalf("expected unknown role to pass validation without error, got: %v", err)
+	}
+
+	output := buf.String()
+	if !strings.Contains(output, "unexpected role in validation") || !strings.Contains(output, "custom-specialist") {
+		t.Errorf("expected warning containing 'unexpected role in validation' and 'custom-specialist', got: %q", output)
+	}
+
+	// Verify that registering RoleUser as an internal role still fails validation.
+	userRoleTarget := *k
+	userRoles := append([]knowledge.RoleDefinition(nil), k.Roles()...)
+	userRoles = append(userRoles, knowledge.RoleDefinition{
+		Name:             knowledge.RoleUser,
+		Title:            "User",
+		Category:         "core",
+		Description:      "Human user",
+		Responsibilities: []string{"Direct project"},
+		Boundaries:       []string{"Do not edit internals directly"},
+	})
+	setRoles(&userRoleTarget, userRoles)
+	if err := knowledge.Validate(&userRoleTarget); err == nil {
+		t.Error("expected error when RoleUser is registered as an internal role")
 	}
 }

@@ -66,6 +66,11 @@ func TestCanonicalRepoID_RemoteNormalization(t *testing.T) {
 			rawURL:   "https://GitHub.com/Owner/Repo.GIT",
 			expected: "github.com/owner/repo",
 		},
+		{
+			name:     "malformed scp-like with colon only before at",
+			rawURL:   "user:pass@github.com/owner/repo",
+			expected: "",
+		},
 	}
 
 	for _, tc := range testCases {

@@ -3,6 +3,7 @@ package knowledge
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 )
 
@@ -113,6 +114,10 @@ func Validate(k *Knowledge) error {
 			if len(r.Communication.Targets) != 1 || !targetSet[RolePlanner] {
 				errs = append(errs, fmt.Errorf("role %q communication targets must contain strictly 'planner'", r.Name))
 			}
+		case RoleUser:
+			// RoleUser is rejected during earlier registration checks; no duplicate error here.
+		default:
+			slog.Warn("unexpected role in validation", "role", r.Name)
 		}
 	}
 
@@ -164,17 +169,18 @@ func Validate(k *Knowledge) error {
 		}
 		artifactNames[a.Name] = true
 
-		if a.Owner == RoleUser {
+		switch {
+		case a.Owner == RoleUser:
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be user", a.Name))
-		} else if a.Owner == RoleNavigator {
+		case a.Owner == RoleNavigator:
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role navigator", a.Name))
-		} else if a.Owner == RoleCartographer && a.Name != "diagram-completion" && a.Name != "diagram-clarification-request" {
+		case a.Owner == RoleCartographer && a.Name != "diagram-completion" && a.Name != "diagram-clarification-request":
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be companion role cartographer (permitted exclusively for diagram-completion and diagram-clarification-request)", a.Name))
-		} else if a.Owner == RoleVerifier && a.Name != "e2e-report" && a.Name != "e2e-clarification-request" {
+		case a.Owner == RoleVerifier && a.Name != "e2e-report" && a.Name != "e2e-clarification-request":
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be role verifier (permitted exclusively for e2e-report and e2e-clarification-request)", a.Name))
-		} else if a.Owner == RoleExternalReviewer && a.Name != "external-review-report" {
+		case a.Owner == RoleExternalReviewer && a.Name != "external-review-report":
 			errs = append(errs, fmt.Errorf("artifact %q owner cannot be role external-reviewer (permitted exclusively for external-review-report)", a.Name))
-		} else if !roleNames[a.Owner] {
+		case !roleNames[a.Owner]:
 			errs = append(errs, fmt.Errorf("artifact %q owner %q does not exist", a.Name, a.Owner))
 		}
 		if a.Name == "external-review-report" {
@@ -194,17 +200,18 @@ func Validate(k *Knowledge) error {
 			errs = append(errs, fmt.Errorf("artifact %q visibility cannot be empty", a.Name))
 		}
 		for _, v := range a.Visibility {
-			if v == RoleUser {
+			switch {
+			case v == RoleUser:
 				errs = append(errs, fmt.Errorf("artifact %q visibility cannot include user", a.Name))
-			} else if !roleNames[v] {
+			case !roleNames[v]:
 				errs = append(errs, fmt.Errorf("artifact %q visibility role %q does not exist", a.Name, v))
-			} else if v == RoleNavigator && !allowedNavigatorArtifacts[a.Name] {
+			case v == RoleNavigator && !allowedNavigatorArtifacts[a.Name]:
 				errs = append(errs, fmt.Errorf("artifact %q is not in the settled allowlist and cannot include companion role navigator in visibility", a.Name))
-			} else if v == RoleCartographer && !allowedCartographerArtifacts[a.Name] {
+			case v == RoleCartographer && !allowedCartographerArtifacts[a.Name]:
 				errs = append(errs, fmt.Errorf("artifact %q is not in the settled allowlist and cannot include companion role cartographer in visibility", a.Name))
-			} else if v == RoleVerifier && !allowedVerifierArtifacts[a.Name] {
+			case v == RoleVerifier && !allowedVerifierArtifacts[a.Name]:
 				errs = append(errs, fmt.Errorf("artifact %q is not in the settled allowlist and cannot include role verifier in visibility", a.Name))
-			} else if v == RoleExternalReviewer && !allowedExternalReviewerArtifacts[a.Name] {
+			case v == RoleExternalReviewer && !allowedExternalReviewerArtifacts[a.Name]:
 				errs = append(errs, fmt.Errorf("artifact %q is not in the settled allowlist and cannot include role external-reviewer in visibility", a.Name))
 			}
 		}
@@ -251,17 +258,18 @@ func Validate(k *Knowledge) error {
 				maxIdx = s.Index
 			}
 
-			if s.Actor == RoleUser {
+			switch {
+			case s.Actor == RoleUser:
 				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be user", f.Name, s.Index))
-			} else if s.Actor == RoleNavigator && f.Name != "navigator-cartography" {
+			case s.Actor == RoleNavigator && f.Name != "navigator-cartography":
 				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be companion role navigator (permitted exclusively in navigator-cartography flow)", f.Name, s.Index))
-			} else if s.Actor == RoleCartographer && f.Name != "cartography" && f.Name != "navigator-cartography" {
+			case s.Actor == RoleCartographer && f.Name != "cartography" && f.Name != "navigator-cartography":
 				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be companion role cartographer (permitted exclusively in cartography and navigator-cartography flows)", f.Name, s.Index))
-			} else if s.Actor == RoleVerifier && f.Name != "e2e" {
+			case s.Actor == RoleVerifier && f.Name != "e2e":
 				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be role verifier (permitted exclusively in e2e flow)", f.Name, s.Index))
-			} else if s.Actor == RoleExternalReviewer {
+			case s.Actor == RoleExternalReviewer:
 				errs = append(errs, fmt.Errorf("flow %q step %d actor cannot be role external-reviewer (user-requested external review communicates only through external-review-report and is never a standing flow gate)", f.Name, s.Index))
-			} else if !roleNames[s.Actor] {
+			case !roleNames[s.Actor]:
 				errs = append(errs, fmt.Errorf("flow %q step %d actor %q does not exist", f.Name, s.Index, s.Actor))
 			}
 			if strings.TrimSpace(s.Action) == "" {

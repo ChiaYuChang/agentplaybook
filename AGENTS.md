@@ -81,9 +81,10 @@
 
 ## Active State & In-Flight Context
 
-- **Observed-At**: `2026-10-14T15:46:39Z @ 48dfe1a2` (task baseline)
-- **Dirty Status**: `plan-digest-binding` candidate in working copy; parent `48dfe1a2` (`main`, `v0.5.1`). No commit or push.
-- **Milestone**: `plan-digest-binding` - implementation and local verification complete; Reviewer passed code candidate `2b308040`; current delta is Planner-owned Active State only. No commit or push.
+- **Observed-At**: `2026-10-15T08:32:38Z @ 5842fef8` (reviewed pre-seal candidate)
+- **Dirty Status**: At observation, working copy contained `plan-digest-binding`, `golangci-lint-remediation`, and user-added `.golangci.yml`; parent `48dfe1a2` (`main`, `v0.5.1`). Full candidate selected for local seal; remote publication not authorized.
+- **Milestone**: `plan-digest-binding` candidate previously passed Reviewer at `2b308040`; lint remediation resolves 23 findings and passed Reviewer for delta `f545469d` -> `5842fef8`. `go test ./...`, `golangci-lint run`, and `git diff --check` passed; formal E2E not required.
+- **Operational Caveats**: Malformed SCP-like remotes yield empty normalization and location-dependent `local:<abs_path>` fallback; unknown role values warn but remain accepted when otherwise valid; Git config close failures warn without changing parse results.
 - **Scaffolding Vault**: project-first `~/.agentplaybook/<project>/{plan,e2e}` (single root binding; legacy type-first auto-migrates).
-- **Next Pickup Item**: Await explicit human commit intent. Commit, tag, release, push, or formal E2E requires separate authorization.
+- **Next Pickup Item**: Seal reviewed candidate locally; remote publication requires separate explicit authorization. No formal E2E requested.
 - **Ground Truth Revalidation Invariant**: Cold-start Planners MUST run fresh `jj --no-pager status` to revalidate mutable repository ground truth; never blindly trust cached Active State.

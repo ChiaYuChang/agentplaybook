@@ -1,0 +1,86 @@
+version: "2"
+
+run:
+  concurrency: 0
+  timeout: 5m
+  relative-path-mode: gomod
+  tests: true
+
+linters:
+  default: standard
+
+  enable:
+    - bodyclose
+    - contextcheck
+    - copyloopvar
+    - durationcheck
+    - errorlint
+    - exhaustive
+    - fatcontext
+    - makezero
+    - nilerr
+    - wastedassign
+
+    # Code quality
+    - gocritic
+    - misspell
+    - unconvert
+    - unparam
+    - usestdlibvars
+
+    # Security / API
+    # - gosec
+    - loggercheck
+
+    # Lint hygiene
+    - nolintlint
+
+  settings:
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+
+  exclusions:
+    generated: strict
+    warn-unused: true
+
+    rules:
+      # Explicit embedded-field selectors can make field ownership clearer.
+      - text: "^QF1008:"
+        linters:
+          - staticcheck
+
+      # Test helpers keep inputs explicit even when current callers use one value.
+      - path: _test\.go$
+        text: "always receives"
+        linters:
+          - unparam
+
+      # Tests read their own fixtures and outside-root markers to assert boundary behavior.
+      - path: _test\.go$
+        text: "^G304:"
+        linters:
+          - gosec
+
+      # Tests tend to intentionally leave some things unused / unchecked.
+      - path: _test\.go
+        linters:
+          - errcheck
+
+      # Random helpers provide test data, not credentials; keep G404 visible elsewhere.
+      - path: ^pkg/testutils/random\.go$
+        text: "^G404:"
+        linters:
+          - gosec
+
+formatters:
+  enable:
+    # - gofumpt
+    - goimports
+
+  exclusions:
+    generated: strict
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

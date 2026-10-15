@@ -3112,14 +3112,8 @@ func TestCLI_SubPlan02_LifecycleAndAcceptanceIntegration(t *testing.T) {
 			if err := json.Unmarshal(queryJSON("artifact", artName), &a); err != nil {
 				t.Fatalf("failed to decode %s: %v", artName, err)
 			}
-			found := false
-			for _, sec := range a.Sections {
-				if sec.Name == "E2E Verification" && sec.Required {
-					found = true
-					break
-				}
-			}
-			if !found {
+			requiredSecs := catalogRequiredSectionNames(a)
+			if !slices.Contains(requiredSecs, "E2E Verification") {
 				t.Errorf("expected %s to have mandatory 'E2E Verification' section", artName)
 			}
 		}
@@ -3129,14 +3123,8 @@ func TestCLI_SubPlan02_LifecycleAndAcceptanceIntegration(t *testing.T) {
 			if err := json.Unmarshal(queryJSON("artifact", artName), &a); err != nil {
 				t.Fatalf("failed to decode %s: %v", artName, err)
 			}
-			found := false
-			for _, sec := range a.Sections {
-				if sec.Name == "E2E Coverage" && sec.Required {
-					found = true
-					break
-				}
-			}
-			if !found {
+			requiredSecs := catalogRequiredSectionNames(a)
+			if !slices.Contains(requiredSecs, "E2E Coverage") {
 				t.Errorf("expected %s to have mandatory 'E2E Coverage' section", artName)
 			}
 		}

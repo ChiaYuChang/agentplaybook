@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/url"
 	"os"
@@ -119,6 +120,9 @@ func NormalizeRemoteURL(raw string) string {
 			part = part[atIdx+1:]
 		}
 		colonIdx := strings.Index(part, ":")
+		if colonIdx == -1 {
+			return ""
+		}
 		host := part[:colonIdx]
 		path := cleanGitPath(part[colonIdx+1:])
 		if host != "" && path != "" {
@@ -196,7 +200,11 @@ func parseGitConfigFile(path string) string {
 	if err != nil {
 		return ""
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			slog.Warn("failed to close git config file", "path", path, "error", closeErr)
+		}
+	}()
 
 	scanner := bufio.NewScanner(f)
 	currentSection := ""

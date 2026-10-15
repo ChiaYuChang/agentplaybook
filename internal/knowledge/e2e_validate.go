@@ -19,7 +19,6 @@ import (
 var (
 	candidateRefPattern      = regexp.MustCompile(`^[a-f0-9]{40}$`)
 	sha256PrefixPattern      = regexp.MustCompile(`^sha256:[a-f0-9]{64}$`)
-	sha256HexPattern         = regexp.MustCompile(`^[a-f0-9]{64}$`)
 	asciiKebabPattern        = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 	testPackagePattern       = regexp.MustCompile(`^e2e(/[a-zA-Z0-9_.-]+)*$`)
 	evidenceURIPattern       = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*://`)
@@ -482,7 +481,8 @@ func validateGoTestCommand(cmd []string) error {
 
 		cleanName := strings.TrimPrefix(flagName, "test.")
 
-		if cleanName == "count" {
+		switch {
+		case cleanName == "count":
 			if hasVal {
 				countSeen = true
 				effectiveCount = flagVal
@@ -495,7 +495,7 @@ func validateGoTestCommand(cmd []string) error {
 					return errors.New("flag -count requires an argument")
 				}
 			}
-		} else if goTestValueFlags[cleanName] {
+		case goTestValueFlags[cleanName]:
 			if !hasVal {
 				if i+1 < flagsEnd {
 					i++
@@ -503,9 +503,9 @@ func validateGoTestCommand(cmd []string) error {
 					return fmt.Errorf("flag %q requires an argument", arg)
 				}
 			}
-		} else if goTestBoolFlags[cleanName] {
+		case goTestBoolFlags[cleanName]:
 			// recognized bool flag, does not consume next token
-		} else {
+		default:
 			// Unknown flag
 			if !hasVal {
 				return fmt.Errorf("ambiguous or unrecognized flag %q without '=' in formal test command", arg)
@@ -616,15 +616,16 @@ func FormatE2EReport(r E2EReportPayload) string {
 	sb.WriteString(r.BuildOutcome)
 	sb.WriteString("\nexecution_outcome: ")
 	sb.WriteString(r.ExecutionOutcome)
-	sb.WriteString(fmt.Sprintf("\nscenarios_selected: %d", r.ScenariosSelected))
-	sb.WriteString(fmt.Sprintf("\nscenarios_passed: %d", r.ScenariosPassed))
-	sb.WriteString(fmt.Sprintf("\nscenarios_failed: %d", r.ScenariosFailed))
-	sb.WriteString(fmt.Sprintf("\nscenarios_skipped: %d", r.ScenariosSkipped))
-	sb.WriteString(fmt.Sprintf("\nscenarios_not_run: %d", r.ScenariosNotRun))
-	sb.WriteString(fmt.Sprintf("\nscenarios_unknown: %d", r.ScenariosUnknown))
+	// strings.Builder writes cannot fail, discarding return values explicitly.
+	_, _ = fmt.Fprintf(&sb, "\nscenarios_selected: %d", r.ScenariosSelected)
+	_, _ = fmt.Fprintf(&sb, "\nscenarios_passed: %d", r.ScenariosPassed)
+	_, _ = fmt.Fprintf(&sb, "\nscenarios_failed: %d", r.ScenariosFailed)
+	_, _ = fmt.Fprintf(&sb, "\nscenarios_skipped: %d", r.ScenariosSkipped)
+	_, _ = fmt.Fprintf(&sb, "\nscenarios_not_run: %d", r.ScenariosNotRun)
+	_, _ = fmt.Fprintf(&sb, "\nscenarios_unknown: %d", r.ScenariosUnknown)
 	sb.WriteString("\nscenario_results:")
 	for _, sr := range r.ScenarioResults {
-		sb.WriteString(fmt.Sprintf("\n  - %s: %s", sr.ScenarioID, sr.Outcome))
+		_, _ = fmt.Fprintf(&sb, "\n  - %s: %s", sr.ScenarioID, sr.Outcome)
 	}
 	sb.WriteString("\nresult_completeness: ")
 	sb.WriteString(r.ResultCompleteness)
@@ -632,7 +633,7 @@ func FormatE2EReport(r E2EReportPayload) string {
 	sb.WriteString(r.TestedArtifactRef)
 	sb.WriteString("\nexecution_material_ref: ")
 	sb.WriteString(r.ExecutionMaterialRef)
-	sb.WriteString(fmt.Sprintf("\nduration_ms: %d", r.DurationMS))
+	_, _ = fmt.Fprintf(&sb, "\nduration_ms: %d", r.DurationMS)
 	sb.WriteString("\ndiagnostic: ")
 	sb.WriteString(r.Diagnostic)
 	sb.WriteString("\nevidence_uri: ")
@@ -1035,10 +1036,8 @@ func ValidateE2EBrief(brief E2EBriefContext, state E2EBriefValidationContext) er
 		if !state.PriorCleanup.HumanResolutionVerified {
 			return errors.New("E2E_BRIEF_INVALID: prior cleanup resolution not verified by controller/planner")
 		}
-	} else {
-		if brief.PriorCleanupResolution != nil {
-			return errors.New("E2E_BRIEF_INVALID: prior cleanup resolution provided but no prior cleanup was required")
-		}
+	} else if brief.PriorCleanupResolution != nil {
+		return errors.New("E2E_BRIEF_INVALID: prior cleanup resolution provided but no prior cleanup was required")
 	}
 
 	return nil
@@ -1079,7 +1078,8 @@ func ValidateE2EReport(brief E2EBriefContext, report E2EReportPayload, state E2E
 		return fmt.Errorf("E2E_REPORT_INVALID: incoming report digest mismatch: expected %s, got %s", expectedDigest, state.Finalization.IncomingReportDigest)
 	}
 
-	if state.Finalization.State == "FIRST_FINALIZATION" {
+	switch state.Finalization.State {
+	case "FIRST_FINALIZATION":
 		if state.Finalization.ExistingTerminalReportDigest != "" {
 			return errors.New("E2E_REPORT_INVALID: FIRST_FINALIZATION requires empty ExistingTerminalReportDigest")
 		}
@@ -1095,7 +1095,7 @@ func ValidateE2EReport(brief E2EBriefContext, report E2EReportPayload, state E2E
 				return fmt.Errorf("E2E_REPORT_INVALID: non-RUNNER_LOST report requires authority VERIFIER, got %s", state.Finalization.Authority)
 			}
 		}
-	} else if state.Finalization.State == "DUPLICATE_IDENTICAL" {
+	case "DUPLICATE_IDENTICAL":
 		if state.Finalization.ExistingTerminalReportDigest == "" {
 			return errors.New("E2E_REPORT_INVALID: DUPLICATE_IDENTICAL requires non-empty ExistingTerminalReportDigest")
 		}
@@ -1482,15 +1482,16 @@ func ValidateE2EReport(brief E2EBriefContext, report E2EReportPayload, state E2E
 	}
 
 	// ResultCompleteness derivation
-	if unknownCount > 0 {
+	switch {
+	case unknownCount > 0:
 		if report.ResultCompleteness != "PARTIAL" {
 			return fmt.Errorf("E2E_REPORT_INVALID: presence of unknown scenario results requires result_completeness PARTIAL, got %s", report.ResultCompleteness)
 		}
-	} else if notRunCount == len(brief.Scenarios) && !state.ExecutionStarted {
+	case notRunCount == len(brief.Scenarios) && !state.ExecutionStarted:
 		if report.ResultCompleteness != "NONE" {
 			return fmt.Errorf("E2E_REPORT_INVALID: all scenarios not run without execution start requires result_completeness NONE, got %s", report.ResultCompleteness)
 		}
-	} else {
+	default:
 		if report.ResultCompleteness != "COMPLETE" {
 			return fmt.Errorf("E2E_REPORT_INVALID: all scenario outcomes known requires result_completeness COMPLETE, got %s", report.ResultCompleteness)
 		}
@@ -1619,13 +1620,14 @@ func ValidateE2EReport(brief E2EBriefContext, report E2EReportPayload, state E2E
 	} else {
 		switch state.CredentialProvisioningState {
 		case "NOT_STARTED":
-			if state.PreflightOutcome == "AUTHORIZATION_DENIED" {
+			switch {
+			case state.PreflightOutcome == "AUTHORIZATION_DENIED":
 				if report.SecretsAttestation != "ENV_BLOCKED:AUTHORIZATION_DENIED" {
 					return fmt.Errorf("E2E_REPORT_INVALID: preflight AUTHORIZATION_DENIED requires secrets_attestation ENV_BLOCKED:AUTHORIZATION_DENIED, got %s", report.SecretsAttestation)
 				}
-			} else if report.SecretsAttestation == "ENV_BLOCKED:GENERATOR_UNAVAILABLE" && (report.StageOutcome == "ENV_BLOCKED" || report.StageOutcome == "RUNNER_LOST") {
+			case report.SecretsAttestation == "ENV_BLOCKED:GENERATOR_UNAVAILABLE" && (report.StageOutcome == "ENV_BLOCKED" || report.StageOutcome == "RUNNER_LOST"):
 				// known durable preflight/runner-loss generator unavailable block preserved
-			} else {
+			default:
 				expectedPolicyDigest := ComputePolicyDigest(brief.CredentialPolicy)
 				expectedAttest := fmt.Sprintf("NOT_PROVISIONED sha256:%s", expectedPolicyDigest)
 				if report.SecretsAttestation != expectedAttest {
@@ -1660,14 +1662,15 @@ func ValidateE2EReport(brief E2EBriefContext, report E2EReportPayload, state E2E
 	// 15. Fail-closed cross-field stage outcome mappings
 	switch report.StageOutcome {
 	case "PASS":
-		if brief.Mode == "build-and-run" {
+		switch brief.Mode {
+		case "build-and-run":
 			if report.BuildOutcome == "NOT_RUN" {
 				return errors.New("E2E_REPORT_INVALID: stage outcome PASS in build-and-run mode cannot have build outcome NOT_RUN")
 			}
 			if report.BuildOutcome != "PASS" {
 				return fmt.Errorf("E2E_REPORT_INVALID: stage outcome PASS in build-and-run mode requires build outcome PASS, got %s", report.BuildOutcome)
 			}
-		} else if brief.Mode == "run-only" {
+		case "run-only":
 			if report.BuildOutcome != "NOT_RUN" {
 				return fmt.Errorf("E2E_REPORT_INVALID: stage outcome PASS in run-only mode requires build outcome NOT_RUN, got %s", report.BuildOutcome)
 			}
